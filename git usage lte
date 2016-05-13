@@ -1,0 +1,9 @@
+初始化当前目录为git仓库
+git init .
+
+初始化当前目录为git裸仓库
+git init --bare .
+
+已有仓库与远程仓库关联, 并推送当前内容至远程仓库
+git remote add origin [SSH/HTTPS]
+git push -u origin master
