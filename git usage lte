@@ -13,3 +13,6 @@ git config --global https.proxy http://191.9.101.122:80
 
 撤销add(未commit)
 git reset
+
+直接提交任何有修改的受控文件
+git commit -am "注释"
