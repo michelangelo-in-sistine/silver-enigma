@@ -10,3 +10,6 @@ git push -u origin master
 
 设置https代理
 git config --global https.proxy http://191.9.101.122:80
+
+撤销add(未commit)
+git reset
