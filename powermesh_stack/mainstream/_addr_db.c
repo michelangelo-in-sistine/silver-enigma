@@ -23,7 +23,6 @@
 
 //extern notify_psr_expired_addr(ADDR_REF_TYPE expired_addr);
 
-#ifdef USE_ADDR_DB
 /* Private define ------------------------------------------------------------*/
 /* Private typedef -----------------------------------------------------------*/
 /* Private macro -------------------------------------------------------------*/
@@ -48,6 +47,7 @@ void init_addr_db()
 	_addr_item_usage = 0;
 }
 
+#ifdef USE_ADDR_DB
 
 /*******************************************************************************
 * Function Name  : incre_all_items_expire_cnt()

@@ -51,6 +51,7 @@
 #else
 #define PLC_CONTROL_MODE	SOC_MODE
 #endif
+#define USE_MEASURE
 
 /* Application Environment Define ---------------------------------*/
 #define POWERLINE 			PL_DC
@@ -58,7 +59,8 @@
 /* Firmware Feature Define ----------------------------------------*/
 #define BRING_USER_DATA		1	// if defined, bring back user custom data while buiding network
 #define USE_RSCODEC
-
+//#define USE_ADDR_DB
+#define USE_DIAG
 
 /*========================== Debug/Release Switch  ================*/
 /* Release Define ----------------------------------------*/

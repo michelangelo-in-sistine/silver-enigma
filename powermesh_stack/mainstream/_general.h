@@ -61,7 +61,11 @@ u8 encode_xmode(u8 xmode, u8 scan);
 u8 decode_xmode(u8 xcode);
 
 /* zx detection */
+#if POWERLINE==PL_AC
 BOOL is_zx_valid(u8 phase);
+#else
+#define is_zx_valid(phase) (1)
+#endif
 
 
 /* LED */

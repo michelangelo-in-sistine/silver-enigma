@@ -73,7 +73,11 @@
 
 /* Mem Config */
 #define CFG_MEM_MINOR_BLOCK_SIZE					32				// MINOR型动态内存每次分配字节数
+#if CPU_TYPE==CPU_STM32F030C8
+#define CFG_MEM_SUPERIOR_BLOCK_SIZE					252				// M0 CPU内存访问必须是aligned, 
+#else
 #define CFG_MEM_SUPERIOR_BLOCK_SIZE					255				// SUPERIOR型动态内存每次分配字节数
+#endif
 #define CFG_USER_DATA_BUFFER_SIZE					20				// PING携带的用户数据长度
 
 #if DEVICE_TYPE==DEVICE_CC
@@ -97,7 +101,7 @@
 #if DEVICE_TYPE==DEVICE_CC
 	#define CFG_ADDR_ITEM_CNT						2047			// 数据类型支持最大32767个
 	//#define CFG_ADDR_ITEM_CNT						16
-#elif DEVICE_TYPE==DEVICE_MT	
+#elif DEVICE_TYPE==DEVICE_MT || DEVICE_TYPE==DEVICE_SE || DEVICE_TYPE==DEVICE_SS
 	#define CFG_ADDR_ITEM_CNT						16				// 最大127个, (2^N-1用于描述非法资源索引)
 #elif DEVICE_TYPE==DEVICE_DC	
 	#define CFG_ADDR_ITEM_CNT						255				// 

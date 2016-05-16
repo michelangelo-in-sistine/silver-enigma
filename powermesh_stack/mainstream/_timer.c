@@ -16,7 +16,6 @@
 /* Includes ------------------------------------------------------------------*/
 #include "powermesh_include.h"
 
-//#include "compile_define.h"
 //#include "powermesh_datatype.h"
 //#include "powermesh_config.h"
 //#include "hardware.h"
@@ -134,8 +133,8 @@ void timer_int_svr(void)
 		_phy_rcv_obj[i].phase = i;
 		phy_rcv_proc(&_phy_rcv_obj[i]);
 		
-//		_dll_rcv_obj[i].phase = i;
-//		dll_rcv_proc(&_dll_rcv_obj[i]);
+		_dll_rcv_obj[i].phase = i;
+		dll_rcv_proc(&_dll_rcv_obj[i]);
 
 //		_psr_rcv_obj[i].phase = i;
 //		nw_rcv_proc(&_psr_rcv_obj[i]);
@@ -334,7 +333,7 @@ void delete_timer(TIMER_ID_TYPE timer_id)
 	}
 }
 
-#ifdef USE_EBC
+#ifdef USE_DIAG
 /*******************************************************************************
 * Function Name  : pause_timer()
 * Description    : pause a timer

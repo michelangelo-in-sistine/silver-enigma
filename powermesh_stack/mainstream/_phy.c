@@ -678,7 +678,7 @@ SEND_ID_TYPE phy_send(PHY_SEND_HANDLE pps) reentrant
 	return sid;
 }
 
-#ifdef USE_PSR
+#ifdef USE_DIAG
 /*******************************************************************************
 * Function Name  : wait_until_send_over
 * Description    : 阻塞等待发送结束,报告发送状态

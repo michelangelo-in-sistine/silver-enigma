@@ -332,7 +332,7 @@
               <MiscControls></MiscControls>
               <Define>USE_STDPERIPH_DRIVER STM32F0XX</Define>
               <Undefine></Undefine>
-              <IncludePath>..\source;..\..\..\stm32f030_common\CMSIS\device\include;..\..\..\stm32f030_common\CMSIS\include;..\..\..\stm32f030_common\StdPeriph\inc;..\..\..\powermesh2_stack\mainstream</IncludePath>
+              <IncludePath>..\source;..\..\..\stm32f030_common\CMSIS\device\include;..\..\..\stm32f030_common\CMSIS\include;..\..\..\stm32f030_common\StdPeriph\inc;..\..\..\powermesh_stack\mainstream</IncludePath>
             </VariousControls>
           </Cads>
           <Aads>
@@ -393,47 +393,62 @@
             <File>
               <FileName>_uart.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\..\..\powermesh2_stack\mainstream\_uart.c</FilePath>
-            </File>
-            <File>
-              <FileName>_measure.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\..\..\powermesh2_stack\mainstream\_measure.c</FilePath>
-            </File>
-            <File>
-              <FileName>_timer.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\..\..\powermesh2_stack\mainstream\_timer.c</FilePath>
-            </File>
-            <File>
-              <FileName>_general.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\..\..\powermesh2_stack\mainstream\_general.c</FilePath>
+              <FilePath>..\..\..\powermesh_stack\mainstream\_uart.c</FilePath>
             </File>
             <File>
               <FileName>_dll.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\..\..\powermesh2_stack\mainstream\_dll.c</FilePath>
+              <FilePath>..\..\..\powermesh_stack\mainstream\_dll.c</FilePath>
             </File>
             <File>
-              <FileName>_phy.c</FileName>
+              <FileName>_general.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\..\..\powermesh2_stack\mainstream\_phy.c</FilePath>
+              <FilePath>..\..\..\powermesh_stack\mainstream\_general.c</FilePath>
+            </File>
+            <File>
+              <FileName>_measure.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\powermesh_stack\mainstream\_measure.c</FilePath>
             </File>
             <File>
               <FileName>_mem.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\..\..\powermesh2_stack\mainstream\_mem.c</FilePath>
+              <FilePath>..\..\..\powermesh_stack\mainstream\_mem.c</FilePath>
+            </File>
+            <File>
+              <FileName>_phy.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\powermesh_stack\mainstream\_phy.c</FilePath>
             </File>
             <File>
               <FileName>_powermesh_timing.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\..\..\powermesh2_stack\mainstream\_powermesh_timing.c</FilePath>
+              <FilePath>..\..\..\powermesh_stack\mainstream\_powermesh_timing.c</FilePath>
             </File>
             <File>
               <FileName>_queue.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\..\..\powermesh2_stack\mainstream\_queue.c</FilePath>
+              <FilePath>..\..\..\powermesh_stack\mainstream\_queue.c</FilePath>
+            </File>
+            <File>
+              <FileName>_timer.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\powermesh_stack\mainstream\_timer.c</FilePath>
+            </File>
+            <File>
+              <FileName>_rscodec.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\source\_rscodec.c</FilePath>
+            </File>
+            <File>
+              <FileName>_int_entry.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\source\_int_entry.c</FilePath>
+            </File>
+            <File>
+              <FileName>_addr_db.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\powermesh_stack\mainstream\_addr_db.c</FilePath>
             </File>
           </Files>
         </Group>

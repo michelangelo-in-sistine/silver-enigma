@@ -384,6 +384,7 @@ u32 read_int(u8 * ptr, u8 len)
 
 void powermesh_debug_cmd_proc(u8 xdata * ptr, u16 total_rec_bytes)
 {
+	u8 phase;
 	u8 out_buffer[256];
 
 	u8 xdata out_buffer_len;
@@ -392,6 +393,7 @@ void powermesh_debug_cmd_proc(u8 xdata * ptr, u16 total_rec_bytes)
 	u8 xdata cmd;
 	u16 xdata rest_rec_bytes;
 	
+	phase = phase;
 	out_buffer_len = 0;
 	if(out_buffer)
 	{
@@ -483,8 +485,85 @@ void powermesh_debug_cmd_proc(u8 xdata * ptr, u16 total_rec_bytes)
 				my_printf("v:%d,i:%d\n",v,i);
 				break;
 			}
-			
-			
+			else if(cmd=='S' && rest_rec_bytes>=9)		//0x53: 53 + X_MODE + SCAN + SRF + AC_UPDATE + 4B Delay + PACKAGE
+			{
+				PHY_SEND_STRUCT xdata pss;
+				SEND_ID_TYPE sid;
+
+				pss.xmode = *ptr++;
+				pss.prop = (*ptr++)?(BIT_PHY_SEND_PROP_SCAN):0;
+				pss.prop |= (*ptr++)?(BIT_PHY_SEND_PROP_SRF):0;
+				pss.prop |= (*ptr++)?(BIT_PHY_SEND_PROP_ACUPDATE):0;
+				pss.delay = *ptr++;
+				pss.delay = (pss.delay<<8)+(*ptr++);
+				pss.delay = (pss.delay<<8)+(*ptr++);
+				pss.delay = (pss.delay<<8)+(*ptr++);
+#if DEVICE_TYPE == DEVICE_CC	
+				pss.phase = phase;
+#else
+				pss.phase = 0;
+#endif
+				pss.psdu = ptr;
+				pss.psdu_len = rest_rec_bytes-8;
+				sid = phy_send(&pss);
+				sid = sid;
+				//if(sid != INVALID_RESOURCE_ID)
+				//{
+				//	my_printf("ACCEPTED!\r\n");
+				//}
+				//else
+				//{
+				//	my_printf("ERROR: SEND QUEUE NOT ACCEPTED!\r\n");
+				//}
+				break;
+			}
+			else if(cmd=='D' && rest_rec_bytes>=9)								//0x44	Diag Test 格式: 44 + 对方UID + XMODE + RMODE + SCAN
+			{
+				/* 测试Dll.Diag */
+				DLL_SEND_STRUCT xdata dds;
+				ARRAY_HANDLE buffer;
+
+				mem_clr(&dds,sizeof(DLL_SEND_STRUCT),1);
+#if DEVICE_TYPE == DEVICE_MT				
+				dds.phase = 0;
+#else
+				dds.phase = 0;
+#endif
+				dds.target_uid_handle = ptr;
+				ptr+=6;
+				dds.xmode = *ptr++;
+				dds.rmode = *ptr++;
+				dds.prop = BIT_DLL_SEND_PROP_DIAG | BIT_DLL_SEND_PROP_REQ_ACK;
+				dds.prop |= (*ptr)?(BIT_DLL_SEND_PROP_SCAN):0;
+
+				buffer = OSMemGet(MINOR);
+				if(buffer != NULL)
+				{
+					if(dll_diag(&dds, buffer))
+					{
+						u8 i;
+//						uart_send_asc(buffer+1,buffer[0]);
+						my_printf("\r\nTarget:");
+						uart_send_asc(dds.target_uid_handle,6);
+						my_printf("\r\n------------------------------------------\r\n\tDownlink\t\tUplink\t\r\n");
+						my_printf("Diag\tSS(dbuv)\tSNR(dB)\tSS(dbuv)\tSNR(dB)\r\n");
+						for(i=0;i<4;i++)
+						{
+							my_printf("CH%bu\t%bd\t%bd",i,buffer[i*2+1],buffer[i*2+2]);
+							my_printf("\t%bd\t%bd\r\n",buffer[i*2+9],buffer[i*2+10]);
+						}
+						
+						
+						my_printf("\r\n");
+					}
+					else
+					{
+						my_printf("Diag Fail!\r\n");
+					}
+					OSMemPut(MINOR,buffer);
+				}
+				break;
+			}
 			else
 			{
 				uart_rcv_resume();

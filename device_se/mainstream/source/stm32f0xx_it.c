@@ -1,5 +1,6 @@
 #include "compile_define.h"
-#include "powermesh_include.h"
+#include "stm32f0xx.h"
+#include "_int_entry.h"
 
 /**
   ******************************************************************************
@@ -126,26 +127,17 @@ void SysTick_Handler(void)
   */
 void TIM3_IRQHandler(void)
 {
-    if (TIM_GetITStatus(TIM3, TIM_IT_Update) != RESET)	//溢出中断
-	{
-		TIM_ClearITPendingBit(TIM3, TIM_IT_Update);		//清除中断标志位
-
-        timer_int_svr();
-    }
+    timer_int_entry(TIM3);
 }
 
 void USART2_IRQHandler(void)
 {
-	usart2_int_entry();
+	usart_int_entry(USART2);
 }
 
 void EXTI4_15_IRQHandler(void)
 {
-	if(EXTI_GetITStatus(EXTI_Line8) != RESET)
-	{
-		exti_int_entry();
-		EXTI_ClearITPendingBit(EXTI_Line8);
-	}
+	phy_int_entry(EXTI_Line8);
 }
 
 

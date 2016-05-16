@@ -14,7 +14,6 @@
 *******************************************************************************/
 
 /* Includes ------------------------------------------------------------------*/
-#include "compile_define.h"
 #include "powermesh_include.h"
 //#include "compile_define.h"
 //#include "powermesh_datatype.h"
@@ -74,7 +73,7 @@ void OSMemCreate (OS_MEM * os_mem, void * addr, u8 nblks, u16 blksize)
     void**		plink;
     u8*			pblk;
     u8			i;
-
+	
 	os_mem->OSMemAddr = addr;
 	os_mem->OSMemBlkSize = blksize;
 	os_mem->OSMemFreeList = addr;

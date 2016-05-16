@@ -86,19 +86,22 @@ void init_powermesh(void)
 	init_basic_hardware();
 	system_reset_behavior(); 
 
-#ifdef USE_ADDR_DB
+//#ifdef USE_ADDR_DB
 	init_addr_db();
-#endif
+//#endif
 	init_mem();
 	init_timer();
 #ifdef USE_UART
 	init_uart();
 #endif
+#ifdef USE_MEASURE
+	init_measure();
+#endif
 
 #if PLC_CONTROL_MODE==DEVICE_MODE
-	while(check_spi()!=CORRECT)					// 2014-08-07 防止打ESD时系统复位正好此时SPI不工作导致死机
+//	while(check_spi()!=CORRECT)					// 2014-08-07 防止打ESD时系统复位正好此时SPI不工作导致死机
 	{
-#ifdef USE_UART
+#ifdef DEBUG_MODE
 		my_printf("SPI CHECK FAILED.\r\n");
 #endif
 	}
@@ -125,7 +128,7 @@ void init_powermesh(void)
 //#endif
 
 	init_phy();
-//	init_dll();
+	init_dll();
 #ifdef USE_PSR
 	init_psr();
 #endif
@@ -163,9 +166,9 @@ void init_powermesh(void)
 		get_timing_version(&ver);
 		my_printf("LAST COMPILED AT %s, %s\r\n",compile_date,compile_time);
 
-//		#ifndef RELEASE
-//		my_printf("DISTURB CODE:%bx\r\n",CRC_DISTURB);
-//		#endif
+		#ifndef RELEASE
+		my_printf("DISTURB CODE:%bx\r\n",CRC_DISTURB);
+		#endif
 	}
 #endif
 }
@@ -800,36 +803,38 @@ u8 decode_xmode(u8 xcode)
 }
 #endif
 
-///*******************************************************************************
-//* Function Name  : is_zx_valid()
-//* Description    : 检查芯片过零点信号是否有效
-//* Input          : phase
-//* Output         : 
-//* Return         : 
-//* Revision History
-//* 2015-01-13 zx invalid double check;
-//*******************************************************************************/
-//BOOL is_zx_valid(u8 phase)
-//{
-//	u8 period;									// 2014-03-21 BL6810ZX逻辑bug,可能为00或FF
+/*******************************************************************************
+* Function Name  : is_zx_valid()
+* Description    : 检查芯片过零点信号是否有效
+* Input          : phase
+* Output         : 
+* Return         : 
+* Revision History
+* 2015-01-13 zx invalid double check;
+*******************************************************************************/
+#if POWERLINE == PL_AC
+BOOL is_zx_valid(u8 phase)
+{
+	u8 period;									// 2014-03-21 BL6810ZX逻辑bug,可能为00或FF
 
-//	phase = phase;
+	phase = phase;
 
-//	period = read_reg(phase,ADR_ACPS_PERIOD);
-//	if((period ==0x8C)||(period ==0x00)||(period ==0xFF))	//BL6810 ZX逻辑BUG, 可能为8C, 可能为00或FF
-//	{
-//		period = read_reg(phase,ADR_ACPS_PERIOD);
-//		if((period ==0x8C)||(period ==0x00)||(period ==0xFF))
-//		{
-//#ifdef DEBUG_DISP_INFO
-//			my_printf("phase %bu zx invalid!, period:0x%bx\r\n",phase,period);
-//#endif
-//			return FALSE;
-//		}
-//	}
+	period = read_reg(phase,ADR_ACPS_PERIOD);
+	if((period ==0x8C)||(period ==0x00)||(period ==0xFF))	//BL6810 ZX逻辑BUG, 可能为8C, 可能为00或FF
+	{
+		period = read_reg(phase,ADR_ACPS_PERIOD);
+		if((period ==0x8C)||(period ==0x00)||(period ==0xFF))
+		{
+#ifdef DEBUG_DISP_INFO
+			my_printf("phase %bu zx invalid!, period:0x%bx\r\n",phase,period);
+#endif
+			return FALSE;
+		}
+	}
 
-//	return TRUE;
-//}
+	return TRUE;
+}
+#endif
 
 
 /*******************************************************************************
