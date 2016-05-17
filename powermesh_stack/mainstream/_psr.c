@@ -924,5 +924,5 @@ void notify_psr_expired_addr(ADDR_REF_TYPE expired_addr)
 #endif
 }
 #endif
-/******************** (C) COPYRIGHT 2016 ***************************************
+/******************** (C) COPYRIGHT 2016 ***************************************/
 

@@ -710,7 +710,7 @@ STATUS wait_until_send_over(SEND_ID_TYPE sid)
 				FEED_DOG();
 		}
 	}
-	return OKAY;
+	//return OKAY;
 }
 
 /*******************************************************************************

@@ -101,10 +101,16 @@
 #if DEVICE_TYPE==DEVICE_CC
 	#define CFG_ADDR_ITEM_CNT						2047			// 数据类型支持最大32767个
 	//#define CFG_ADDR_ITEM_CNT						16
-#elif DEVICE_TYPE==DEVICE_MT || DEVICE_TYPE==DEVICE_SE || DEVICE_TYPE==DEVICE_SS
+#elif DEVICE_TYPE==DEVICE_MT
 	#define CFG_ADDR_ITEM_CNT						16				// 最大127个, (2^N-1用于描述非法资源索引)
 #elif DEVICE_TYPE==DEVICE_DC	
 	#define CFG_ADDR_ITEM_CNT						255				// 
+#elif DEVICE_TYPE==DEVICE_CV
+	#define CFG_ADDR_ITEM_CNT						16				
+#elif DEVICE_TYPE==DEVICE_SE
+	#define CFG_ADDR_ITEM_CNT						16				
+#elif DEVICE_TYPE==DEVICE_SS
+	#define CFG_ADDR_ITEM_CNT						16				
 #endif
 #define CST_MAX_EXPIRE_CNT							255				// 地址信息管理的超时机制最大计数
 
@@ -155,6 +161,12 @@
 	#define EBC_NEIGHBOR_CNT						CFG_ADDR_ITEM_CNT
 #elif DEVICE_TYPE==DEVICE_DC
 	#define EBC_NEIGHBOR_CNT						64
+#elif DEVICE_TYPE==DEVICE_CV
+	#define EBC_NEIGHBOR_CNT						CFG_ADDR_ITEM_CNT
+#elif DEVICE_TYPE==DEVICE_SE
+	#define EBC_NEIGHBOR_CNT						CFG_ADDR_ITEM_CNT
+#elif DEVICE_TYPE==DEVICE_SS
+	#define EBC_NEIGHBOR_CNT						CFG_ADDR_ITEM_CNT
 #endif
 //#define CFG_EBC_INDENTIFY_TRY						3
 #define CFG_EBC_MAX_BPSK_WINDOW						7				// BPSK最大窗口128

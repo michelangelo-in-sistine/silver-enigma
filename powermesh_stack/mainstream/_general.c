@@ -28,7 +28,7 @@
 //#endif
 
 /* Extern Reference ------------------------------------------------------------*/
-//extern MGNT_RCV_STRUCT xdata _mgnt_rcv_obj[];
+extern MGNT_RCV_STRUCT xdata _mgnt_rcv_obj[];
 
 /* Private define ------------------------------------------------------------*/
 #define UV_PER_STEP		195.3			//BL6810V12 ADC parameter: 195.3uV per step(800mv divided into 4096 steps)
@@ -39,7 +39,7 @@
 
 /* Private variables ---------------------------------------------------------*/
 u8 code CODE2MODE_VAR[] = {0x10,0x20,0x40,0x80,0x11,0x21,0x41,0x81,0x12,0x22,0x42,0x82,0xf0,0xf1,0xf2,0xf2}; // 4BITS CODE TO ACTRUAL XMODE
-
+u8 xdata _meter_id[7];
 #if BRING_USER_DATA == 1
 u8 xdata _user_data_len = 0;						//2015-06-04 如mt不设置_user_data_len,会在组网时造成溢出出错
 u8 xdata _user_data[CFG_USER_DATA_BUFFER_SIZE];
@@ -859,26 +859,26 @@ void get_timing_version(TIMING_VERSION_HANDLE ver_handle)
 * Output         : 
 * Return         : 
 *******************************************************************************/
-//void set_meter_id(METER_ID_HANDLE meter_id_handle)
-//{
-//	u8 cs;
-//	u8 i;
-//	ARRAY_HANDLE ptr;
+void set_meter_id(METER_ID_HANDLE meter_id_handle)
+{
+	u8 cs;
+	u8 i;
+	ARRAY_HANDLE ptr;
 
-//	if(meter_id_handle)
-//	{
-//		mem_cpy(_meter_id,meter_id_handle,6);
-//		cs = 0;
-//		ptr = meter_id_handle;
-//		for(i=0;i<6;i++)
-//		{
-//			cs = cs + *(ptr++);
-//		}
-//		cs = ~cs;
-//		
-//		_meter_id[6] = cs;
-//	}
-//}
+	if(meter_id_handle)
+	{
+		mem_cpy(_meter_id,meter_id_handle,6);
+		cs = 0;
+		ptr = meter_id_handle;
+		for(i=0;i<6;i++)
+		{
+			cs = cs + *(ptr++);
+		}
+		cs = ~cs;
+		
+		_meter_id[6] = cs;
+	}
+}
 
 #if BRING_USER_DATA == 1
 /*******************************************************************************
@@ -909,21 +909,21 @@ STATUS set_user_data(ARRAY_HANDLE user_data, u8 user_data_len)
 * Output         : 
 * Return         : 
 *******************************************************************************/
-//RESULT is_meter_id_valid()
-//{
-//	u8 cs;
-//	u8 i;
-//	ARRAY_HANDLE ptr;
+RESULT is_meter_id_valid()
+{
+	u8 cs;
+	u8 i;
+	ARRAY_HANDLE ptr;
 
-//	cs = 0;
-//	ptr = _meter_id;
-//	for(i=0;i<6;i++)
-//	{
-//		cs += *(ptr++);
-//	}
-//	
-//	return (RESULT)((~cs)==(*ptr));
-//}
+	cs = 0;
+	ptr = _meter_id;
+	for(i=0;i<6;i++)
+	{
+		cs += *(ptr++);
+	}
+	
+	return (RESULT)((~cs)==(*ptr));
+}
 
 /*******************************************************************************
 * Function Name  : check_meter_id()
@@ -932,10 +932,10 @@ STATUS set_user_data(ARRAY_HANDLE user_data, u8 user_data_len)
 * Output         : 
 * Return         : 
 *******************************************************************************/
-//RESULT check_meter_id(METER_ID_HANDLE meter_id_handle)
-//{
-//	return (RESULT)(mem_cmp(_meter_id,meter_id_handle,6));
-//}
+RESULT check_meter_id(METER_ID_HANDLE meter_id_handle)
+{
+	return (RESULT)(mem_cmp(_meter_id,meter_id_handle,6));
+}
 
 #if DEVICE_TYPE==DEVICE_CC
 /*******************************************************************************
