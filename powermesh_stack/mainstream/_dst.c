@@ -96,7 +96,7 @@ void init_dst(void)
 
 /*******************************************************************************
 * Function Name  : dst_send
-* Description    : Send a DST protocol frame, 
+* Description    : Send a DST protocol frame,  
 					CC具有主动发起
 					MT只是回复(SEARCH,洪泛读表),其属性与CC发起的属性相同
 					2014-11-17
