@@ -13,10 +13,10 @@
 #include "_phy.h"
 #include "_dll.h"
 #include "_addr_db.h"
-//#include "_ebc.h"
-//#include "_psr.h"
-//#include "_dst.h"
-//#include "_mgnt_app.h"
+#include "_ebc.h"
+#include "_psr.h"
+#include "_dst.h"
+#include "_mgnt_app.h"
 #include "_uart.h"
 
 

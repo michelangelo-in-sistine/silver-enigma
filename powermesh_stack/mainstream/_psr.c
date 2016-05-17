@@ -2,7 +2,7 @@
 * File Name          : psr.c
 * Author             : Lv Haifeng
 * Version            : V 2.0
-* Date               : 2013-03-15
+* Date               : 2016-05-17
 * Description        : 
 ********************************************************************************
 * THE PRESENT FIRMWARE WHICH IS FOR GUIDANCE ONLY AIMS AT PROVIDING CUSTOMERS

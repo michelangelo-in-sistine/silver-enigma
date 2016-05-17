@@ -106,11 +106,11 @@ void bad_usart_int_proc(USART_TypeDef* bad_usart_port)
 		my_printf("USART_IT_TC\r\n");
 		USART_ClearITPendingBit(bad_usart_port,USART_IT_TC);
 	}
-	else if(USART_GetITStatus(bad_usart_port, USART_IT_RXNE) != RESET)
-	{
-		my_printf("USART_IT_RXNE\r\n");
-		USART_ClearITPendingBit(bad_usart_port,USART_IT_RXNE);
-	}
+//	else if(USART_GetITStatus(bad_usart_port, USART_IT_RXNE) != RESET)
+//	{
+//		my_printf("USART_IT_RXNE\r\n");
+//		USART_ClearITPendingBit(bad_usart_port,USART_IT_RXNE);
+//	}
 	else if(USART_GetITStatus(bad_usart_port, USART_IT_IDLE) != RESET)
 	{
 		my_printf("USART_IT_IDLE\r\n");
@@ -148,7 +148,7 @@ void bad_usart_int_proc(USART_TypeDef* bad_usart_port)
 #if CPU_TYPE==CPU_STM32F030C8
 			USART_ClearITPendingBit(bad_usart_port,USART_IT_ORE);
 #endif
-			USART_ReceiveData(bad_usart_port);
+			USART_ReceiveData(bad_usart_port);						//stm32f030 去标志, 读数据, 两个动作都必须有
 			my_printf("over run\r\n");
 		}
 	}

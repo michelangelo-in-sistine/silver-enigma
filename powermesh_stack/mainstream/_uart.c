@@ -1,6 +1,7 @@
 #include "compile_define.h"
 #include "powermesh_include.h"
 #include "stdarg.h"
+#include "_userflash.h"
 
 #define UART_BUFFER_DEPTH			320
 #define UART_RCV_EXPIRE_TIMING		2		//uart expire timing: 2 timer sticks
@@ -564,6 +565,33 @@ void powermesh_debug_cmd_proc(u8 xdata * ptr, u16 total_rec_bytes)
 				}
 				break;
 			}
+			else if(cmd=='E' && rest_rec_bytes)		//4545
+			{
+				erase_user_storage();
+				break;
+			}
+			else if(cmd=='F' && rest_rec_bytes)		//46 + 要写入的字节
+			{
+				u16 result;
+				result = write_user_storage(ptr,rest_rec_bytes);
+				if(result)
+					my_printf("write %d bytes\n",result);
+				else
+					my_printf("write fail");
+				break;
+			}
+			else if(cmd=='G' && rest_rec_bytes==1)		//47 + 要读出的字节数
+			{
+				u16 read_bytes;
+
+				read_bytes = *ptr++;
+				read_bytes = read_user_storage(out_buffer,read_bytes);
+				out_buffer_len += read_bytes;
+				break;
+			}
+			
+
+			
 			else
 			{
 				uart_rcv_resume();

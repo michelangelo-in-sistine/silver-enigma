@@ -419,19 +419,6 @@ void init_exti(void)
 }
 
 /*******************************************************************************
-* Function Name  : exti_int_entry
-* Description    : 
-* Input          : None
-* Output         : None
-* Return         : None
-*******************************************************************************/
-void exti_int_entry(void)
-{
-	uart_send8('M');
-}
-
-
-/*******************************************************************************
 * Function Name  : init_spi
 * Description    : Initialize STM32 SPI1 Port (comm to BL6810)
 * Input          : None
