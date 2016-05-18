@@ -289,7 +289,7 @@ STATUS add_neighbor_uid_db(ARRAY_HANDLE uid)
 	}
 }
 
-#if DEVICE_TYPE==DEVICE_CC || DEVICE_TYPE==DEVICE_CV
+#if NODE_TYPE==NODE_MASTER
 /*******************************************************************************
 * Function Name  : delete_neighbor_uid_db
 * Description    : delete a uid from uid database.
@@ -619,7 +619,7 @@ u8 ebc_broadcast(EBC_BROADCAST_HANDLE pt_ebc)
 #endif
 	do
 	{
-#if DEVICE_TYPE==DEVICE_CC || DEVICE_TYPE==DEVICE_CV
+#if NODE_TYPE==NODE_MASTER
 		SET_BREAK_THROUGH("quit ebc_broadcast()\r\n");
 #endif
 		pd = dll_rcv();
@@ -627,7 +627,7 @@ u8 ebc_broadcast(EBC_BROADCAST_HANDLE pt_ebc)
 		if(pd)
 		{
 			if((pd->dll_rcv_valid & (BIT_DLL_VALID|BIT_DLL_ACK|BIT_DLL_SRF)) == (BIT_DLL_VALID|BIT_DLL_ACK|BIT_DLL_SRF)
-#if DEVICE_TYPE==DEVICE_CC || DEVICE_TYPE==DEVICE_CV
+#if NODE_TYPE==NODE_MASTER
 			 && (pd->phase==pt_ebc->phase)				// 三相设备比较相位
 #endif
 			)
@@ -681,7 +681,7 @@ u8 ebc_identify_transaction(EBC_BROADCAST_HANDLE pt_ebc, u8 num_nodes)
 	reset_neighbor_uid_db();
 	for(i = num_nodes; i>0; i--)
 	{
-#if DEVICE_TYPE==DEVICE_CC || DEVICE_TYPE==DEVICE_CV
+#if NODE_TYPE==NODE_MASTER
 		SET_BREAK_THROUGH("quit ebc_identify_transaction().\r\n");
 #endif
 #ifdef DEBUG_EBC
@@ -813,7 +813,7 @@ STATUS ebc_identify(EBC_BROADCAST_HANDLE pt_ebc, u16 random_id, u8 xdata * ident
 		status = FAIL;
 		do
 		{
-#if DEVICE_TYPE==DEVICE_CC || DEVICE_TYPE==DEVICE_CV
+#if NODE_TYPE==NODE_MASTER
 			SET_BREAK_THROUGH("quit ebc_identify().\r\n");
 #endif
 			pd = dll_rcv();
@@ -821,7 +821,7 @@ STATUS ebc_identify(EBC_BROADCAST_HANDLE pt_ebc, u16 random_id, u8 xdata * ident
 			{
 				if(((pd->dll_rcv_valid & (BIT_DLL_VALID | BIT_DLL_ACK)) == (BIT_DLL_VALID | BIT_DLL_ACK)) &&
 						!(pd->dll_rcv_valid & BIT_DLL_SRF)
-#if DEVICE_TYPE==DEVICE_CC || DEVICE_TYPE==DEVICE_CV
+#if NODE_TYPE==NODE_MASTER
 						&& (pd->phase == pt_ebc->phase)
 #endif
 						)

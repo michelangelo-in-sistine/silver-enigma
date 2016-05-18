@@ -127,7 +127,7 @@ void init_psr(void)
 	mem_clr(&_dst_rcv_obj,sizeof(DST_STACK_RCV_STRUCT),CFG_PHASE_CNT);
 	mem_clr(_psr_index,sizeof(_psr_index),1);
 
-#if DEVICE_TYPE==DEVICE_CC || DEVICE_TYPE==DEVICE_CV
+#if NODE_TYPE==NODE_MASTER
 	init_psr_mnpl();
 #endif
 }
@@ -704,7 +704,7 @@ void psr_rcv_proc(PSR_RCV_HANDLE pn)
 			// 如果是pipe发起者收到patrol包, 上报
 			if((pipe_ref->pipe_info & BIT_PSR_PIPE_INFO_ENDPOINT) && !(pipe_ref->pipe_info & BIT_PSR_PIPE_INFO_UPLINK))
 			{
-#if DEVICE_TYPE==DEVICE_CC || DEVICE_TYPE==DEVICE_CV							//节省MT空间
+#if NODE_TYPE==NODE_MASTER							//节省MT空间
 				pn->phase = pd->phase;
 				pn->pipe_id = pipe_id;
 #endif
@@ -777,7 +777,7 @@ void psr_rcv_proc(PSR_RCV_HANDLE pn)
 		{
 			if(!(conf & BIT_PSR_CONF_UPLINK) && (pd->lpdu[SEC_LPDU_MPDU]&0x80))		// 如果本地无info信息, 如果下行, 如果存在上一级节点通信方式, 返回错误报告
 			{																		// 目前仅支持mgnt信息的error feedback
-#if DEVICE_TYPE==DEVICE_CC || DEVICE_TYPE==DEVICE_CV
+#if NODE_TYPE==NODE_MASTER
 				DLL_SEND_HANDLE pds;				// 因为本地不存在pipe info, 无法调用psr_send方法; 只能调用dll_send方法
 				ARRAY_HANDLE lsdu;
 				ADDR_REF_TYPE addr_ref;
@@ -919,7 +919,7 @@ void notify_psr_record_db_expired_addr(ADDR_REF_TYPE expired_addr)
 void notify_psr_expired_addr(ADDR_REF_TYPE expired_addr)
 {
 	notify_psr_record_db_expired_addr(expired_addr);
-#if DEVICE_TYPE==DEVICE_CC || DEVICE_TYPE==DEVICE_CV
+#if NODE_TYPE==NODE_MASTER
 	notify_psr_mnpl_db_expired_addr(expired_addr);
 #endif
 }

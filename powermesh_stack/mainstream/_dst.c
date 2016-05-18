@@ -52,9 +52,9 @@ DST_CONFIG_STRUCT xdata dst_config_obj;
 u8 xdata dst_sent_conf[CFG_PHASE_CNT];					// 发出的dst帧
 u8 xdata dst_proceeded_conf[CFG_PHASE_CNT];				// 转发过的dst帧
 
-#if (DEVICE_TYPE==DEVICE_CC) || (defined DEVICE_READING_CONTROLLER)
-//u8 xdata dst_index[CFG_PHASE_CNT];
-u8 xdata dst_index;
+#if (DEVICE_TYPE==DEVICE_CC) || (defined DEVICE_READING_CONTROLLER) || ((DEVICE_TYPE==DEVICE_CV))
+u8 xdata dst_index[CFG_PHASE_CNT];
+//u8 xdata dst_index;
 #else
 //DST_BACKUP_STRUCT xdata dst_config_backup;				// MT的回复条件与接收条件相同
 #endif
@@ -78,9 +78,8 @@ void init_dst(void)
 	mem_clr(&dst_sent_conf,sizeof(dst_sent_conf),1);
 	mem_clr(&dst_proceeded_conf,sizeof(dst_proceeded_conf),1);	//防止第一帧因index为0不能被转发, 将其设置为绝不可能出现的状态
 	
-#if DEVICE_TYPE==DEVICE_CC || DEVICE_TYPE==DEVICE_CV
-	//mem_clr(dst_index,sizeof(dst_index),1);
-	dst_index = 0;
+#if NODE_TYPE==NODE_MASTER
+	mem_clr(dst_index,sizeof(dst_index),1);
 #endif
 	//dst_config_obj.rate = RATE_BPSK;
 	//dst_config_obj.jumps = 0x22;
@@ -177,7 +176,7 @@ SEND_ID_TYPE dst_send(DST_SEND_HANDLE dst_handle) reentrant
 		*pt++ = dst_config_obj.jumps-1;				//转发jump减1
 	}
 	
-#if DEVICE_TYPE==DEVICE_CC || DEVICE_TYPE==DEVICE_CV
+#if NODE_TYPE==NODE_MASTER
 	*pt++ = dst_config_obj.forward_prop | ((dst_handle->search && dst_handle->search_mid)?BIT_DST_FORW_MID:0);
 #else
 	*pt++ = dst_config_obj.forward_prop;
@@ -476,7 +475,7 @@ RESULT check_dst_receivability(DLL_RCV_HANDLE pd)
 	//检查相位关系, 过零点信号有效且不同相, 不接收; 过零点无效, 接收(不能使过零损坏的节点成为孤岛)
 	if(forward & BIT_DST_FORW_ACPS)
 	{
-#if DEVICE_TYPE==DEVICE_CC || DEVICE_TYPE==DEVICE_CV
+#if NODE_TYPE==NODE_MASTER
 		if(!(is_zx_valid(pd->phase)) || (phy_acps_compare(GET_PHY_HANDLE(pd))!=0))	//CC必须有过零信号
 #else
 		if((is_zx_valid(pd->phase)) && (phy_acps_compare(GET_PHY_HANDLE(pd))!=0))	//无过零信号, 接收
@@ -626,8 +625,7 @@ s8 get_dst_index(u8 phase)
 	{
 		return INVALID_RESOURCE_ID;
 	}
-	//return dst_index[phase]++ & BIT_DST_CONF_INDEX;
-	return dst_index++ & BIT_DST_CONF_INDEX;
+	return dst_index[phase]++ & BIT_DST_CONF_INDEX;
 }
 #endif
 

@@ -62,8 +62,10 @@ u8 code start_code[] = "FIRMWARE: POWERMESH_SS";
 u8 code compile_date[] =  __DATE__;
 u8 code compile_time[] =  __TIME__;
 #endif
-//u8 xdata quit_loops = 0;
 
+#if NODE_TYPE==NODE_MASTER
+u8 xdata quit_loops = 0;
+#endif
 
 /* Private function prototypes -----------------------------------------------*/
 /* Private functions ---------------------------------------------------------*/
@@ -86,9 +88,9 @@ void init_powermesh(void)
 	init_basic_hardware();
 	system_reset_behavior(); 
 
-//#ifdef USE_ADDR_DB
+#ifdef USE_ADDR_DB
 	init_addr_db();
-//#endif
+#endif
 	init_mem();
 	init_timer();
 #ifdef USE_UART
@@ -132,16 +134,16 @@ void init_powermesh(void)
 #ifdef USE_PSR
 	init_psr();
 #endif
-//	init_dst();
-//	init_mgnt_app();
+	init_dst();
+	init_mgnt_app();
 
-//#if DEVICE_TYPE==DEVICE_CC
-//#ifdef TEST_TRANSACTION
-//	init_app_transaction();
-//#endif
-//	init_psr_mnpl();
-//	init_network_management();
-//#endif
+#if DEVICE_TYPE==DEVICE_CC || DEVICE_TYPE==DEVICE_CC
+#ifdef TEST_TRANSACTION
+	init_app_transaction();
+#endif
+	init_psr_mnpl();
+	init_network_management();
+#endif
 
 	EXIT_CRITICAL();							// absolutely enable all interrupts
 
@@ -937,7 +939,7 @@ RESULT check_meter_id(METER_ID_HANDLE meter_id_handle)
 	return (RESULT)(mem_cmp(_meter_id,meter_id_handle,6));
 }
 
-#if DEVICE_TYPE==DEVICE_CC || DEVICE_TYPE==DEVICE_CV
+#if NODE_TYPE==NODE_MASTER
 /*******************************************************************************
 * Function Name  : check_quit_loops()
 * Description    : 检查全局退出循环等待,回到主线程循环标志

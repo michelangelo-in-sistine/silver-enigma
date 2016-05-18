@@ -434,7 +434,7 @@ typedef struct
 	u8			phase;
 	u8			search;
 	u8			forward;			//1:转发; 2:主动
-#if DEVICE_TYPE==DEVICE_CC
+#if NODE_TYPE==NODE_MASTER
 	u8			search_mid;			//valid only in meter_id search
 #endif
 	ARRAY_HANDLE 	nsdu;

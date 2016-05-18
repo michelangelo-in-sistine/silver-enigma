@@ -1128,7 +1128,7 @@ STATUS flooding_search(u8 phase, ARRAY_HANDLE target_xid, u8 is_target_mid, u8 r
 	dst.phase = phase;
 	dst.search = 1;
 	dst.forward = 0;
-#if DEVICE_TYPE==DEVICE_CC || DEVICE_TYPE==DEVICE_CV
+#if NODE_TYPE==NODE_MASTER
 	dst.search_mid = is_target_mid?1:0;
 #endif
 	dst.nsdu = dst_buffer;

@@ -691,7 +691,7 @@ STATUS wait_until_send_over(SEND_ID_TYPE sid)
 	SEND_STATUS ss;
 	while(1)							//防死机已经在queue做了
 	{
-#if DEVICE_TYPE==DEVICE_CC || DEVICE_TYPE==DEVICE_CV
+#if NODE_TYPE==NODE_MASTER
 		SET_BREAK_THROUGH("quit wait_until_send_over\r\n");
 		powermesh_main_thread_useless_resp_clear(); 	//清除协议接收
 		powermesh_clear_apdu_rcv(); 					//清除应用层接收
@@ -710,7 +710,7 @@ STATUS wait_until_send_over(SEND_ID_TYPE sid)
 				FEED_DOG();
 		}
 	}
-	//return OKAY;
+	return OKAY;
 }
 
 /*******************************************************************************

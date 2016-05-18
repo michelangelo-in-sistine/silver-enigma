@@ -26,7 +26,7 @@ void debug_uart_cmd_proc(void);
 void uart_send_asc(ARRAY_HANDLE pt, u16 len) reentrant;
 void print_phy_rcv(PHY_RCV_HANDLE pp) reentrant;
 
-#if DEVICE_TYPE==DEVICE_CC || DEVICE_TYPE==DEVICE_CV
+#if NODE_TYPE==NODE_MASTER
 void print_transaction_timing(TIMER_ID_TYPE tid, u32 expiring_stick);
 void print_psr_err(ERROR_STRUCT * psr_err);
 void print_network(void);

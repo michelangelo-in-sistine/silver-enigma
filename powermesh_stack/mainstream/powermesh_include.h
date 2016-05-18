@@ -20,7 +20,7 @@
 #include "_uart.h"
 
 
-#if DEVICE_TYPE==DEVICE_CC || DEVICE_TYPE==DEVICE_CV
+#if NODE_TYPE==NODE_MASTER
 #include "_network_management.h"
 #include "_network_optimization.h"
 #endif

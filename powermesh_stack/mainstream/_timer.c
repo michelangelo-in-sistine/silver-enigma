@@ -382,7 +382,7 @@ u8 check_available_timer()
 #endif
 
 /********************************Below Functions Exist Only in CC ************************/
-#if DEVICE_TYPE==DEVICE_CC || DEVICE_TYPE==DEVICE_CV
+#if NODE_TYPE==NODE_MASTER
 
 /*******************************************************************************
 * Function Name  : is_timer_valid()

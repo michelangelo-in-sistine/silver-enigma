@@ -40,17 +40,29 @@
 #define PL_AC					1				//220 AV Power
 #define PL_DC					2				//DC Power
 
+/* NODE Type Define ------------------------------------------*/
+#define NODE_MASTER				1				//主节点类型,可主动发起组网,通信
+#define NODE_SLAVE				2
+
 
 /*========================== Individual Define ====================*/
 /* Hardware Define ------------------------------------------------*/
 #define DEVICE_TYPE 		DEVICE_CV
 #define CPU_TYPE 			CPU_STM32F030C8
+
+#if DEVICE_TYPE==DEVICE_CC || DEVICE_TYPE==DEVICE_CV
+#define NODE_TYPE 			NODE_MASTER
+#else
+#define NODE_TYPE			NODE_SLAVE
+#endif
+
 #if CPU_TYPE==CPU_STM32F103ZE || CPU_TYPE==CPU_STM32F103RC || CPU_TYPE==CPU_STM32F030C8
 #define CPU_STM32
 #define PLC_CONTROL_MODE	DEVICE_MODE
 #else
 #define PLC_CONTROL_MODE	SOC_MODE
 #endif
+
 #define USE_MEASURE
 
 /* Application Environment Define ---------------------------------*/

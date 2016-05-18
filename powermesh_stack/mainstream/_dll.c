@@ -566,7 +566,7 @@ STATUS dll_diag(DLL_SEND_HANDLE pdss, ARRAY_HANDLE buffer)		// 2012-12-26 modify
 	status = FAIL;
 	do
 	{
-#if DEVICE_TYPE==DEVICE_CC || DEVICE_TYPE==DEVICE_CV
+#if NODE_TYPE==NODE_MASTER
 		SET_BREAK_THROUGH("quit dll_diag()\r\n");
 #endif
 		FEED_DOG();

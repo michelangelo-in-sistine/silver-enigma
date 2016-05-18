@@ -16,7 +16,7 @@
 /* Includes ------------------------------------------------------------------*/
 #include "powermesh_include.h"
 //#include "compile_define.h"
-#if DEVICE_TYPE==DEVICE_CC || DEVICE_TYPE==DEVICE_CV
+#if NODE_TYPE==NODE_MASTER
 //#include "powermesh_datatype.h"
 //#include "powermesh_config.h"
 //#include "powermesh_spec.h"

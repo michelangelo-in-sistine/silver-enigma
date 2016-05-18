@@ -647,7 +647,7 @@ void print_phy_rcv(PHY_RCV_HANDLE pp) reentrant
 	print_packet(pp->phy_rcv_valid,pp->phy_rcv_data,pp->phy_rcv_len);
 }
 
-#if DEVICE_TYPE==DEVICE_CC || DEVICE_TYPE==DEVICE_CV
+#if NODE_TYPE==NODE_MASTER
 /*******************************************************************************
 * Function Name  : print_transaction_timing(TIMER_ID_TYPE tid, u32 expiring_stick)
 * Description    : 
