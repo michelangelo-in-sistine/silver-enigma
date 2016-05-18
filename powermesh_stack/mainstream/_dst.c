@@ -78,7 +78,7 @@ void init_dst(void)
 	mem_clr(&dst_sent_conf,sizeof(dst_sent_conf),1);
 	mem_clr(&dst_proceeded_conf,sizeof(dst_proceeded_conf),1);	//防止第一帧因index为0不能被转发, 将其设置为绝不可能出现的状态
 	
-#if DEVICE_TYPE==DEVICE_CC
+#if DEVICE_TYPE==DEVICE_CC || DEVICE_TYPE==DEVICE_CV
 	//mem_clr(dst_index,sizeof(dst_index),1);
 	dst_index = 0;
 #endif
@@ -177,7 +177,7 @@ SEND_ID_TYPE dst_send(DST_SEND_HANDLE dst_handle) reentrant
 		*pt++ = dst_config_obj.jumps-1;				//转发jump减1
 	}
 	
-#if DEVICE_TYPE==DEVICE_CC
+#if DEVICE_TYPE==DEVICE_CC || DEVICE_TYPE==DEVICE_CV
 	*pt++ = dst_config_obj.forward_prop | ((dst_handle->search && dst_handle->search_mid)?BIT_DST_FORW_MID:0);
 #else
 	*pt++ = dst_config_obj.forward_prop;
@@ -476,7 +476,7 @@ RESULT check_dst_receivability(DLL_RCV_HANDLE pd)
 	//检查相位关系, 过零点信号有效且不同相, 不接收; 过零点无效, 接收(不能使过零损坏的节点成为孤岛)
 	if(forward & BIT_DST_FORW_ACPS)
 	{
-#if DEVICE_TYPE==DEVICE_CC
+#if DEVICE_TYPE==DEVICE_CC || DEVICE_TYPE==DEVICE_CV
 		if(!(is_zx_valid(pd->phase)) || (phy_acps_compare(GET_PHY_HANDLE(pd))!=0))	//CC必须有过零信号
 #else
 		if((is_zx_valid(pd->phase)) && (phy_acps_compare(GET_PHY_HANDLE(pd))!=0))	//无过零信号, 接收
@@ -612,7 +612,7 @@ void dst_forward(DLL_RCV_HANDLE pd, u8 search)
 	OSMemPut(SUPERIOR,send_buffer);
 }
 
-#if (DEVICE_TYPE==DEVICE_CC) || (defined DEVICE_READING_CONTROLLER)
+#if (DEVICE_TYPE==DEVICE_CC) || (defined DEVICE_READING_CONTROLLER) || (DEVICE_TYPE==DEVICE_CV)
 /*******************************************************************************
 * Function Name  : get_dst_index()
 * Description    : 

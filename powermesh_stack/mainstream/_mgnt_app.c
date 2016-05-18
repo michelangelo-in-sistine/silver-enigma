@@ -229,7 +229,7 @@ BASE_LEN_TYPE app_rcv(APP_RCV_HANDLE pa)
 {
 	u8 i;
 
-#if DEVICE_TYPE==DEVICE_CC
+#if DEVICE_TYPE==DEVICE_CC || DEVICE_TYPE==DEVICE_CV
 	powermesh_main_thread_useless_resp_clear();
 #endif
 
@@ -738,7 +738,7 @@ s8 get_phy_snr(PHY_RCV_HANDLE pp)
 }
 #endif
 
-#if DEVICE_TYPE==DEVICE_CC
+#if DEVICE_TYPE==DEVICE_CC || DEVICE_TYPE==DEVICE_CV
 /*******************************************************************************
 * Function Name  : app_transaction()
 * Description    : 阻塞方式实现的app层一次应答

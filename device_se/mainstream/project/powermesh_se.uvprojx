@@ -450,6 +450,36 @@
               <FileType>1</FileType>
               <FilePath>..\..\..\powermesh_stack\mainstream\_addr_db.c</FilePath>
             </File>
+            <File>
+              <FileName>_network_misc.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\powermesh_stack\mainstream\_network_misc.c</FilePath>
+            </File>
+            <File>
+              <FileName>_network_optimization.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\powermesh_stack\mainstream\_network_optimization.c</FilePath>
+            </File>
+            <File>
+              <FileName>_psr_manipulation.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\powermesh_stack\mainstream\_psr_manipulation.c</FilePath>
+            </File>
+            <File>
+              <FileName>_topology.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\powermesh_stack\mainstream\_topology.c</FilePath>
+            </File>
+            <File>
+              <FileName>_network_management.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\powermesh_stack\mainstream\_network_management.c</FilePath>
+            </File>
+            <File>
+              <FileName>_powermesh_management.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\powermesh_stack\mainstream\_powermesh_management.c</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>

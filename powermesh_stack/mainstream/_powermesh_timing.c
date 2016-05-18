@@ -145,7 +145,7 @@ u32 windows_delay_sticks(BASE_LEN_TYPE ppdu_len, u8 xmode, u8 scan, u8 srf, u8 w
 	return (u32)timing;
 }
 
-#if DEVICE_TYPE == DEVICE_CC
+#if DEVICE_TYPE == DEVICE_CC || DEVICE_TYPE == DEVICE_CV
 /*******************************************************************************
 * Function Name  : psr_setup_expiring_sticks
 * Description    : 

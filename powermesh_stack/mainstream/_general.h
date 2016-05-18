@@ -76,7 +76,7 @@ BOOL is_zx_valid(u8 phase);
 #endif
 
 /* LOOPS CONTROL */
-#if DEVICE_TYPE==DEVICE_CC
+#if DEVICE_TYPE==DEVICE_CC || DEVICE_TYPE==DEVICE_CV
 BOOL check_quit_loops(void);
 void set_quit_loops(void);
 void clr_quit_loops(void);

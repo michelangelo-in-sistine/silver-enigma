@@ -36,7 +36,7 @@ void init_dst(void);
 SEND_ID_TYPE dst_send(DST_SEND_HANDLE dst_handle) reentrant;
 void dst_rcv_proc(DLL_RCV_HANDLE pd);
 
-#if DEVICE_TYPE==DEVICE_CC || (defined DEVICE_READING_CONTROLLER)
+#if DEVICE_TYPE==DEVICE_CC || (defined DEVICE_READING_CONTROLLER) || DEVICE_TYPE==DEVICE_CV
 s8 get_dst_index(u8 phase);
 #endif
 

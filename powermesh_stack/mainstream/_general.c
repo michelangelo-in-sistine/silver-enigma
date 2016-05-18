@@ -937,7 +937,7 @@ RESULT check_meter_id(METER_ID_HANDLE meter_id_handle)
 	return (RESULT)(mem_cmp(_meter_id,meter_id_handle,6));
 }
 
-#if DEVICE_TYPE==DEVICE_CC
+#if DEVICE_TYPE==DEVICE_CC || DEVICE_TYPE==DEVICE_CV
 /*******************************************************************************
 * Function Name  : check_quit_loops()
 * Description    : 检查全局退出循环等待,回到主线程循环标志

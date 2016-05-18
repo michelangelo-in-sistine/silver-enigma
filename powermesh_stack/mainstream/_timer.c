@@ -136,8 +136,8 @@ void timer_int_svr(void)
 		_dll_rcv_obj[i].phase = i;
 		dll_rcv_proc(&_dll_rcv_obj[i]);
 
-//		_psr_rcv_obj[i].phase = i;
-//		nw_rcv_proc(&_psr_rcv_obj[i]);
+		_psr_rcv_obj[i].phase = i;
+		nw_rcv_proc(&_psr_rcv_obj[i]);
 #ifdef USE_PSR
 		_app_rcv_obj[i].phase = i;
 		mgnt_app_rcv_proc(&_app_rcv_obj[i]);
@@ -249,7 +249,7 @@ void reset_timer(TIMER_ID_TYPE tid)
 * Output         : None
 * Return         : 
 *******************************************************************************/
-#if DEVICE_TYPE == DEVICE_CC
+#if DEVICE_TYPE == DEVICE_CC || DEVICE_TYPE == DEVICE_CV
 u32 get_timer_val(TIMER_ID_TYPE tid)
 {
 	if(_timer_control[tid] == IDLE)
@@ -382,7 +382,7 @@ u8 check_available_timer()
 #endif
 
 /********************************Below Functions Exist Only in CC ************************/
-#if DEVICE_TYPE==DEVICE_CC
+#if DEVICE_TYPE==DEVICE_CC || DEVICE_TYPE==DEVICE_CV
 
 /*******************************************************************************
 * Function Name  : is_timer_valid()

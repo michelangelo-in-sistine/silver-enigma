@@ -20,10 +20,12 @@
 #include "_uart.h"
 
 
-#if DEVICE_TYPE==DEVICE_CC
-#include "_mac.h"
+#if DEVICE_TYPE==DEVICE_CC || DEVICE_TYPE==DEVICE_CV
 #include "_network_management.h"
 #include "_network_optimization.h"
-#include "_powerdrop_datasave.h"
 #endif
 
+#if DEVICE_TYPE==DEVICE_CC
+#include "_mac.h"
+#include "_powerdrop_datasave.h"
+#endif

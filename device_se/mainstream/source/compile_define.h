@@ -43,7 +43,7 @@
 
 /*========================== Individual Define ====================*/
 /* Hardware Define ------------------------------------------------*/
-#define DEVICE_TYPE 		DEVICE_SE
+#define DEVICE_TYPE 		DEVICE_CV
 #define CPU_TYPE 			CPU_STM32F030C8
 #if CPU_TYPE==CPU_STM32F103ZE || CPU_TYPE==CPU_STM32F103RC || CPU_TYPE==CPU_STM32F030C8
 #define CPU_STM32

@@ -251,7 +251,7 @@ RESULT check_addr_ref_validity(ADDR_REF_TYPE addr_ref)
 * Output         : None
 * Return         : None
 *******************************************************************************/
-#if DEVICE_TYPE==DEVICE_CC
+#if DEVICE_TYPE==DEVICE_CC || DEVICE_TYPE==DEVICE_CV
 ADDR_REF_TYPE inquire_addr_db_by_uid(ARRAY_HANDLE uid)
 {
 	ADDR_CNT_TYPE i;

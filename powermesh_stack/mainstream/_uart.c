@@ -647,4 +647,288 @@ void print_phy_rcv(PHY_RCV_HANDLE pp) reentrant
 	print_packet(pp->phy_rcv_valid,pp->phy_rcv_data,pp->phy_rcv_len);
 }
 
+#if DEVICE_TYPE==DEVICE_CC || DEVICE_TYPE==DEVICE_CV
+/*******************************************************************************
+* Function Name  : print_transaction_timing(TIMER_ID_TYPE tid, u32 expiring_stick)
+* Description    : 
+* Input          : None
+* Output         : None
+* Return         : 
+*******************************************************************************/
+void print_transaction_timing(TIMER_ID_TYPE tid, u32 expiring_stick)
+{
+	my_printf("SET EXPIRE:%lu,ACTRUAL USED:%lu,DIFF:%lu\r\n",
+				expiring_stick, expiring_stick-get_timer_val(tid), get_timer_val(tid));
+}
+
+/*******************************************************************************
+* Function Name  : print_psr_err()
+* Description    : 
+* Input          : None
+* Output         : None
+* Return         : None
+*******************************************************************************/
+void print_psr_err(ERROR_STRUCT * psr_err)
+{
+	my_printf("*psr err report:\r\n");
+	my_printf("pipe id: %bX%bX\r\n",(u8)(psr_err->pipe_id>>8),(u8)(psr_err->pipe_id));
+	my_printf("report uid: ");
+	uart_send_asc(psr_err->uid,6);
+	my_printf("\r\ntarget uid: ");
+	if(pipeid2uid(psr_err->pipe_id))
+	{
+		uart_send_asc(pipeid2uid(psr_err->pipe_id),6);
+	}
+	else
+	{
+		my_printf("NA");
+	}
+	my_printf("\r\nerror code: %bX(",psr_err->err_code);
+	switch(psr_err->err_code)
+	{
+		case(NO_ERROR):
+		{
+			my_printf("no_error)\r\n");
+			break;
+		}
+		case(TARGET_EXECUTE_ERR):
+		{
+			my_printf("target_execute_err)\r\n");
+			break;
+		}
+		case(NO_PIPE_INFO):
+		{
+			my_printf("no_pipe_info)\r\n");
+			break;
+		}
+		case(NO_XPLAN):
+		{
+			my_printf("no_xplan)\r\n");
+			break;
+		}
+		case(ACK_TIMEOUT):
+		{
+			my_printf("ack_timeout)\r\n");
+			break;
+		}
+		case(PSR_TIMEOUT):
+		{
+			my_printf("psr_timeout)\r\n");
+			break;
+		}
+		case(DIAG_TIMEOUT):
+		{
+			my_printf("diag_timeout)\r\n");
+			break;
+		}
+		case(UID_NOT_MATCH):
+		{
+			my_printf("uid_not_match serious!)\r\n");
+			break;
+		}
+		case(MEM_OUT):
+		{
+			my_printf("mem_out serious!)\r\n");
+			break;
+		}
+		case(TIMER_RUN_OUT):
+		{
+			my_printf("timer_out serious!)\r\n");
+			break;
+		}
+		case(SENDING_FAIL):
+		{
+			my_printf("sending fail serious!)\r\n");
+			break;
+		}
+		default:
+		{
+			my_printf("unknown_err serious!)\r\n");
+			break;
+		}
+	}
+
+}
+
+/*******************************************************************************
+* Function Name  : print_network()
+* Description    : 
+* Input          : None
+* Output         : None
+* Return         : None
+*******************************************************************************/
+extern PIPE_MNPL_STRUCT psr_pipe_mnpl_db[];
+extern u16 xdata psr_pipe_mnpl_db_usage;
+extern NODE_HANDLE network_tree[];
+
+void print_network()
+{
+	u16 i;
+	u8 script_buffer[64];
+
+	my_printf("/*-------------------------\r\n");
+	
+	my_printf("NETWORK TREE:\r\n");
+
+	for(i=0;i<CFG_PHASE_CNT;i++)
+	{
+		my_printf("PH%bX:\r\n",i);
+		print_build_network(i);
+	}
+
+	//for(i=0;i<CFG_PHASE_CNT;i++)
+	//{
+	//	my_printf("PH%bX:\r\n",i);
+	//	print_branch(network_tree[i]);
+	//}
+
+	my_printf("\r\nPIPE STORAGE:\r\n");
+	for(i=0;i<psr_pipe_mnpl_db_usage;i++)
+	{
+		PIPE_REF pipe;
+		u16 script_len;
+
+		pipe = &psr_pipe_mnpl_db[i];
+		if(pipe->pipe_info != 0xCFFF)
+		{
+			my_printf("PIPE INFO:%X, PHASE:%bX, ",pipe->pipe_info,pipe->phase);
+			my_printf("RECEPIENT:");
+			uart_send_asc(inquire_addr_db(pipe->way_uid[pipe->pipe_stages-1]),6);
+			my_printf("\r\nSCRIPT:");
+//		script_len = get_path_script_from_topology(uid2node(inquire_addr_db(pipe->way_uid[pipe->pipe_stages-1])), script_buffer);
+			script_len = get_path_script_from_pipe_mnpl_db(pipe->pipe_info&0x0FFF, script_buffer);
+			uart_send_asc(script_buffer,script_len);
+			my_printf("\r\n\r\n");
+		}
+		
+	}
+	my_printf("-------------------------*/\r\n");
+	
+}
+
+/*******************************************************************************
+* Function Name  : print_build_network()
+* Description    : 
+* Input          : None
+* Output         : None
+* Return         : None
+*******************************************************************************/
+extern NODE_HANDLE solo_list[];
+void print_build_network(u8 phase)
+{
+	u16 phase_nodes;
+	u16 num_nodes;
+
+	phase_nodes = get_list_from_branch(network_tree[phase], ALL, ALL, ALL, NULL,0,0)-1;
+	my_printf("/*------------------------\r\nNETWORK REPORT: NODES IN PHASE %bd: %d, TOTAL NODES: %d\r\n", phase, phase_nodes, get_network_total_subnodes_count());
+	print_branch(network_tree[phase]);
+
+	num_nodes = get_list_from_branch(network_tree[phase], ALL, NODE_STATE_EXCLUSIVE, ALL, solo_list,0,CFG_MGNT_MAX_NEW_LINKS_BUFFER_CNT);
+	if(num_nodes)
+	{
+		my_printf("EXCLUSIVE NODES: %d\r\n", num_nodes);
+		print_list(solo_list,num_nodes);
+	}
+	num_nodes = get_list_from_branch(network_tree[phase], ALL, NODE_STATE_DISCONNECT, NODE_STATE_EXCLUSIVE, solo_list,0,CFG_MGNT_MAX_NEW_LINKS_BUFFER_CNT);
+	if(num_nodes)
+	{
+		my_printf("DISCONNECTED NODES: %d\r\n", num_nodes);
+		print_list(solo_list,num_nodes);
+	}
+	num_nodes = get_list_from_branch(network_tree[phase], ALL, NODE_STATE_REFOUND, NODE_STATE_EXCLUSIVE, solo_list,0,CFG_MGNT_MAX_NEW_LINKS_BUFFER_CNT);
+	if(num_nodes)
+	{
+		my_printf("REFOUND NODES: %d\r\n", num_nodes);
+		print_list(solo_list,num_nodes);
+	}
+	num_nodes = get_list_from_branch(network_tree[phase], ALL, NODE_STATE_RECONNECT, NODE_STATE_EXCLUSIVE, solo_list,0,CFG_MGNT_MAX_NEW_LINKS_BUFFER_CNT);
+	if(num_nodes)
+	{
+		my_printf("RECONNECT NODES: %d\r\n", num_nodes);
+		print_list(solo_list,num_nodes);
+	}
+	num_nodes = get_list_from_branch(network_tree[phase], ALL, NODE_STATE_UPGRADE, NODE_STATE_EXCLUSIVE, solo_list,0,CFG_MGNT_MAX_NEW_LINKS_BUFFER_CNT);
+	if(num_nodes)
+	{
+		my_printf("UPGRADE NODES: %d\r\n", num_nodes);
+		print_list(solo_list,num_nodes);
+	}
+	
+	num_nodes = get_list_from_branch(network_tree[phase], ALL, NODE_STATE_OLD_VERSION, ALL, solo_list,0,CFG_MGNT_MAX_NEW_LINKS_BUFFER_CNT);
+	if(num_nodes)
+	{
+		my_printf("EXPIRED TIMING VERSION NODES: %d\r\n", num_nodes);
+		print_list(solo_list,num_nodes);
+	}
+	num_nodes = get_list_from_branch(network_tree[phase], ALL, NODE_STATE_ZX_BROKEN, ALL, solo_list,0,CFG_MGNT_MAX_NEW_LINKS_BUFFER_CNT);
+	if(num_nodes)
+	{
+		my_printf("ZX CIRCUIT BROKEN NODES: %d\r\n", num_nodes);
+		print_list(solo_list,num_nodes);
+	}
+	num_nodes = get_list_from_branch(network_tree[phase], ALL, NODE_STATE_AMP_BROKEN, ALL, solo_list,0,CFG_MGNT_MAX_NEW_LINKS_BUFFER_CNT);
+	if(num_nodes)
+	{
+		my_printf("AMP CIRCUIT BROKEN NODES: %d\r\n", num_nodes);
+		print_list(solo_list,num_nodes);
+	}
+
+	
+
+//	my_printf("\r\nPIPE STORAGE:\r\n");
+//	for(i=0;i<psr_pipe_mnpl_db_usage;i++)
+//	{
+//		PIPE_REF pipe;
+//		u16 script_len;
+//
+//		pipe = &psr_pipe_mnpl_db[i];
+//		if(pipe->phase == phase)
+//		{
+//			my_printf("PIPE INFO:%X, PHASE:%bX, ",pipe->pipe_info,pipe->phase);
+//			my_printf("RECEPIENT:");
+//			uart_send_asc(inquire_addr_db(pipe->way_uid[pipe->pipe_stages-1]),6);
+//			my_printf("\r\nSCRIPT:");
+//			script_len = get_path_script_from_pipe_mnpl_db(pipe->pipe_info&0x0FFF, script_buffer);
+//			uart_send_asc(script_buffer,script_len);
+//			my_printf("\r\n\r\n");
+//		}
+//	}
+	
+	my_printf("------------------------*/\r\n");
+}
+
+/*******************************************************************************
+* Function Name  : print_pipe()
+* Description    : 
+* Input          : None
+* Output         : None
+* Return         : None
+*******************************************************************************/
+void print_pipe(u16 pipe_id)
+{
+	u8 script_buffer[64];
+	u8 script_len;
+	PIPE_REF pipe;
+
+	my_printf("/*-------------------------\r\n");
+
+	pipe = inquire_pipe_mnpl_db(pipe_id);
+	if(!pipe)
+	{
+		my_printf("PIPE %X NOT FOUND\r\n",pipe_id);
+	}
+	else
+	{
+		my_printf("pipe_id:0x%X\r\n",pipe->pipe_info&0x0FFF);
+		my_printf("phase:%bx\r\n",pipe->phase);
+		my_printf("dest:[");
+		uart_send_asc(inquire_addr_db(pipe->way_uid[pipe->pipe_stages-1]),6);
+		my_printf("]\r\nscript:");
+		script_len = get_path_script_from_pipe_mnpl_db(pipe_id,script_buffer);
+		uart_send_asc(script_buffer,script_len);
+		my_printf("\r\n");
+	}
+	my_printf("-------------------------*/\r\n");
+}
+#endif
 
