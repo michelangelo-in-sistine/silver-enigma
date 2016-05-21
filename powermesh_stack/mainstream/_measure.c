@@ -184,7 +184,7 @@ CALIB_STRUCT xdata calib_v, calib_i;
 //	return (s32)(calib_v.k * reg_value + calib_v.b);
 //}
 
-void set_calib_point(u8 index, CALIB_STRUCT xdata * calib, u8 measure_reg_addr, s32 real_value)
+void set_calib_point(u8 index, CALIB_STRUCT xdata * calib, u8 measure_reg_addr, s16 real_value)
 {
 	s32 reg_value = 0;
 	u8 i;
@@ -220,7 +220,7 @@ my_printf("index:%d,reg_value:%d,real_value:%d\n",index,reg_value,real_value);
 	}
 }
 
-s32 measure_current_param(CALIB_STRUCT xdata * calib, u8 measure_reg_addr)
+s16 measure_current_param(CALIB_STRUCT xdata * calib, u8 measure_reg_addr)
 {
 	s32 reg_value = 0;
 	u8 i;
@@ -235,16 +235,16 @@ s32 measure_current_param(CALIB_STRUCT xdata * calib, u8 measure_reg_addr)
 	my_printf("measure reg value%d\n",reg_value);
 #endif
 
-	return (s32)(calib->k * reg_value + calib->b);
+	return (s16)(calib->k * reg_value + calib->b);
 }
 
 
-void set_v_calib_point(u8 index, s32 v_real_value)
+void set_v_calib_point(u8 index, s16 v_real_value)
 {
 	set_calib_point(index, &calib_v, MEASURE_REG_V, v_real_value);
 }
 
-void set_i_calib_point(u8 index, s32 i_real_value)
+void set_i_calib_point(u8 index, s16 i_real_value)
 {
 	set_calib_point(index, &calib_i, MEASURE_REG_I, i_real_value);
 }
@@ -252,12 +252,12 @@ void set_i_calib_point(u8 index, s32 i_real_value)
 
 
 
-s32 measure_current_v(void)
+s16 measure_current_v(void)
 {
 	return measure_current_param(&calib_v, MEASURE_REG_V);
 }
 
-s32 measure_current_i(void)
+s16 measure_current_i(void)
 {
 	return measure_current_param(&calib_i, MEASURE_REG_I);
 }

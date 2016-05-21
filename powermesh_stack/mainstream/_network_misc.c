@@ -1734,6 +1734,7 @@ RESULT acps_diag(u8 phase, UID_HANDLE target_uid_handle, u8 diag_rate)
 	return result;
 }
 
+#if BRING_USER_DATA==1
 /*******************************************************************************
 * Function Name  : acquire_node_user_data
 * Description    : 获得节点的用户携带信息
@@ -1862,7 +1863,7 @@ STATUS update_uid_user_data(UID_HANDLE target_uid)
 	pipe_id = uid2pipeid(target_uid);
 	return update_pipe_user_data(pipe_id);
 }
-
+#endif
 
 /*******************************************************************************
 * Function Name  : acquire_network_appointed_stated_nodes()

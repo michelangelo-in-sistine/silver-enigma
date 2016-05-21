@@ -63,10 +63,6 @@
 /* Phase Config */
 #if DEVICE_TYPE==DEVICE_CC
 	#define CFG_PHASE_CNT							3
-#elif DEVICE_TYPE==DEVICE_MT
-	#define CFG_PHASE_CNT							1
-#elif DEVICE_TYPE==DEVICE_DC
-	#define CFG_PHASE_CNT							1
 #else
 	#define CFG_PHASE_CNT							1
 #endif
@@ -74,7 +70,7 @@
 /* Mem Config */
 #define CFG_MEM_MINOR_BLOCK_SIZE					32				// MINOR型动态内存每次分配字节数
 #if CPU_TYPE==CPU_STM32F030C8
-#define CFG_MEM_SUPERIOR_BLOCK_SIZE					252				// M0 CPU内存访问必须是aligned, 
+#define CFG_MEM_SUPERIOR_BLOCK_SIZE					100				// M0 CPU内存访问必须是aligned, 
 #else
 #define CFG_MEM_SUPERIOR_BLOCK_SIZE					255				// SUPERIOR型动态内存每次分配字节数
 #endif
@@ -205,7 +201,11 @@
 
 /* App Config */
 #ifdef USE_RSCODEC
+#if CPU_TYPE==CPU_STM32F030C8
+	#define CFG_APDU_MAX_LENGTH						25						//(50-18-6-1)
+#else
 	#define CFG_APDU_MAX_LENGTH						100						
+#endif
 #else
 	#define CFG_APDU_MAX_LENGTH						200						//林洋使用长包
 #endif
@@ -221,7 +221,12 @@
 #if NODE_TYPE==NODE_MASTER
 	#define CFG_MGNT_MAX_PIPES_CNT					CFG_MGNT_MAX_NODES_CNT	// CC管理全网最大PIPE数目
 	#define CFG_TOPOLOGY_MAX_NODE_CHILDREN			65535
+
+#if CPU_TYPE==CPU_STM32F103ZE
 	#define CFG_MGNT_MAX_NEW_LINKS_BUFFER_CNT		64
+#else
+	#define CFG_MGNT_MAX_NEW_LINKS_BUFFER_CNT		16
+#endif
 	
 	#define CFG_MAX_BUILD_CLASS						01						// build network中广播用到的最低通信速率 0:bpsk; 1:ds15
 	#define CFG_MAX_BUILD_WINDOW					06

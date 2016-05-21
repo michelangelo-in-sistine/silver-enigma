@@ -137,7 +137,7 @@
           </Flash1>
           <bUseTDR>1</bUseTDR>
           <Flash2>BIN\UL2CM3.DLL</Flash2>
-          <Flash3>"" ()</Flash3>
+          <Flash3></Flash3>
           <Flash4></Flash4>
           <pFcarmOut></pFcarmOut>
           <pFcarmGrp></pFcarmGrp>
@@ -310,7 +310,7 @@
           </ArmAdsMisc>
           <Cads>
             <interw>1</interw>
-            <Optim>1</Optim>
+            <Optim>4</Optim>
             <oTime>0</oTime>
             <SplitLS>0</SplitLS>
             <OneElfS>1</OneElfS>
@@ -376,14 +376,24 @@
           <GroupName>source</GroupName>
           <Files>
             <File>
-              <FileName>stm32f0xx_it.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\source\stm32f0xx_it.c</FilePath>
-            </File>
-            <File>
               <FileName>_hardware.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\source\_hardware.c</FilePath>
+            </File>
+            <File>
+              <FileName>_int_entry.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\source\_int_entry.c</FilePath>
+            </File>
+            <File>
+              <FileName>_rscodec.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\source\_rscodec.c</FilePath>
+            </File>
+            <File>
+              <FileName>_userflash.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\source\_userflash.c</FilePath>
             </File>
             <File>
               <FileName>main.c</FileName>
@@ -391,14 +401,29 @@
               <FilePath>..\source\main.c</FilePath>
             </File>
             <File>
-              <FileName>_uart.c</FileName>
+              <FileName>stm32f0xx_it.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\..\..\powermesh_stack\mainstream\_uart.c</FilePath>
+              <FilePath>..\source\stm32f0xx_it.c</FilePath>
+            </File>
+            <File>
+              <FileName>_addr_db.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\powermesh_stack\mainstream\_addr_db.c</FilePath>
             </File>
             <File>
               <FileName>_dll.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\..\..\powermesh_stack\mainstream\_dll.c</FilePath>
+            </File>
+            <File>
+              <FileName>_dst.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\powermesh_stack\mainstream\_dst.c</FilePath>
+            </File>
+            <File>
+              <FileName>_ebc.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\powermesh_stack\mainstream\_ebc.c</FilePath>
             </File>
             <File>
               <FileName>_general.c</FileName>
@@ -416,39 +441,14 @@
               <FilePath>..\..\..\powermesh_stack\mainstream\_mem.c</FilePath>
             </File>
             <File>
-              <FileName>_phy.c</FileName>
+              <FileName>_mgnt_app.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\..\..\powermesh_stack\mainstream\_phy.c</FilePath>
+              <FilePath>..\..\..\powermesh_stack\mainstream\_mgnt_app.c</FilePath>
             </File>
             <File>
-              <FileName>_powermesh_timing.c</FileName>
+              <FileName>_network_management.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\..\..\powermesh_stack\mainstream\_powermesh_timing.c</FilePath>
-            </File>
-            <File>
-              <FileName>_queue.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\..\..\powermesh_stack\mainstream\_queue.c</FilePath>
-            </File>
-            <File>
-              <FileName>_timer.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\..\..\powermesh_stack\mainstream\_timer.c</FilePath>
-            </File>
-            <File>
-              <FileName>_rscodec.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\source\_rscodec.c</FilePath>
-            </File>
-            <File>
-              <FileName>_int_entry.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\source\_int_entry.c</FilePath>
-            </File>
-            <File>
-              <FileName>_addr_db.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\..\..\powermesh_stack\mainstream\_addr_db.c</FilePath>
+              <FilePath>..\..\..\powermesh_stack\mainstream\_network_management.c</FilePath>
             </File>
             <File>
               <FileName>_network_misc.c</FileName>
@@ -461,19 +461,9 @@
               <FilePath>..\..\..\powermesh_stack\mainstream\_network_optimization.c</FilePath>
             </File>
             <File>
-              <FileName>_psr_manipulation.c</FileName>
+              <FileName>_phy.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\..\..\powermesh_stack\mainstream\_psr_manipulation.c</FilePath>
-            </File>
-            <File>
-              <FileName>_topology.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\..\..\powermesh_stack\mainstream\_topology.c</FilePath>
-            </File>
-            <File>
-              <FileName>_network_management.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\..\..\powermesh_stack\mainstream\_network_management.c</FilePath>
+              <FilePath>..\..\..\powermesh_stack\mainstream\_phy.c</FilePath>
             </File>
             <File>
               <FileName>_powermesh_management.c</FileName>
@@ -481,19 +471,9 @@
               <FilePath>..\..\..\powermesh_stack\mainstream\_powermesh_management.c</FilePath>
             </File>
             <File>
-              <FileName>_dst.c</FileName>
+              <FileName>_powermesh_timing.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\..\..\powermesh_stack\mainstream\_dst.c</FilePath>
-            </File>
-            <File>
-              <FileName>_ebc.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\..\..\powermesh_stack\mainstream\_ebc.c</FilePath>
-            </File>
-            <File>
-              <FileName>_mgnt_app.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\..\..\powermesh_stack\mainstream\_mgnt_app.c</FilePath>
+              <FilePath>..\..\..\powermesh_stack\mainstream\_powermesh_timing.c</FilePath>
             </File>
             <File>
               <FileName>_psr.c</FileName>
@@ -501,9 +481,34 @@
               <FilePath>..\..\..\powermesh_stack\mainstream\_psr.c</FilePath>
             </File>
             <File>
-              <FileName>_userflash.c</FileName>
+              <FileName>_psr_manipulation.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\source\_userflash.c</FilePath>
+              <FilePath>..\..\..\powermesh_stack\mainstream\_psr_manipulation.c</FilePath>
+            </File>
+            <File>
+              <FileName>_queue.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\powermesh_stack\mainstream\_queue.c</FilePath>
+            </File>
+            <File>
+              <FileName>_timer.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\powermesh_stack\mainstream\_timer.c</FilePath>
+            </File>
+            <File>
+              <FileName>_topology.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\powermesh_stack\mainstream\_topology.c</FilePath>
+            </File>
+            <File>
+              <FileName>_uart.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\powermesh_stack\mainstream\_uart.c</FilePath>
+            </File>
+            <File>
+              <FileName>_app.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\powermesh_stack\mainstream\_app.c</FilePath>
             </File>
           </Files>
         </Group>

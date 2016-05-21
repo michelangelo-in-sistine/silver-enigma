@@ -21,6 +21,8 @@ u16 xdata _uart_rcv_timer_stamp;
 
 #define my_putchar(x)	uart_send8(x)
 
+void powermesh_debug_cmd_proc(u8 xdata * ptr, u16 total_rec_bytes);
+
 
 /*******************************************************************************
 * Function Name  : init_uart
@@ -383,229 +385,6 @@ u32 read_int(u8 * ptr, u8 len)
 }
 
 
-void powermesh_debug_cmd_proc(u8 xdata * ptr, u16 total_rec_bytes)
-{
-	u8 phase;
-	u8 out_buffer[256];
-
-	u8 xdata out_buffer_len;
-	ARRAY_HANDLE ptw;
-	u8 xdata proc_rec_bytes;
-	u8 xdata cmd;
-	u16 xdata rest_rec_bytes;
-	
-	phase = phase;
-	out_buffer_len = 0;
-	if(out_buffer)
-	{
-		ptw = out_buffer;
-		proc_rec_bytes = 0;
-		
-		while(proc_rec_bytes < total_rec_bytes)
-		{
-			cmd = *ptr++;
-			proc_rec_bytes++;
-			rest_rec_bytes = total_rec_bytes - proc_rec_bytes;
-
-			if(cmd=='C')								//0x43: check global vars
-			{
-				my_printf("response\n");
-			}
-			else if(cmd=='R' && rest_rec_bytes>=1)		//0x52: read a byte from current phase
-			{
-				*ptw++ = read_spi(*ptr++);
-				proc_rec_bytes++;
-				out_buffer_len++;
-			}
-			else if(cmd=='W' && rest_rec_bytes>=1)		//0x57: write a byte from current phase
-			{
-				u8 addr;
-				u8 value;
-
-				addr = *ptr++;
-				value = *ptr++;
-				
-				write_spi(addr,value);
-				proc_rec_bytes++;
-			}
-			else if(cmd=='r' && rest_rec_bytes>=1)	//0x72 读6532
-			{
-				extern s32 convert_uint24_to_int24(u32 value);
-
-				s32 value;
-				value = convert_uint24_to_int24(read_measure_reg(*ptr++));
-				my_printf("read:%d\n",value);
-			}
-			else if(cmd=='w' && rest_rec_bytes>=4)	//0x77 写6532
-			{
-				u8 addr;
-				u32 dword = 0;
-
-				addr = *ptr++;
-				dword += *ptr++;
-				dword <<= 8;
-				dword += *ptr++;
-				dword <<= 8;
-				dword += *ptr++;
-				
-				write_measure_reg(addr,dword);
-				my_printf("set:%lX\n",dword);
-			}
-			
-			else if(cmd=='v' && rest_rec_bytes>=2)	//0x76		设置测量点电压
-			{
-			
-				u8 index;
-				u32 value;
-				
-				index = *ptr++;
-				value = read_int(ptr,rest_rec_bytes-1);
-
-				set_v_calib_point(index,value);
-				break;
-			}
-			else if(cmd=='i' && rest_rec_bytes>=2)	//0x69		设置测量点电流
-			{
-				u8 index;
-				u32 value;
-				
-				index = *ptr++;
-				value = read_int(ptr,rest_rec_bytes-1);
-
-				set_i_calib_point(index,value);
-				break;
-			}
-
-			
-			else if(cmd=='t')	//0x74		测试读取当前电压电流
-			{
-				s32 v,i;
-				
-				v = measure_current_v();
-				i = measure_current_i();
-				my_printf("v:%d,i:%d\n",v,i);
-				break;
-			}
-			else if(cmd=='S' && rest_rec_bytes>=9)		//0x53: 53 + X_MODE + SCAN + SRF + AC_UPDATE + 4B Delay + PACKAGE
-			{
-				PHY_SEND_STRUCT xdata pss;
-				SEND_ID_TYPE sid;
-
-				pss.xmode = *ptr++;
-				pss.prop = (*ptr++)?(BIT_PHY_SEND_PROP_SCAN):0;
-				pss.prop |= (*ptr++)?(BIT_PHY_SEND_PROP_SRF):0;
-				pss.prop |= (*ptr++)?(BIT_PHY_SEND_PROP_ACUPDATE):0;
-				pss.delay = *ptr++;
-				pss.delay = (pss.delay<<8)+(*ptr++);
-				pss.delay = (pss.delay<<8)+(*ptr++);
-				pss.delay = (pss.delay<<8)+(*ptr++);
-#if DEVICE_TYPE == DEVICE_CC	
-				pss.phase = phase;
-#else
-				pss.phase = 0;
-#endif
-				pss.psdu = ptr;
-				pss.psdu_len = rest_rec_bytes-8;
-				sid = phy_send(&pss);
-				sid = sid;
-				//if(sid != INVALID_RESOURCE_ID)
-				//{
-				//	my_printf("ACCEPTED!\r\n");
-				//}
-				//else
-				//{
-				//	my_printf("ERROR: SEND QUEUE NOT ACCEPTED!\r\n");
-				//}
-				break;
-			}
-			else if(cmd=='D' && rest_rec_bytes>=9)								//0x44	Diag Test 格式: 44 + 对方UID + XMODE + RMODE + SCAN
-			{
-				/* 测试Dll.Diag */
-				DLL_SEND_STRUCT xdata dds;
-				ARRAY_HANDLE buffer;
-
-				mem_clr(&dds,sizeof(DLL_SEND_STRUCT),1);
-#if DEVICE_TYPE == DEVICE_MT				
-				dds.phase = 0;
-#else
-				dds.phase = 0;
-#endif
-				dds.target_uid_handle = ptr;
-				ptr+=6;
-				dds.xmode = *ptr++;
-				dds.rmode = *ptr++;
-				dds.prop = BIT_DLL_SEND_PROP_DIAG | BIT_DLL_SEND_PROP_REQ_ACK;
-				dds.prop |= (*ptr)?(BIT_DLL_SEND_PROP_SCAN):0;
-
-				buffer = OSMemGet(MINOR);
-				if(buffer != NULL)
-				{
-					if(dll_diag(&dds, buffer))
-					{
-						u8 i;
-//						uart_send_asc(buffer+1,buffer[0]);
-						my_printf("\r\nTarget:");
-						uart_send_asc(dds.target_uid_handle,6);
-						my_printf("\r\n------------------------------------------\r\n\tDownlink\t\tUplink\t\r\n");
-						my_printf("Diag\tSS(dbuv)\tSNR(dB)\tSS(dbuv)\tSNR(dB)\r\n");
-						for(i=0;i<4;i++)
-						{
-							my_printf("CH%bu\t%bd\t%bd",i,buffer[i*2+1],buffer[i*2+2]);
-							my_printf("\t%bd\t%bd\r\n",buffer[i*2+9],buffer[i*2+10]);
-						}
-						
-						
-						my_printf("\r\n");
-					}
-					else
-					{
-						my_printf("Diag Fail!\r\n");
-					}
-					OSMemPut(MINOR,buffer);
-				}
-				break;
-			}
-			else if(cmd=='E' && rest_rec_bytes)		//4545
-			{
-				erase_user_storage();
-				break;
-			}
-			else if(cmd=='F' && rest_rec_bytes)		//46 + 要写入的字节
-			{
-				u16 result;
-				result = write_user_storage(ptr,rest_rec_bytes);
-				if(result)
-					my_printf("write %d bytes\n",result);
-				else
-					my_printf("write fail");
-				break;
-			}
-			else if(cmd=='G' && rest_rec_bytes==1)		//47 + 要读出的字节数
-			{
-				u16 read_bytes;
-
-				read_bytes = *ptr++;
-				read_bytes = read_user_storage(out_buffer,read_bytes);
-				out_buffer_len += read_bytes;
-				break;
-			}
-			
-
-			
-			else
-			{
-				uart_rcv_resume();
-				break;
-			}
-		}
-		uart_send_asc(out_buffer, out_buffer_len);
-#if DEVICE_TYPE == DEVICE_MT	
-		OSMemPut(SUPERIOR, out_buffer);
-#endif
-	}
-}
-
-
 void debug_uart_cmd_proc(void)
 {
 	u16 xdata total_rec_bytes;
@@ -931,4 +710,229 @@ void print_pipe(u16 pipe_id)
 	my_printf("-------------------------*/\r\n");
 }
 #endif
+
+void powermesh_debug_cmd_proc(u8 xdata * ptr, u16 total_rec_bytes)
+{
+	u8 phase;
+	u8 out_buffer[256];
+
+	u8 xdata out_buffer_len;
+	ARRAY_HANDLE ptw;
+	u8 xdata proc_rec_bytes;
+	u8 xdata cmd;
+	u16 xdata rest_rec_bytes;
+	
+	phase = phase;
+	out_buffer_len = 0;
+	if(out_buffer)
+	{
+		ptw = out_buffer;
+		proc_rec_bytes = 0;
+		
+		while(proc_rec_bytes < total_rec_bytes)
+		{
+			cmd = *ptr++;
+			proc_rec_bytes++;
+			rest_rec_bytes = total_rec_bytes - proc_rec_bytes;
+
+			if(cmd=='C')								//0x43: check global vars
+			{
+				my_printf("response\n");
+			}
+			else if(cmd=='R' && rest_rec_bytes>=1)		//0x52: read a byte from current phase
+			{
+				*ptw++ = read_spi(*ptr++);
+				proc_rec_bytes++;
+				out_buffer_len++;
+			}
+			else if(cmd=='W' && rest_rec_bytes>=1)		//0x57: write a byte from current phase
+			{
+				u8 addr;
+				u8 value;
+
+				addr = *ptr++;
+				value = *ptr++;
+				
+				write_spi(addr,value);
+				proc_rec_bytes++;
+			}
+			else if(cmd=='r' && rest_rec_bytes>=1)	//0x72 读6532
+			{
+				extern s32 convert_uint24_to_int24(u32 value);
+
+				s32 value;
+				value = convert_uint24_to_int24(read_measure_reg(*ptr++));
+				my_printf("read:%d\n",value);
+			}
+			else if(cmd=='w' && rest_rec_bytes>=4)	//0x77 写6532
+			{
+				u8 addr;
+				u32 dword = 0;
+
+				addr = *ptr++;
+				dword += *ptr++;
+				dword <<= 8;
+				dword += *ptr++;
+				dword <<= 8;
+				dword += *ptr++;
+				
+				write_measure_reg(addr,dword);
+				my_printf("set:%lX\n",dword);
+			}
+			
+			else if(cmd=='v' && rest_rec_bytes>=2)	//0x76		设置测量点电压
+			{
+			
+				u8 index;
+				u16 value;
+				
+				index = *ptr++;
+				value = read_int(ptr,rest_rec_bytes-1);
+
+				set_v_calib_point(index,value);
+				break;
+			}
+			else if(cmd=='i' && rest_rec_bytes>=2)	//0x69		设置测量点电流
+			{
+				u8 index;
+				u16 value;
+				
+				index = *ptr++;
+				value = read_int(ptr,rest_rec_bytes-1);
+
+				set_i_calib_point(index,value);
+				break;
+			}
+
+			
+			else if(cmd=='t')	//0x74		测试读取当前电压电流
+			{
+				s32 v,i;
+				
+				v = measure_current_v();
+				i = measure_current_i();
+				my_printf("v:%d,i:%d\n",v,i);
+				break;
+			}
+			else if(cmd=='S' && rest_rec_bytes>=9)		//0x53: 53 + X_MODE + SCAN + SRF + AC_UPDATE + 4B Delay + PACKAGE
+			{
+				PHY_SEND_STRUCT xdata pss;
+				SEND_ID_TYPE sid;
+
+				pss.xmode = *ptr++;
+				pss.prop = (*ptr++)?(BIT_PHY_SEND_PROP_SCAN):0;
+				pss.prop |= (*ptr++)?(BIT_PHY_SEND_PROP_SRF):0;
+				pss.prop |= (*ptr++)?(BIT_PHY_SEND_PROP_ACUPDATE):0;
+				pss.delay = *ptr++;
+				pss.delay = (pss.delay<<8)+(*ptr++);
+				pss.delay = (pss.delay<<8)+(*ptr++);
+				pss.delay = (pss.delay<<8)+(*ptr++);
+#if DEVICE_TYPE == DEVICE_CC	
+				pss.phase = phase;
+#else
+				pss.phase = 0;
+#endif
+				pss.psdu = ptr;
+				pss.psdu_len = rest_rec_bytes-8;
+				sid = phy_send(&pss);
+				sid = sid;
+				//if(sid != INVALID_RESOURCE_ID)
+				//{
+				//	my_printf("ACCEPTED!\r\n");
+				//}
+				//else
+				//{
+				//	my_printf("ERROR: SEND QUEUE NOT ACCEPTED!\r\n");
+				//}
+				break;
+			}
+			else if(cmd=='D' && rest_rec_bytes>=9)								//0x44	Diag Test 格式: 44 + 对方UID + XMODE + RMODE + SCAN
+			{
+				/* 测试Dll.Diag */
+				DLL_SEND_STRUCT xdata dds;
+				ARRAY_HANDLE buffer;
+
+				mem_clr(&dds,sizeof(DLL_SEND_STRUCT),1);
+#if DEVICE_TYPE == DEVICE_MT				
+				dds.phase = 0;
+#else
+				dds.phase = 0;
+#endif
+				dds.target_uid_handle = ptr;
+				ptr+=6;
+				dds.xmode = *ptr++;
+				dds.rmode = *ptr++;
+				dds.prop = BIT_DLL_SEND_PROP_DIAG | BIT_DLL_SEND_PROP_REQ_ACK;
+				dds.prop |= (*ptr)?(BIT_DLL_SEND_PROP_SCAN):0;
+
+				buffer = OSMemGet(MINOR);
+				if(buffer != NULL)
+				{
+					if(dll_diag(&dds, buffer))
+					{
+						u8 i;
+//						uart_send_asc(buffer+1,buffer[0]);
+						my_printf("\r\nTarget:");
+						uart_send_asc(dds.target_uid_handle,6);
+						my_printf("\r\n------------------------------------------\r\n\tDownlink\t\tUplink\t\r\n");
+						my_printf("Diag\tSS(dbuv)\tSNR(dB)\tSS(dbuv)\tSNR(dB)\r\n");
+						for(i=0;i<4;i++)
+						{
+							my_printf("CH%bu\t%bd\t%bd",i,buffer[i*2+1],buffer[i*2+2]);
+							my_printf("\t%bd\t%bd\r\n",buffer[i*2+9],buffer[i*2+10]);
+						}
+						
+						
+						my_printf("\r\n");
+					}
+					else
+					{
+						my_printf("Diag Fail!\r\n");
+					}
+					OSMemPut(MINOR,buffer);
+				}
+				break;
+			}
+			else if(cmd=='E' && rest_rec_bytes)		//4545
+			{
+				erase_user_storage();
+				break;
+			}
+			else if(cmd=='F' && rest_rec_bytes)		//46 + 要写入的字节
+			{
+				u16 result;
+				result = write_user_storage(ptr,rest_rec_bytes);
+				if(result)
+					my_printf("write %d bytes\n",result);
+				else
+					my_printf("write fail");
+				break;
+			}
+			else if(cmd=='G' && rest_rec_bytes==1)		//47 + 要读出的字节数
+			{
+				u16 read_bytes;
+
+				read_bytes = *ptr++;
+				read_bytes = read_user_storage(out_buffer,read_bytes);
+				out_buffer_len += read_bytes;
+				break;
+			}
+			else if(cmd==0xBD && rest_rec_bytes==1)		//0xBDBD
+			{
+				build_network(0);
+				
+				break;
+			}
+			else
+			{
+				uart_rcv_resume();
+				break;
+			}
+		}
+		uart_send_asc(out_buffer, out_buffer_len);
+#if DEVICE_TYPE == DEVICE_MT	
+		OSMemPut(SUPERIOR, out_buffer);
+#endif
+	}
+}
 

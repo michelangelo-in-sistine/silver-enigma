@@ -347,10 +347,10 @@ typedef struct NODE_STRUCT
 													// bit6: NODE_STATE_PIPE_FAIL	0x40	//设置节点pipe fail,即只有拓扑中有该节点,pipe库中无对应pipe.
 													// bit7: NODE_STATE_AMP_BROKEN	0x80	//节点VHH检测电路失效
 	
-
+#if BRING_USER_DATA==1
 	u8 user_data_len;								// 2014-09-24 节点组网时向CC传递的用户层信息
 	u8 user_data[CFG_USER_DATA_BUFFER_SIZE];
-	
+#endif
 }NODE_STRUCT;
 
 
@@ -572,4 +572,6 @@ typedef enum
 
 
 #endif
+
+
 

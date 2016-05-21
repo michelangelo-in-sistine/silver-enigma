@@ -69,7 +69,7 @@
 #define POWERLINE 			PL_DC
 
 /* Firmware Feature Define ----------------------------------------*/
-#define BRING_USER_DATA		1	// if defined, bring back user custom data while buiding network
+#define BRING_USER_DATA		0	// if defined, bring back user custom data while buiding network
 #define USE_RSCODEC
 #define USE_ADDR_DB
 #define USE_DIAG
@@ -81,8 +81,8 @@
 /* Release Define ----------------------------------------*/
 //#define RELEASE					//固件发布版
 #ifdef RELEASE
-	#define USE_IWDG				//使用硬件独立看门狗
-	#define SEARCH_BY_PHASE			//按相位发送搜索请求
+//	#define USE_IWDG				//使用硬件独立看门狗
+//	#define SEARCH_BY_PHASE			//按相位发送搜索请求
 #else
 	#define CRC_ISOLATED			//测试版本, 与发布版的CRC校验不同, 用于隔离测试系统
 	//#define CRC_DISTURB	0x55		//CRC最后一字节加扰

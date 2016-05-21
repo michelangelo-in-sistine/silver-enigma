@@ -1006,97 +1006,97 @@ u32 read_pwer(u8 phase, u8 ch)
 	return pwer_total/100;
 }
 
-#define depth 1024
-u8 mfoi[depth];
-void mfoi_report(u8 phase, u8 ch)
-{
-	u16 i;
-	u8 * ptr;
-
-	ENTER_CRITICAL();
-	
-	ptr = mfoi;
-	for(i=0; i<depth/2; i++)
-	{
-		write_reg(phase, 0x61, (ch<<4));		// clear mfoi valid;
-//		temp = read_reg(phase, 0x61);
-//		while(!(temp & 0x02))
-//		{
-//			my_printf("not ready");
-//			temp = read_reg(phase, 0x61);
-//		}
-	
-		*ptr++ = read_reg(phase,0x65);
-		*ptr++ = read_reg(phase,0x66);
-	}
-	EXIT_CRITICAL();
-	uart_send_asc(mfoi,depth);
-}
-
-u8 pwer[depth];
-//void pwer_report(u8 phase, u8 ch)
+//#define depth 1024
+//u8 mfoi[depth];
+//void mfoi_report(u8 phase, u8 ch)
 //{
 //	u16 i;
-//	u8 temp;
 //	u8 * ptr;
-//
+
 //	ENTER_CRITICAL();
 //	
-//	ptr = pwer;
-//	for(i=0; i<depth/3; i++)
+//	ptr = mfoi;
+//	for(i=0; i<depth/2; i++)
 //	{
-//		write_reg(phase, 0x61, (ch<<4));		// clear pwer valid;
-//		temp = read_reg(phase, 0x61);
+//		write_reg(phase, 0x61, (ch<<4));		// clear mfoi valid;
+////		temp = read_reg(phase, 0x61);
+////		while(!(temp & 0x02))
+////		{
+////			my_printf("not ready");
+////			temp = read_reg(phase, 0x61);
+////		}
+//	
+//		*ptr++ = read_reg(phase,0x65);
+//		*ptr++ = read_reg(phase,0x66);
+//	}
+//	EXIT_CRITICAL();
+//	uart_send_asc(mfoi,depth);
+//}
+
+//u8 pwer[depth];
+////void pwer_report(u8 phase, u8 ch)
+////{
+////	u16 i;
+////	u8 temp;
+////	u8 * ptr;
+////
+////	ENTER_CRITICAL();
+////	
+////	ptr = pwer;
+////	for(i=0; i<depth/3; i++)
+////	{
+////		write_reg(phase, 0x61, (ch<<4));		// clear pwer valid;
+////		temp = read_reg(phase, 0x61);
+////		while(!(temp & 0x01))
+////		{
+////		//	my_printf("not ready");
+////			temp = read_reg(phase, 0x61);
+////		}
+////	
+////		*ptr++ = read_reg(phase,0x62);
+////		*ptr++ = read_reg(phase,0x63);
+////		*ptr++ = read_reg(phase,0x64);
+////	}
+////	EXIT_CRITICAL();
+////	uart_send_asc(pwer,depth);
+////}
+
+//void pwer_report(u8 phase, u8 ch)
+//{
+//	unsigned char xdata * ptr = pwer;
+//	unsigned int i;
+//	
+//	ENTER_CRITICAL();
+//	write_reg(phase,0x61,(ch<<4));
+//	
+//	for(i = 0; i<depth/3*3; i = i+3)
+//	{
+//		unsigned char temp;
+
+//		read_reg(phase,0x00);
+//		read_reg(phase,0xFF);
+//		
+//		temp = read_reg(phase,0x61);
 //		while(!(temp & 0x01))
 //		{
-//		//	my_printf("not ready");
-//			temp = read_reg(phase, 0x61);
+//			temp = read_reg(phase,0x61);
 //		}
+//		read_reg(phase,0x00);
+//		read_reg(phase,0xFF);
 //	
 //		*ptr++ = read_reg(phase,0x62);
 //		*ptr++ = read_reg(phase,0x63);
 //		*ptr++ = read_reg(phase,0x64);
+//		
+//		write_reg(phase,0x61,temp&0xFE);
+
+//		read_reg(phase,0x00);
+//		read_reg(phase,0xFF);
+//		
 //	}
 //	EXIT_CRITICAL();
-//	uart_send_asc(pwer,depth);
+//	uart_send_asc(pwer, depth/3*3);
 //}
-
-void pwer_report(u8 phase, u8 ch)
-{
-	unsigned char xdata * ptr = pwer;
-	unsigned int i;
-	
-	ENTER_CRITICAL();
-	write_reg(phase,0x61,(ch<<4));
-	
-	for(i = 0; i<depth/3*3; i = i+3)
-	{
-		unsigned char temp;
-
-		read_reg(phase,0x00);
-		read_reg(phase,0xFF);
-		
-		temp = read_reg(phase,0x61);
-		while(!(temp & 0x01))
-		{
-			temp = read_reg(phase,0x61);
-		}
-		read_reg(phase,0x00);
-		read_reg(phase,0xFF);
-	
-		*ptr++ = read_reg(phase,0x62);
-		*ptr++ = read_reg(phase,0x63);
-		*ptr++ = read_reg(phase,0x64);
-		
-		write_reg(phase,0x61,temp&0xFE);
-
-		read_reg(phase,0x00);
-		read_reg(phase,0xFF);
-		
-	}
-	EXIT_CRITICAL();
-	uart_send_asc(pwer, depth/3*3);
-}
 
 /*******************************************************************************
 * Function Name  : get_noise_status(u8 phase)

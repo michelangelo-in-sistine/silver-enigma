@@ -1498,9 +1498,11 @@ STATUS update_node_ping_info(NODE_HANDLE target_node, ARRAY_HANDLE ping_return_b
 	if(ver_num > 0x14092400)
 	{
 		u8 node_hardware_state;
+#if BRING_USER_DATA==1
 		u8 user_data_len;
-
 		user_data_len = ping_return_buffer[0] - 6;
+#endif
+		
 		node_hardware_state = ping_return_buffer[5];
 		if(!(node_hardware_state & 0x01))
 		{
@@ -1533,6 +1535,7 @@ STATUS update_node_ping_info(NODE_HANDLE target_node, ARRAY_HANDLE ping_return_b
 		* Ping携带过来的用户数据是一个很长的乱码, 导致集中器写溢出
 		* 解决方法一个是mt端的user_data_len上电初始化为0,一个是CC端写入前检查user_data_len不能长度越界
 		************************************/
+#if BRING_USER_DATA==1
 		if((ping_return_buffer[0] > user_data_len) && (user_data_len<=CFG_USER_DATA_BUFFER_SIZE))
 		{
 			mem_cpy(target_node->user_data,&ping_return_buffer[7],user_data_len);
@@ -1546,6 +1549,7 @@ STATUS update_node_ping_info(NODE_HANDLE target_node, ARRAY_HANDLE ping_return_b
 			my_printf("bring user data error\r\n");
 #endif
 		}
+#endif
 	}
 	else
 	{
