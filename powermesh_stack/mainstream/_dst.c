@@ -370,11 +370,11 @@ void dst_rcv_proc(DLL_RCV_HANDLE pd)
 					pdst->apdu = nsdu+1;					//È¥µôMPDU Head
 					pdst->apdu_len = pd->lpdu_len-(LEN_LPCI+LEN_DST_NPCI+1);
 					pdst->dst_rcv_indication = 0x01;
-#ifdef DEBUG_DST
-					my_printf("got apdu,conf:%bx,jumps:%bx\r\n",conf,jumps);
-#else
+//#ifdef DEBUG_DST
+//					my_printf("got apdu,conf:%bx,jumps:%bx\r\n",conf,jumps);
+//#else
 					jumps = jumps;
-#endif					
+//#endif					
 				}				
 			}
 		}

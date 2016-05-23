@@ -48,7 +48,7 @@
 #define BIT_ACP_ACMD_EXCEPT		0x80
 #define BIT_ACP_ACMD_REQ		0x40
 #define BIT_ACP_ACMD_RES		0x20
-#define BIT_ACP_ACMD_CMD		0x20
+#define BIT_ACP_ACMD_CMD		0x0F
 
 
 
@@ -97,15 +97,40 @@ u16 xdata _self_gid;
 
 SEND_ID_TYPE xdata ass_send_id;
 
-/* Private Functions ---------------------------------------------------------*/
+/* Private Functions Prototype ---------------------------------------*/
 u8 wsp_cmd_proc(ARRAY_HANDLE body, u8 body_len, ARRAY_HANDLE return_buffer);
 SEND_ID_TYPE app_direct_send(APP_SEND_HANDLE ass);
 STATUS app_call(UID_HANDLE target_uid, ARRAY_HANDLE apdu, u8 apdu_len, ARRAY_HANDLE return_buffer, u8 return_len);
 u8 get_acp_index(u8 phase);
 STATUS acp_call_by_uid(UID_HANDLE target_uid, ARRAY_HANDLE cmd_body, u8 cmd_body_len, u8* return_buffer, u8 return_cmd_body_len);
 
+/* Functions ---------------------------------------------------------*/
+void init_app(void)
+{
+	if(is_app_nvr_data_valid())
+	{
+		_self_domain = get_app_nvr_data_domain_id();
+		_self_vid = get_app_nvr_data_vid();
+		_self_gid = get_app_nvr_data_gid();
+	}
+	else
+	{
+		_self_domain = 0;
+		_self_vid = 0;
+		_self_gid = 0;
+	}
+}
 
-/* Datatype ------------------------------------------------------------------*/
+STATUS save_id_info_into_app_nvr(void)
+{
+	set_app_nvr_data_domain_id(_self_domain);
+	set_app_nvr_data_vid(_self_vid);
+	set_app_nvr_data_gid(_self_gid);
+
+	return save_app_nvr_data();
+}
+
+
 void acp_rcv_proc(APP_RCV_HANDLE pt_app_rcv)
 {
 
@@ -254,7 +279,10 @@ u8 wsp_cmd_proc(ARRAY_HANDLE body, u8 body_len, ARRAY_HANDLE return_buffer)
 	cmd = *body++;
 	ptw = return_buffer;
 	
-	switch(cmd)
+	*ptw++ = cmd & (~BIT_ACP_ACMD_REQ) | BIT_ACP_ACMD_RES;
+	ret_len = 1;
+
+	switch(cmd & BIT_ACP_ACMD_CMD)
 	{
 		case(CMD_ACP_READ_CURR_PARA):
 		{
@@ -280,6 +308,12 @@ u8 wsp_cmd_proc(ARRAY_HANDLE body, u8 body_len, ARRAY_HANDLE return_buffer)
 				*ptw++ = (u8)(para);
 				ret_len += 2;
 			}
+			break;
+		}
+
+		case(CMD_ACP_SAVE_CALI):
+		{
+			
 			break;
 		}
 		
@@ -312,7 +346,7 @@ u8 wsp_cmd_proc(ARRAY_HANDLE body, u8 body_len, ARRAY_HANDLE return_buffer)
 		}
 		default:
 		{
-			*ptw = EXCEPTION_ERRORCMD;
+			return_buffer[0] = EXCEPTION_ERRORCMD;
 			ret_len = 1;
 			break;
 		}
@@ -321,6 +355,13 @@ u8 wsp_cmd_proc(ARRAY_HANDLE body, u8 body_len, ARRAY_HANDLE return_buffer)
 }
 
 #if DEVICE_TYPE==DEVICE_CV
+
+u8 _comm_mode = CHNL_CH3;
+
+void set_comm_mode(u8 comm_mode)
+{
+	_comm_mode = comm_mode;
+}
 
 STATUS call_vid_for_current_parameter(UID_HANDLE target_uid, u8 mask, s16* return_parameter)
 {
@@ -336,7 +377,7 @@ STATUS call_vid_for_current_parameter(UID_HANDLE target_uid, u8 mask, s16* retur
 	STATUS status;
 
 	ptw = cmd_body;
-	*ptw++ = CMD_ACP_READ_CURR_PARA;
+	*ptw++ = CMD_ACP_READ_CURR_PARA | BIT_ACP_ACMD_REQ;
 	*ptw++ = mask;
 	cmd_body_len = 2;
 
@@ -350,6 +391,27 @@ STATUS call_vid_for_current_parameter(UID_HANDLE target_uid, u8 mask, s16* retur
 	return status;
 }
 
+const char *_exception_code[]=
+	{
+		"Error Exception ID",
+		"Hardware Fault",
+		"Format Error",
+		"Unexecutable Command",
+		"Unmatched ID"
+	};
+
+
+const char * exception_meaning(u8 exception_id)
+{
+	if(exception_id>=sizeof(_exception_code))
+	{
+		return _exception_code[0];
+	}
+	else
+	{
+		return _exception_code[exception_id];
+	}
+}
 
 
 STATUS acp_call_by_uid(UID_HANDLE target_uid, ARRAY_HANDLE cmd_body, u8 cmd_body_len, u8* return_buffer, u8 return_cmd_body_len)
@@ -376,7 +438,15 @@ STATUS acp_call_by_uid(UID_HANDLE target_uid, ARRAY_HANDLE cmd_body, u8 cmd_body
 	status = app_call(target_uid, send_apdu, send_apdu_len, rec_apdu, return_cmd_body_len + 7);
 	if(status)
 	{
-		mem_cpy(&rec_apdu[SEC_ACP_VC_BODY], return_buffer, return_cmd_body_len);
+		if(rec_apdu[SEC_ACP_VC_BODY] & BIT_ACP_ACMD_EXCEPT)
+		{
+			my_printf("Exception occured! ID:%bd(%s)\r\n",rec_apdu[SEC_ACP_VC_BODY]&BIT_ACP_ACMD_CMD,exception_meaning(rec_apdu[SEC_ACP_VC_BODY]&BIT_ACP_ACMD_CMD));
+			status = FAIL;
+		}
+		else
+		{
+			mem_cpy(return_buffer, &rec_apdu[SEC_ACP_VC_BODY], return_cmd_body_len);
+		}
 	}
 	return status;
 }
@@ -420,8 +490,7 @@ STATUS app_call(UID_HANDLE target_uid, ARRAY_HANDLE apdu, u8 apdu_len, ARRAY_HAN
 	ass.apdu = apdu;
 	ass.apdu_len = apdu_len;
 
-	config_dst_flooding(RATE_BPSK,0,0,0,0);
-
+	config_dst_flooding(_comm_mode,0,0,0,0);
 	sid = app_direct_send(&ass);
 
 	if(sid==INVALID_RESOURCE_ID)
@@ -446,19 +515,25 @@ STATUS app_call(UID_HANDLE target_uid, ARRAY_HANDLE apdu, u8 apdu_len, ARRAY_HAN
 
 			do
 			{
+				powermesh_event_proc();
 				apdu_len = app_rcv(&ars);
 				if(apdu_len)
 				{
 					if(ars.protocol == PROTOCOL_DST)
 					{
-						if(check_cs(return_buffer, apdu_len) && mem_cmp(target_uid,ars.src_uid,6))
+						if(check_cs(return_buffer, apdu_len) && (check_uid(0,target_uid) || mem_cmp(target_uid,ars.src_uid,6)))
 						{
+my_printf("got apdu: ");
+uart_send_asc(ars.apdu,apdu_len);
+my_printf("\r\n");
+
 							status = OKAY;
+							break;
 						}
 					}
 				}
 				
-			}while(is_timer_over(tid));
+			}while(!is_timer_over(tid));
 			delete_timer(tid);
 		}
 	}

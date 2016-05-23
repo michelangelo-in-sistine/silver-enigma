@@ -70,7 +70,7 @@
 
 /* Firmware Feature Define ----------------------------------------*/
 #define BRING_USER_DATA		0	// if defined, bring back user custom data while buiding network
-#define USE_RSCODEC
+//#define USE_RSCODEC
 #define USE_ADDR_DB
 #define USE_DIAG
 #define USE_EBC

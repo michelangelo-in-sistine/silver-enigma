@@ -19,6 +19,8 @@
 #include "_mgnt_app.h"
 #include "_uart.h"
 #include "_app.h"
+#include "_app_nvr_data.h"
+
 
 #if NODE_TYPE==NODE_MASTER
 #include "_network_management.h"

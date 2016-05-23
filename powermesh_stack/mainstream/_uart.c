@@ -814,6 +814,14 @@ void powermesh_debug_cmd_proc(u8 xdata * ptr, u16 total_rec_bytes)
 				my_printf("v:%d,i:%d\n",v,i);
 				break;
 			}
+
+			else if(cmd=='s')					//0x73
+			{
+				save_calib_into_app_nvr();
+				my_printf("save");
+				break;
+			}
+			
 			else if(cmd=='S' && rest_rec_bytes>=9)		//0x53: 53 + X_MODE + SCAN + SRF + AC_UPDATE + 4B Delay + PACKAGE
 			{
 				PHY_SEND_STRUCT xdata pss;
@@ -940,6 +948,13 @@ void powermesh_debug_cmd_proc(u8 xdata * ptr, u16 total_rec_bytes)
 					my_printf("read fail\r\n");
 				}
 				break;
+			}
+
+			else if(cmd==0x82 && rest_rec_bytes >= 1)
+			{
+				set_comm_mode(*ptr);
+				my_printf("new commmode %bX\r\n", *ptr);
+				ptr++;
 			}
 			
 			else

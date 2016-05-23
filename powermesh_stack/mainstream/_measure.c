@@ -19,6 +19,20 @@
 #define MEASURE_REG_T		0x02		//温度测量通道IB
 #define MEASURE_REG_V		0x03		//电压测量通道V
 
+#define MEASURE_POINTS_CNT	2
+#define CALIB_MEAN_TIME		4
+#define MEASURE_MEAN_TIME	4
+
+typedef struct
+{
+	s32 x[MEASURE_POINTS_CNT];
+	s32 y[MEASURE_POINTS_CNT];
+	float k;
+	float b;
+}CALIB_STRUCT;
+
+CALIB_STRUCT xdata calib_v, calib_i;
+
 
 /*******************************************************************************
 * Function Name  : measure_com_send
@@ -130,6 +144,15 @@ void init_measure(void)
 	MEASURE_DISABLE_HPF();
 	MEASURE_PGA16();
 	MEASURE_PROTECT();
+
+	if(is_app_nvr_data_valid())
+	{
+		my_printf("calib data valid\r\n");
+		calib_v.k = get_app_nvr_data_u_k();
+		calib_v.b = get_app_nvr_data_u_b();
+		calib_i.k = get_app_nvr_data_i_k();
+		calib_i.b = get_app_nvr_data_i_b();
+	}
 }
 
 s32 convert_uint24_to_int24(u32 value)
@@ -144,20 +167,6 @@ s32 convert_uint24_to_int24(u32 value)
 	}
 }
 
-#define MEASURE_POINTS_CNT	2
-#define CALIB_MEAN_TIME		4
-#define MEASURE_MEAN_TIME	4
-
-
-typedef struct
-{
-	s32 x[MEASURE_POINTS_CNT];
-	s32 y[MEASURE_POINTS_CNT];
-	float k;
-	float b;
-}CALIB_STRUCT;
-
-CALIB_STRUCT xdata calib_v, calib_i;
 
 
 //void set_calib_point_test(u8 index, s32 reg_value, s32 real_value)
@@ -250,8 +259,6 @@ void set_i_calib_point(u8 index, s16 i_real_value)
 }
 
 
-
-
 s16 measure_current_v(void)
 {
 	return measure_current_param(&calib_v, MEASURE_REG_V);
@@ -262,5 +269,10 @@ s16 measure_current_i(void)
 	return measure_current_param(&calib_i, MEASURE_REG_I);
 }
 
-
+STATUS save_calib_into_app_nvr(void)
+{
+	set_app_nvr_data_u(calib_v.k, calib_v.b);
+	set_app_nvr_data_i(calib_i.k, calib_i.b);
+	return save_app_nvr_data();
+}
 

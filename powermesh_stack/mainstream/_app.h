@@ -17,7 +17,12 @@
 #ifndef _APP_H
 #define _APP_H
 
+void init_app(void);
+STATUS save_id_info_into_app_nvr(void);
+
+void set_comm_mode(u8 comm_mode);
 STATUS call_vid_for_current_parameter(UID_HANDLE target_uid, u8 mask, s16* return_parameter);
+void acp_rcv_proc(APP_RCV_HANDLE pt_app_rcv);
 
 
 #endif

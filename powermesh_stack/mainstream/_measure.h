@@ -8,6 +8,7 @@ void set_i_calib_point(u8 index, s16 i_real_value);
 s16 measure_current_v(void);
 s16 measure_current_i(void);
 
+STATUS save_calib_into_app_nvr(void);
 
 
 

@@ -1,5 +1,5 @@
 /******************** (C) COPYRIGHT 2016 ***************************************
-* File Name          : userflash.h
+* File Name          : app_nvr_data.h
 * Author             : Lv Haifeng
 * Version            : V 1.6.0
 * Date               : 2016-05-16
@@ -12,14 +12,29 @@
 * CONTENT OF SUCH FIRMWARE AND/OR THE USE MADE BY CUSTOMERS OF THE CODING
 * INFORMATION CONTAINED HEREIN IN CONNECTION WITH THEIR PRODUCTS.
 *******************************************************************************/
-#ifndef _USERFLASH_H
-#define _USERFLASH_H
+#ifndef _USER_APP_NVR_DATA_H
+#define _USER_APP_NVR_DATA_H
 
-#include "stm32f0xx.h"
+void init_app_nvr_data(void);
+BOOL is_app_nvr_data_valid(void);
+STATUS save_app_nvr_data(void);
 
-void erase_user_storage(void);
-uint16_t read_user_storage(unsigned char * read_buffer, unsigned short read_len);
-uint16_t write_user_storage(uint8_t * write_buffer, uint16_t write_len);
+void set_app_nvr_data_u(float k, float b);
+float get_app_nvr_data_u_k(void);
+float get_app_nvr_data_u_b(void);
 
+void set_app_nvr_data_i(float k, float b);
+float get_app_nvr_data_i_k(void);
+float get_app_nvr_data_i_b(void);
+
+void set_app_nvr_data_domain_id(u16 domain_id);
+u16 get_app_nvr_data_domain_id(void);
+
+void set_app_nvr_data_vid(u16 vid);
+u16 get_app_nvr_data_vid(void);
+
+void set_app_nvr_data_gid(u16 gid);
+u16 get_app_nvr_data_gid(void);
 
 #endif
+

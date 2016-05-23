@@ -39,6 +39,7 @@ uint32_t EraseCounter = 0x00, Address = 0x00;
 __IO FLASH_Status FLASHStatus = FLASH_COMPLETE;
 __IO TestStatus MemoryProgramStatus = PASSED;
 
+
 /* Private function prototypes -----------------------------------------------*/
 /* Private functions ---------------------------------------------------------*/
 

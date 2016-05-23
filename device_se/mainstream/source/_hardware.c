@@ -788,7 +788,7 @@ void get_uid(u8 phase, ARRAY_HANDLE pt)
 #define MEASURE_COM_RXD_PIN				GPIO_Pin_9
 #define MEASURE_COM_TXD_PIN_SOURCE		GPIO_PinSource10
 #define MEASURE_COM_RXD_PIN_SOURCE		GPIO_PinSource9
-#define MEASURE_COM_READ_TIMEOUT		6999UL
+#define MEASURE_COM_READ_TIMEOUT		99999UL
 
 /**
   * @brief  initialize usart1

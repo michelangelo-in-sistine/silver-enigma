@@ -101,7 +101,7 @@ void init_powermesh(void)
 #endif
 
 #if PLC_CONTROL_MODE==DEVICE_MODE
-//	while(check_spi()!=CORRECT)					// 2014-08-07 防止打ESD时系统复位正好此时SPI不工作导致死机
+	if(check_spi()!=CORRECT)					// 2014-08-07 防止打ESD时系统复位正好此时SPI不工作导致死机
 	{
 #ifdef DEBUG_MODE
 		my_printf("SPI CHECK FAILED.\r\n");
@@ -241,47 +241,47 @@ void powermesh_event_proc()
 *******************************************************************************/
 void powermesh_main_thread_useless_resp_clear(void)
 {
-//	DLL_RCV_HANDLE pd;
-//#ifdef USE_PSR
-//	PSR_RCV_HANDLE pn;
-//	MGNT_RCV_HANDLE pm;
+	DLL_RCV_HANDLE pd;
+#ifdef USE_PSR
+	PSR_RCV_HANDLE pn;
+	MGNT_RCV_HANDLE pm;
 
-//	pm = mgnt_rcv();
-//	if(pm)
-//	{
-//#ifdef DEBUG_DISP_INFO
-//		my_printf("discard an mgnt resp\r\n");
-//#endif
-//		mgnt_rcv_resume(pm);
-//	}
+	pm = mgnt_rcv();
+	if(pm)
+	{
+#ifdef DEBUG_DISP_INFO
+		my_printf("discard an mgnt resp\r\n");
+#endif
+		mgnt_rcv_resume(pm);
+	}
 
-//	pn = psr_rcv();
-//	if(pn)
-//	{
-//#ifdef DEBUG_DISP_INFO
-//		my_printf("discard an nw resp\r\n");
-//#endif
-//		psr_rcv_resume(pn);				
-//	}
-//#endif
+	pn = psr_rcv();
+	if(pn)
+	{
+#ifdef DEBUG_DISP_INFO
+		my_printf("discard an nw resp\r\n");
+#endif
+		psr_rcv_resume(pn);				
+	}
+#endif
 
-//	pd = dll_rcv();
-//	if(pd)
-//	{
-//		if(pd->dll_rcv_valid & BIT_DLL_SRF)
-//		{
-////#ifdef DEBUG_DISP_INFO
-////			my_printf("discard an srf.\r\n");
-////#endif
-//		}
-//		else
-//		{
+	pd = dll_rcv();
+	if(pd)
+	{
+		if(pd->dll_rcv_valid & BIT_DLL_SRF)
+		{
 //#ifdef DEBUG_DISP_INFO
-//			my_printf("discard an dll resp\r\n");
+//			my_printf("discard an srf.\r\n");
 //#endif
-//		}
-//		dll_rcv_resume(pd);
-//	}
+		}
+		else
+		{
+#ifdef DEBUG_DISP_INFO
+			my_printf("discard an dll resp\r\n");
+#endif
+		}
+		dll_rcv_resume(pd);
+	}
 }
 
 
