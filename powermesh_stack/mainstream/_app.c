@@ -88,6 +88,8 @@
 #define EXCEPTION_VID_MISMATCH	0x84
 
 
+extern DST_CONFIG_STRUCT xdata dst_config_obj;
+
 /* private variables ---------------------------------------------------------*/
 u16 xdata _self_domain; 
 u16 xdata _self_vid;
@@ -97,6 +99,11 @@ SEND_ID_TYPE xdata ass_send_id;
 
 /* Private Functions ---------------------------------------------------------*/
 u8 wsp_cmd_proc(ARRAY_HANDLE body, u8 body_len, ARRAY_HANDLE return_buffer);
+SEND_ID_TYPE app_direct_send(APP_SEND_HANDLE ass);
+STATUS app_call(UID_HANDLE target_uid, ARRAY_HANDLE apdu, u8 apdu_len, ARRAY_HANDLE return_buffer, u8 return_len);
+u8 get_acp_index(u8 phase);
+STATUS acp_call_by_uid(UID_HANDLE target_uid, ARRAY_HANDLE cmd_body, u8 cmd_body_len, u8* return_buffer, u8 return_cmd_body_len);
+
 
 /* Datatype ------------------------------------------------------------------*/
 void acp_rcv_proc(APP_RCV_HANDLE pt_app_rcv)
@@ -313,4 +320,200 @@ u8 wsp_cmd_proc(ARRAY_HANDLE body, u8 body_len, ARRAY_HANDLE return_buffer)
 	return ret_len;
 }
 
+#if DEVICE_TYPE==DEVICE_CV
 
+STATUS call_vid_for_current_parameter(UID_HANDLE target_uid, u8 mask, s16* return_parameter)
+{
+	u8 cmd_body[2];
+	u8 cmd_body_len;
+
+	u8 return_body[6];
+
+	u16 parameter;
+
+	
+	ARRAY_HANDLE ptw;
+	STATUS status;
+
+	ptw = cmd_body;
+	*ptw++ = CMD_ACP_READ_CURR_PARA;
+	*ptw++ = mask;
+	cmd_body_len = 2;
+
+	status = acp_call_by_uid(target_uid, cmd_body, cmd_body_len, return_body, 3);
+	if(status)
+	{
+		parameter = (return_body[1]<<8);
+		parameter += return_body[2];
+		*return_parameter = (s16)parameter;
+	}
+	return status;
+}
+
+
+
+STATUS acp_call_by_uid(UID_HANDLE target_uid, ARRAY_HANDLE cmd_body, u8 cmd_body_len, u8* return_buffer, u8 return_cmd_body_len)
+{
+	u8 send_apdu[100];
+	u8 rec_apdu[100];
+	ARRAY_HANDLE ptw;
+	u8 send_apdu_len;
+	STATUS status;
+
+	ptw = send_apdu;
+	
+	*ptw++ = PROTOCOL_ACP;
+	*ptw++ = EXP_ACP_ACPR_IPTP_VC | get_acp_index(0);
+	*ptw++ = 0;
+	*ptw++ = 0;											//domain
+	*ptw++ = 0;
+	*ptw++ = 0;											//vid
+	mem_cpy(ptw, cmd_body, cmd_body_len);
+	send_apdu_len = 6 + cmd_body_len;
+	send_apdu[send_apdu_len] = calc_cs(send_apdu, send_apdu_len);
+	send_apdu_len++;
+
+	status = app_call(target_uid, send_apdu, send_apdu_len, rec_apdu, return_cmd_body_len + 7);
+	if(status)
+	{
+		mem_cpy(&rec_apdu[SEC_ACP_VC_BODY], return_buffer, return_cmd_body_len);
+	}
+	return status;
+}
+
+
+
+/*******************************************************************************
+* Function Name  : get_acp_index()
+* Description    : 用app协议, 权宜之计
+* Input          : None
+* Output         : None
+* Return         : None
+*******************************************************************************/
+u8 get_acp_index(u8 phase)
+{
+	static u8 index[CFG_PHASE_CNT];
+	return ((index[phase]++) & BIT_ACP_ACPR_TRAN);
+}
+
+
+
+/*******************************************************************************
+* Function Name  : app_call()
+* Description    : 用app协议, 权宜之计
+* Input          : None
+* Output         : None
+* Return         : None
+*******************************************************************************/
+STATUS app_call(UID_HANDLE target_uid, ARRAY_HANDLE apdu, u8 apdu_len, ARRAY_HANDLE return_buffer, u8 return_len)
+{
+	APP_SEND_STRUCT ass;
+	APP_RCV_STRUCT ars;
+	SEND_ID_TYPE sid = INVALID_RESOURCE_ID;
+	u32 time_out;
+	STATUS status = FAIL;
+
+
+	ass.phase = 0;
+	ass.protocol = PROTOCOL_DST;
+	mem_cpy(ass.target_uid, target_uid, 6);
+	ass.apdu = apdu;
+	ass.apdu_len = apdu_len;
+
+	config_dst_flooding(RATE_BPSK,0,0,0,0);
+
+	sid = app_direct_send(&ass);
+
+	if(sid==INVALID_RESOURCE_ID)
+	{
+		return FAIL;
+	}
+	else
+	{
+		TIMER_ID_TYPE tid;
+		tid = req_timer();
+		if(tid==INVALID_RESOURCE_ID)
+		{
+			return FAIL;
+		}
+		else
+		{
+			wait_until_send_over(sid);
+			time_out = dst_transaction_sticks(apdu_len, return_len, 1000);
+			set_timer(tid,time_out);
+
+			ars.apdu = return_buffer;
+
+			do
+			{
+				apdu_len = app_rcv(&ars);
+				if(apdu_len)
+				{
+					if(ars.protocol == PROTOCOL_DST)
+					{
+						if(check_cs(return_buffer, apdu_len) && mem_cmp(target_uid,ars.src_uid,6))
+						{
+							status = OKAY;
+						}
+					}
+				}
+				
+			}while(is_timer_over(tid));
+			delete_timer(tid);
+		}
+	}
+	return status;
+}
+
+
+/*******************************************************************************
+* Function Name  : app_direct_send()
+* Description    : 借用dst协议的形式, 实现点对点通信, 
+					dll层给具体的uid作为目的地址, dst禁止洪泛转发和acps等
+					调用之前需要调用方指定使用DST协议, 并正常调用config_dst_flooding
+* Input          : None
+* Output         : None
+* Return         : None
+*******************************************************************************/
+SEND_ID_TYPE app_direct_send(APP_SEND_HANDLE ass)
+{
+	DLL_SEND_STRUCT dss;
+	SEND_ID_TYPE sid = INVALID_RESOURCE_ID;
+	ARRAY_HANDLE lsdu = NULL;
+
+	if(ass->protocol == PROTOCOL_DST)
+	{
+		lsdu = OSMemGet(SUPERIOR);
+		if(!lsdu)
+		{
+			return INVALID_RESOURCE_ID;
+		}
+
+		mem_clr((u8*)(&dss),sizeof(DLL_SEND_STRUCT),1);
+
+		dss.phase = ass->phase;
+		dss.target_uid_handle = ass->target_uid;
+
+		mem_cpy(lsdu+LEN_DST_NPCI+LEN_MPCI, ass->apdu, ass->apdu_len);	//直接在原apdu上操作有风险
+
+		dss.lsdu = lsdu;
+		dss.lsdu_len = ass->apdu_len + LEN_DST_NPCI+LEN_MPCI;
+		
+		dss.lsdu[0] = CST_DST_PROTOCOL | get_dst_index(dss.phase);		//dst head[0]: conf
+		dss.lsdu[1] = 0;												//dst head[1]: jump
+		dss.lsdu[2] = 0;												//dst head[2]: forward
+		dss.lsdu[3] = 0;												//dst head[3]: acps
+		dss.lsdu[4] = 0;												//dst head[4]: build_id
+		dss.lsdu[5] = 0;												//dst head[5]: timing_stamp
+		dss.lsdu[6] = 0;												//mpdu head
+		dss.prop |= (dst_config_obj.comm_mode & CHNL_SCAN)?BIT_DLL_SEND_PROP_SCAN:0;
+		dss.xmode = dst_config_obj.comm_mode & 0xF3;
+		dss.delay = 0;
+		sid = dll_send(&dss);
+
+		OSMemPut(SUPERIOR,lsdu);
+	}
+	return sid;
+}
+
+#endif

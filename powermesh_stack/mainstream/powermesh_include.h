@@ -18,7 +18,7 @@
 #include "_dst.h"
 #include "_mgnt_app.h"
 #include "_uart.h"
-
+#include "_app.h"
 
 #if NODE_TYPE==NODE_MASTER
 #include "_network_management.h"

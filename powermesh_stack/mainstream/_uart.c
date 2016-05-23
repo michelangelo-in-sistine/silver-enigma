@@ -923,6 +923,25 @@ void powermesh_debug_cmd_proc(u8 xdata * ptr, u16 total_rec_bytes)
 				
 				break;
 			}
+
+			else if(cmd==0x02 && rest_rec_bytes==7)		//02 + uid + mask:读取当前参数
+			{
+				s16 current_parameter;
+				STATUS status;
+
+				status = call_vid_for_current_parameter(ptr, ptr[6], &current_parameter);
+				if(status)
+				{
+					my_printf("read succuess, current parameter %d\r\n", current_parameter);
+					
+				}
+				else
+				{
+					my_printf("read fail\r\n");
+				}
+				break;
+			}
+			
 			else
 			{
 				uart_rcv_resume();
