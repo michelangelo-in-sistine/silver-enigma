@@ -5,6 +5,7 @@
 #define MEASURE_UNPROTECT()	write_measure_reg(0x3E, 0x00000055)
 #define MEASURE_PROTECT()	write_measure_reg(0x3E, 0x00000000)
 #define MEASURE_DISABLE_HPF()		write_measure_reg(0x14, 0x0000001C)
+#define CHECK_HPF_REG()			(read_measure_reg(0x14)==0x0000001C)
 
 #define MEASURE_RESET()		write_measure_reg(0x3F, 0x005A5A5A)
 #define MEASURE_PGA1()		write_measure_reg(0x15, 0x00000000)
@@ -140,10 +141,26 @@ u32 read_measure_reg(u8 addr)
 *******************************************************************************/
 void init_measure(void)
 {
-	MEASURE_UNPROTECT();
-	MEASURE_DISABLE_HPF();
-	MEASURE_PGA16();
-	MEASURE_PROTECT();
+	u16 i;
+
+	reset_measure_device();
+
+	for(i=0;i<1000;i++)
+	{
+		MEASURE_UNPROTECT();
+		MEASURE_DISABLE_HPF();
+		MEASURE_PGA16();
+		MEASURE_PROTECT();
+
+		if(CHECK_HPF_REG())
+		{
+			break;
+		}
+		else
+		{
+			my_printf("measure reg fail\r\n");
+		}
+	}
 
 	if(is_app_nvr_data_valid())
 	{
@@ -213,7 +230,7 @@ void set_calib_point(u8 index, CALIB_STRUCT xdata * calib, u8 measure_reg_addr, 
 	calib->x[index] = reg_value;		//reg值作为x, 计算k时分母够大
 	calib->y[index] = real_value;
 
-my_printf("index:%d,reg_value:%d,real_value:%d\n",index,reg_value,real_value);
+//my_printf("index:%d,reg_value:%d,real_value:%d\n",index,reg_value,real_value);
 
 	if(index == MEASURE_POINTS_CNT - 1)
 	{
@@ -240,9 +257,9 @@ s16 measure_current_param(CALIB_STRUCT xdata * calib, u8 measure_reg_addr)
 
 	}
 	reg_value /= MEASURE_MEAN_TIME;
-#ifdef DEBUG
+//#ifdef DEBUG
 	my_printf("measure reg value%d\n",reg_value);
-#endif
+//#endif
 
 	return (s16)(calib->k * reg_value + calib->b);
 }
@@ -261,11 +278,25 @@ void set_i_calib_point(u8 index, s16 i_real_value)
 
 s16 measure_current_v(void)
 {
-	return measure_current_param(&calib_v, MEASURE_REG_V);
+	s16 current_v;
+
+	my_printf("calib_v, k:%d, b:%d\r\n", (u32)(calib_v.k*100000), (u32)(calib_v.b*100000));
+	
+	current_v = measure_current_param(&calib_v, MEASURE_REG_V);
+	
+	if(current_v>-500 && current_v<500)											//防止6523被复位, HPF关闭, 当检查此时测量电压小于5V, 则复位6523
+	{
+		init_app_nvr_data();
+		init_measure();
+		current_v = measure_current_param(&calib_v, MEASURE_REG_V);
+	}
+	
+	return current_v;
 }
 
 s16 measure_current_i(void)
 {
+	my_printf("calib_i, k:%d, b:%d\r\n", (u32)(calib_i.k*100000), (u32)(calib_i.b*100000));
 	return measure_current_param(&calib_i, MEASURE_REG_I);
 }
 

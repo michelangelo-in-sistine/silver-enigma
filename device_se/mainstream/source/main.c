@@ -1,4 +1,5 @@
 #include "powermesh_include.h"
+#include "math.h"
 
 u8 apdu[100];
 u8 apdu_len;

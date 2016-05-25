@@ -96,9 +96,6 @@ void init_powermesh(void)
 #ifdef USE_UART
 	init_uart();
 #endif
-#ifdef USE_MEASURE
-	init_measure();
-#endif
 
 #if PLC_CONTROL_MODE==DEVICE_MODE
 	if(check_spi()!=CORRECT)					// 2014-08-07 防止打ESD时系统复位正好此时SPI不工作导致死机
@@ -137,7 +134,7 @@ void init_powermesh(void)
 	init_dst();
 	init_mgnt_app();
 
-#if DEVICE_TYPE==DEVICE_CC || DEVICE_TYPE==DEVICE_CC
+#if NODE_TYPE==NODE_MASTER
 #ifdef TEST_TRANSACTION
 	init_app_transaction();
 #endif

@@ -706,22 +706,31 @@ STATUS add_pipe_under_node(NODE_HANDLE parent_node, LINK_HANDLE link)
 u16 build_network_complete(u16 max_nodes_to_search)
 {
 	u8 i;
-	BUILD_RESULT build_result[3];
+	BUILD_RESULT build_result[CFG_PHASE_CNT];
 	u16 new_nodes_count;
+	BOOL all_completed = FALSE;
 
 	build_network_by_step(0, max_nodes_to_search, BUILD_RESTART);
 
-	while(build_result[0]!=COMPLETED || build_result[1]!=COMPLETED || build_result[2]!=COMPLETED)
+	while(!all_completed)
 	{
-		for(i=0;i<3;i++)
+		for(i=0;i<CFG_PHASE_CNT;i++)
 		{
 			build_result[i] = build_network_by_step(i, max_nodes_to_search, BUILD_CONTINUE);
 			SET_BREAK_THROUGH("quit_build_network()\r\n");
 		}
 		SET_BREAK_THROUGH("quit_build_network()\r\n");
+		
+		all_completed = TRUE;
+		for(i=0;i<CFG_PHASE_CNT;i++)
+		{
+			if(build_result[i]!=COMPLETED)
+			{
+				all_completed = FALSE;
+			}
+		}
 	}
 
-	
 	new_nodes_count = 0;
 	for(i=0;i<CFG_PHASE_CNT;i++)
 	{

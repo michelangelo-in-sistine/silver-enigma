@@ -90,6 +90,16 @@ void system_reset_behavior()
 
 }
 
+void reset_measure_device(void)
+{
+	u32 i;
+	
+	GPIO_ResetBits(BL6523_GPIO_PORT, BL6523_RST_PIN);
+	for(i=0;i<999999UL;i++);
+	GPIO_SetBits(BL6523_GPIO_PORT, BL6523_RST_PIN);
+	for(i=0;i<999999UL;i++);									//6523 need time to finish reset
+}
+
 
 void ENTER_CRITICAL(void)
 {

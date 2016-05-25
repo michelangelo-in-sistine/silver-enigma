@@ -814,6 +814,12 @@ void powermesh_debug_cmd_proc(u8 xdata * ptr, u16 total_rec_bytes)
 				my_printf("v:%d,i:%d\n",v,i);
 				break;
 			}
+			else if(cmd=='r')					//72
+			{
+				my_printf("reset 6523\n");
+				reset_measure_device();			//重启6523
+				break;
+			}
 
 			else if(cmd=='s')					//0x73
 			{
@@ -925,23 +931,64 @@ void powermesh_debug_cmd_proc(u8 xdata * ptr, u16 total_rec_bytes)
 				out_buffer_len += read_bytes;
 				break;
 			}
-			else if(cmd==0xBD && rest_rec_bytes==1)		//0xBDBD
+			else if(cmd==0xBD && rest_rec_bytes==1)		//0xBDBD, 搜索根节点
 			{
-				build_network(0);
+				u8 new_nodes = 0;
+				u8 total_nodes = 0;
+				EBC_BROADCAST_STRUCT es;
+
+
+				//extern u8 root_explore(NODE_HANDLE exe_node);
 				
+				/* Reset topology */
+				build_network_by_step(0, 0, BUILD_RESTART);	//执行一次即三相均重置
+
+				es.phase = 0;
+				es.bid = get_build_id(0);
+				es.xmode = 0x10;
+				es.rmode = 0x10;
+				es.scan = 1;
+				es.window = 4;
+				es.mask = 0;
+				es.max_identify_try =2;
+
+				do
+				{
+					new_nodes = root_explore(&es);
+					total_nodes += new_nodes;
+				}while(new_nodes!=0);
+
+
+				{
+					u8 i;
+					u8 target_uid[6];
+
+					my_printf("Neibour Nodes:[");
+					for(i=0;i<total_nodes;i++)
+					{
+						if(inquire_neighbor_uid_db(i, target_uid))
+						{
+							uart_send_asc(target_uid,6);
+							if(i!=total_nodes-1)
+							{
+								my_printf(",");
+							}
+						}
+					}
+					my_printf("]\n");
+				}
 				break;
 			}
 
 			else if(cmd==0x02 && rest_rec_bytes==7)		//02 + uid + mask:读取当前参数
 			{
-				s16 current_parameter;
+				s16 current_parameter[2];
 				STATUS status;
 
-				status = call_vid_for_current_parameter(ptr, ptr[6], &current_parameter);
+				status = call_vid_for_current_parameter(ptr, ptr[6], current_parameter);
 				if(status)
 				{
-					my_printf("read succuess, current parameter %d\r\n", current_parameter);
-					
+					my_printf("read succuess, u:%d, i:%d\r\n", current_parameter[0], current_parameter[1]);
 				}
 				else
 				{
@@ -957,6 +1004,64 @@ void powermesh_debug_cmd_proc(u8 xdata * ptr, u16 total_rec_bytes)
 				ptr++;
 			}
 			
+			else if(cmd==0xCC && rest_rec_bytes >= 1)			//0xCCCC 自检
+			{
+				u8 nvr_data[] = {0x1E,0x12,0xD0,0x3B,0x30,0xF1,0x3C,0xC3,0xD7,0xE2,0x3D,0x3E,0x80,0xFB,0x30,0xC2,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0x41,0xC0};
+				s32 v,i;
+				
+				write_user_storage(nvr_data,sizeof(nvr_data));
+				init_app_nvr_data();
+				init_measure();
+				
+				v = measure_current_v();
+				i = measure_current_i();
+				my_printf("v:%d,i:%d\n",v,i);
+
+				{
+					/* 测试Dll.Diag */
+					DLL_SEND_STRUCT xdata dds;
+					ARRAY_HANDLE buffer;
+					u8 uid[] = {0xFF,0xFF,0xFF,0xFF,0xFF,0xFF};
+	
+					mem_clr(&dds,sizeof(DLL_SEND_STRUCT),1);
+					dds.phase = 0;
+					dds.target_uid_handle = uid;
+					ptr+=6;
+					dds.xmode = 0x10;
+					dds.rmode = 0x10;
+					dds.prop = BIT_DLL_SEND_PROP_DIAG | BIT_DLL_SEND_PROP_REQ_ACK;
+					dds.prop |= BIT_DLL_SEND_PROP_SCAN;
+	
+					buffer = OSMemGet(MINOR);
+					if(buffer != NULL)
+					{
+						if(dll_diag(&dds, buffer))
+						{
+							u8 i;
+	//						uart_send_asc(buffer+1,buffer[0]);
+							my_printf("\r\nTarget:");
+							uart_send_asc(dds.target_uid_handle,6);
+							my_printf("\r\n------------------------------------------\r\n\tDownlink\t\tUplink\t\r\n");
+							my_printf("Diag\tSS(dbuv)\tSNR(dB)\tSS(dbuv)\tSNR(dB)\r\n");
+							for(i=0;i<4;i++)
+							{
+								my_printf("CH%bu\t%bd\t%bd",i,buffer[i*2+1],buffer[i*2+2]);
+								my_printf("\t%bd\t%bd\r\n",buffer[i*2+9],buffer[i*2+10]);
+							}
+							
+							
+							my_printf("\r\n");
+						}
+						else
+						{
+							my_printf("Diag Fail!\r\n");
+						}
+						OSMemPut(MINOR,buffer);
+					}
+				}
+				break;
+			}
+
 			else
 			{
 				uart_rcv_resume();

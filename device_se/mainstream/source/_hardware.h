@@ -35,9 +35,9 @@ void FEED_DOG(void);
 
 void init_basic_hardware(void);
 void system_reset_behavior(void);
+void reset_measure_device(void);
 
 void init_phy_hardware(void);
-
 
 void init_timer_hardware(void);
 void init_usart2_hardware(void);
