@@ -163,6 +163,11 @@
       <TargetDriverDllRegistry>
         <SetRegEntry>
           <Number>0</Number>
+          <Key>DLGUARM</Key>
+          <Name></Name>
+        </SetRegEntry>
+        <SetRegEntry>
+          <Number>0</Number>
           <Key>DLGDARM</Key>
           <Name>(1010=-1,-1,-1,-1,0)(1007=-1,-1,-1,-1,0)(1008=-1,-1,-1,-1,0)</Name>
         </SetRegEntry>
@@ -196,66 +201,30 @@
         <Bp>
           <Number>0</Number>
           <Type>0</Type>
-          <LineNumber>1006</LineNumber>
+          <LineNumber>237</LineNumber>
           <EnabledFlag>1</EnabledFlag>
-          <Address>134231902</Address>
+          <Address>134269602</Address>
           <ByteObject>0</ByteObject>
           <HtxType>0</HtxType>
           <ManyObjects>0</ManyObjects>
           <SizeOfObject>0</SizeOfObject>
           <BreakByAccess>0</BreakByAccess>
           <BreakIfRCount>1</BreakIfRCount>
-          <Filename>..\..\..\powermesh_stack\mainstream\_ebc.c</Filename>
+          <Filename>..\..\..\powermesh_stack\mainstream\_measure.c</Filename>
           <ExecCommand></ExecCommand>
-          <Expression>\\powermesh_se\../../../powermesh_stack/mainstream/_ebc.c\1006</Expression>
-        </Bp>
-        <Bp>
-          <Number>1</Number>
-          <Type>0</Type>
-          <LineNumber>1008</LineNumber>
-          <EnabledFlag>1</EnabledFlag>
-          <Address>134231926</Address>
-          <ByteObject>0</ByteObject>
-          <HtxType>0</HtxType>
-          <ManyObjects>0</ManyObjects>
-          <SizeOfObject>0</SizeOfObject>
-          <BreakByAccess>0</BreakByAccess>
-          <BreakIfRCount>1</BreakIfRCount>
-          <Filename>..\..\..\powermesh_stack\mainstream\_ebc.c</Filename>
-          <ExecCommand></ExecCommand>
-          <Expression>\\powermesh_se\../../../powermesh_stack/mainstream/_ebc.c\1008</Expression>
+          <Expression>\\powermesh_se\../../../powermesh_stack/mainstream/_measure.c\237</Expression>
         </Bp>
       </Breakpoint>
       <WatchWindow1>
         <Ww>
           <count>0</count>
           <WinNumber>1</WinNumber>
-          <ItemText>_app_nvr_data</ItemText>
+          <ItemText>calib,0x0A</ItemText>
         </Ww>
         <Ww>
           <count>1</count>
           <WinNumber>1</WinNumber>
-          <ItemText>buffer</ItemText>
-        </Ww>
-        <Ww>
-          <count>2</count>
-          <WinNumber>1</WinNumber>
-          <ItemText>_ebc_confirm</ItemText>
-        </Ww>
-        <Ww>
-          <count>3</count>
-          <WinNumber>1</WinNumber>
-          <ItemText>_ebc_caller_uid</ItemText>
-        </Ww>
-        <Ww>
-          <count>4</count>
-          <WinNumber>1</WinNumber>
-          <ItemText>ppdu</ItemText>
-        </Ww>
-        <Ww>
-          <count>5</count>
-          <WinNumber>1</WinNumber>
-          <ItemText>pass1</ItemText>
+          <ItemText>calib_i</ItemText>
         </Ww>
       </WatchWindow1>
       <MemoryWindow1>
@@ -422,7 +391,7 @@
       <GroupNumber>1</GroupNumber>
       <FileNumber>10</FileNumber>
       <FileType>1</FileType>
-      <tvExp>1</tvExp>
+      <tvExp>0</tvExp>
       <tvExpOptDlg>0</tvExpOptDlg>
       <bDave2>0</bDave2>
       <PathWithFileName>..\..\..\powermesh_stack\mainstream\_ebc.c</PathWithFileName>

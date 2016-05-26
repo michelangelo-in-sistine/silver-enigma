@@ -369,24 +369,40 @@ STATUS call_vid_for_current_parameter(UID_HANDLE target_uid, u8 mask, s16* retur
 	u8 cmd_body_len;
 
 	u8 return_body[6];
+	u8 i;
+	u8 cnt;
 
 	u16 parameter;
 
 	
-	ARRAY_HANDLE ptw;
+	ARRAY_HANDLE ptw, ptr;
 	STATUS status;
 
 	ptw = cmd_body;
 	*ptw++ = CMD_ACP_READ_CURR_PARA | BIT_ACP_ACMD_REQ;
 	*ptw++ = mask;
 	cmd_body_len = 2;
+	
+	cnt = 0;
+	for(i=0x80;i>0;i>>=1)
+	{
+		(mask&i) ? cnt++ : 0;
+	}
 
-	status = acp_call_by_uid(target_uid, cmd_body, cmd_body_len, return_body, 3);
+	status = acp_call_by_uid(target_uid, cmd_body, cmd_body_len, return_body, cnt*2+1);
 	if(status)
 	{
-		parameter = (return_body[1]<<8);
-		parameter += return_body[2];
-		*return_parameter = (s16)parameter;
+		ptr = return_body;
+		ptr++;
+		for(i=0x80;i>0;i>>=1)
+		{
+			if(mask & i)
+			{
+				parameter = (*ptr++<<8);
+				parameter += *ptr++;
+				*return_parameter++ = (s16)parameter;
+			}
+		}
 	}
 	return status;
 }

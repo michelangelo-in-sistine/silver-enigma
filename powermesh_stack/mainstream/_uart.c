@@ -2,6 +2,7 @@
 #include "powermesh_include.h"
 #include "stdarg.h"
 #include "_userflash.h"
+#include "stdlib.h"
 
 #define UART_BUFFER_DEPTH			320
 #define UART_RCV_EXPIRE_TIMING		2		//uart expire timing: 2 timer sticks
@@ -788,7 +789,7 @@ void powermesh_debug_cmd_proc(u8 xdata * ptr, u16 total_rec_bytes)
 				
 				index = *ptr++;
 				value = read_int(ptr,rest_rec_bytes-1);
-
+				my_printf("calib v, point:%d, value:%d\r\n",index,value);
 				set_v_calib_point(index,value);
 				break;
 			}
@@ -799,8 +800,9 @@ void powermesh_debug_cmd_proc(u8 xdata * ptr, u16 total_rec_bytes)
 				
 				index = *ptr++;
 				value = read_int(ptr,rest_rec_bytes-1);
-
+				my_printf("calib i, point:%d, value:%d\r\n",index,value);
 				set_i_calib_point(index,value);
+
 				break;
 			}
 
@@ -938,13 +940,14 @@ void powermesh_debug_cmd_proc(u8 xdata * ptr, u16 total_rec_bytes)
 				EBC_BROADCAST_STRUCT es;
 
 
-				//extern u8 root_explore(NODE_HANDLE exe_node);
-				
 				/* Reset topology */
 				build_network_by_step(0, 0, BUILD_RESTART);	//执行一次即三相均重置
 
 				es.phase = 0;
-				es.bid = get_build_id(0);
+				while((es.bid & 0x0F)==0)
+				{
+					es.bid = (u8)(rand());
+				}
 				es.xmode = 0x10;
 				es.rmode = 0x10;
 				es.scan = 1;
