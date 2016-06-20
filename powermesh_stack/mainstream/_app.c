@@ -163,6 +163,7 @@ void acp_rcv_proc(APP_RCV_HANDLE pt_app_rcv)
 		if(apdu[SEC_ACP_ACPH] == PROTOCOL_ACP)
 		{
 			u16 target_xid;
+			u16 caller_vid;
 
 			target_xid = (apdu[SEC_ACP_VC_VIDH] << 8) + apdu[SEC_ACP_VC_VIDL];
 
@@ -177,7 +178,7 @@ void acp_rcv_proc(APP_RCV_HANDLE pt_app_rcv)
 				idtp = (apdu[SEC_ACP_ACPR]) & BIT_ACP_ACPR_IDTP;
 				switch(idtp)
 				{
-					case(EXP_ACP_ACPR_IPTP_DB):
+					case(EXP_ACP_ACPR_IPTP_DB):								//domain broadcast
 					{
 						req = apdu[SEC_ACP_DB_BODY] & BIT_ACP_ACMD_REQ;
 						id_match = TRUE;
@@ -185,7 +186,7 @@ void acp_rcv_proc(APP_RCV_HANDLE pt_app_rcv)
 						head_len = SEC_ACP_DB_BODY;
 						break;
 					}
-					case(EXP_ACP_ACPR_IPTP_VC):
+					case(EXP_ACP_ACPR_IPTP_VC):								//single node
 					{
 						if((target_xid == _self_vid) || (target_xid == 0))
 						{
@@ -200,13 +201,24 @@ void acp_rcv_proc(APP_RCV_HANDLE pt_app_rcv)
 							goto ACP_RCV_PROC_QUIT;
 						}
 					}
-					case(EXP_ACP_ACPR_IPTP_MC):
+					case(EXP_ACP_ACPR_IPTP_MC):								//multiple nodes
 					{
-						//{
-						//
-						//	wsp_cmd_proc(pt_body, head_len, );
-						//}
-						break;
+						u16 end_vid;
+
+						end_vid = (apdu[SEC_ACP_MC_ENDH] << 8) + apdu[SEC_ACP_MC_ENDL];
+						caller_vid = (apdu[SEC_ACP_MC_SELH] << 8) + apdu[SEC_ACP_MC_SELL];
+						if(_self_vid>=target_xid && _self_vid<end_vid)		//target_xid is start_vid now; selected range is [start_vid,end_vid), like Python.
+						{
+							req = apdu[SEC_ACP_MC_BODY] & (BIT_ACP_ACMD_REQ|BIT_ACP_ACMD_RES);	// in MC type, req frame and res frame can all invoke response
+							id_match = TRUE;
+							pt_body = &apdu[SEC_ACP_MC_BODY];
+							head_len = SEC_ACP_MC_BODY;
+							break;
+						}
+						else
+						{
+							goto ACP_RCV_PROC_QUIT;
+						}
 					}
 					case(EXP_ACP_ACPR_IPTP_GB):
 					{
@@ -237,26 +249,45 @@ void acp_rcv_proc(APP_RCV_HANDLE pt_app_rcv)
 
 					if(req)			//need req
 					{
-						mem_cpy(return_buffer, apdu, head_len);
-						ret_len += head_len;
-						return_buffer[SEC_ACP_ACPR] |= BIT_ACP_ACPR_FOLW;
 						if(idtp == EXP_ACP_ACPR_IPTP_MC)
 						{
-							return_buffer[SEC_ACP_MC_SELH] = _self_vid>>8;
-							return_buffer[SEC_ACP_MC_SELL] = _self_vid;
+							new_pending_sticks = calc_pending_sticks();
 						}
 
-						return_buffer[ret_len] = calc_cs(return_buffer, ret_len);
-						ret_len++;
-						
-						
-						ass.phase = pt_app_rcv->phase;
-						ass.protocol = pt_app_rcv->protocol;
-						ass.pipe_id = pt_app_rcv->pipe_id;
-						
-						ass.apdu = return_buffer;
-						ass.apdu_len = ret_len;
-						ass_send_id = app_send(&ass);
+					
+						if(idtp == EXP_ACP_ACPR_IPTP_MC && req_send_queue(ass_send_id)==SEND_STATUS_PENDING)
+						{
+							adjust_queue_pending(ass_send_id, new_pending_sticks);
+						}
+						else
+						{
+					
+							mem_cpy(return_buffer, apdu, head_len);
+							ret_len += head_len;
+							return_buffer[SEC_ACP_ACPR] |= BIT_ACP_ACPR_FOLW;
+							if(idtp == EXP_ACP_ACPR_IPTP_MC)
+							{
+								return_buffer[SEC_ACP_MC_SELH] = _self_vid>>8;
+								return_buffer[SEC_ACP_MC_SELL] = _self_vid;
+							}
+
+							return_buffer[ret_len] = calc_cs(return_buffer, ret_len);
+							ret_len++;
+
+							
+							
+							ass.phase = pt_app_rcv->phase;
+							ass.protocol = pt_app_rcv->protocol;
+							ass.pipe_id = pt_app_rcv->pipe_id;
+							
+							ass.apdu = return_buffer;
+							ass.apdu_len = ret_len;
+							ass_send_id = app_send(&ass);
+							if(idtp == EXP_ACP_ACPR_IPTP_MC)
+							{
+								adjust_queue_pending(ass_send_id, new_pending_sticks);
+							}
+						}
 					}
 				}
 			}
