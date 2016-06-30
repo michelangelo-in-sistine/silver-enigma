@@ -161,13 +161,18 @@ void init_powermesh(void)
 		my_printf("/*-------------------\r\n");
 		my_printf("%s\r\nUID: ",start_code);
 		uart_send_asc(self_uid,6);
+#ifdef USE_RSCODEC
 		my_printf("\r\nRS_DECODE_LEN:%bu, RS_ENCODE_LEN:%bu\r\n",CFG_RS_DECODE_LENGTH,CFG_RS_ENCODE_LENGTH);
+#endif
 		get_timing_version(&ver);
 		my_printf("LAST COMPILED AT %s, %s\r\n",compile_date,compile_time);
 
 		#ifndef RELEASE
 		my_printf("DISTURB CODE:%bx\r\n",CRC_DISTURB);
 		#endif
+#ifdef USE_DMA
+		my_printf("DMA MODE\r\n");
+#endif
 	}
 #endif
 }
@@ -201,9 +206,8 @@ void powermesh_event_proc()
 #if DEBUG_UART_PROC == 1
 	debug_uart_cmd_proc();
 #endif
-
-
-//	/* 整理flash碎片*/
+	
+	//	/* 整理flash碎片*/
 //#if DEVICE_TYPE==DEVICE_CC
 //	{
 //		static u16 fragment_timer = 0;
@@ -366,6 +370,32 @@ BOOL mem_cmp(ARRAY_HANDLE pt1, ARRAY_HANDLE pt2, BASE_LEN_TYPE len) reentrant
 	}
 	return TRUE;
 }
+
+#if NODE_TYPE == NODE_MASTER
+/*******************************************************************************
+* Function Name  : mem_cmp_reverse
+* Description    : memory compare, compare from right to left, shorten address comparasion time
+* Input          : dest address, src address, compare length
+* Output         : 
+* Return         : TRUE/FALSE
+*******************************************************************************/
+BOOL mem_cmp_reverse(ARRAY_HANDLE pt1, ARRAY_HANDLE pt2, BASE_LEN_TYPE len) reentrant
+{
+	BASE_LEN_TYPE i;
+
+	pt1 += (len-1);
+	pt2 += (len-1);
+
+	for(i=0; i<len; i++)
+	{
+		if((*pt1--) != (*pt2--))
+		{
+			return FALSE;
+		}
+	}
+	return TRUE;
+}
+#endif
 
 /*******************************************************************************
 * Function Name  : mem_clr
@@ -1179,14 +1209,18 @@ u8 get_noise_status(u8 phase)
 *******************************************************************************/
 void powermesh_clear_apdu_rcv(void)
 {
-	u8 i;
-
-	for(i=0;i<CFG_PHASE_CNT;i++)
+	u8 * apdu;	
+	APP_RCV_STRUCT ars;
+	
+	apdu = OSMemGet(SUPERIOR);
+	if(apdu)
 	{
-		app_rcv_resume(&_app_rcv_obj[i]);
-		dst_rcv_resume(&_dst_rcv_obj[i]);
+		ars.apdu = apdu;
+		app_rcv(&ars);
+		OSMemPut(SUPERIOR,apdu);
 	}
 }
+
 
 
 #endif

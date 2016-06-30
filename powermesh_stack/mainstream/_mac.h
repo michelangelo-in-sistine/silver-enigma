@@ -1,9 +1,9 @@
 /******************** (C) COPYRIGHT 2012 Belling Inc. ********************
-* File Name          : mgnt.h
+* File Name          : mac.h
 * Author             : Lv Haifeng
 * Version            : V1.0.3
-* Date               : 10/28/2012
-* Description        : a customized (20,10) rs coder and decoder in GF(2^8)
+* Date               : 2015-04-03
+* Description        : 6810 media access layer definition
 ********************************************************************************
 * THE PRESENT FIRMWARE WHICH IS FOR GUIDANCE ONLY AIMS AT PROVIDING CUSTOMERS
 * WITH CODING INFORMATION REGARDING THEIR PRODECTS IN ORDER FOR THEM TO SAVE TIME.
@@ -14,8 +14,8 @@
 *******************************************************************************/
 
 /* Define to prevent recursive inclusion -------------------------------------*/
-#ifndef _MGNT_H
-#define _MGNT_H
+#ifndef _MAC_H
+#define _MAC_H
 
 /* Includes ------------------------------------------------------------------*/
 
@@ -24,33 +24,29 @@
 /* Exported types ------------------------------------------------------------*/
 
 /* Exported variants ------------------------------------------------------- */
-extern APP_STACK_RCV_STRUCT	_app_rcv_obj[];
-extern u8 xdata _user_data[];
-extern u8 xdata _user_data_len;
+
 /* Exported functions ------------------------------------------------------- */
-void init_mgnt_app(void);
-SEND_ID_TYPE app_send(APP_SEND_HANDLE pas);
-BASE_LEN_TYPE app_rcv(APP_RCV_HANDLE pa);
-void app_rcv_resume(APP_STACK_RCV_HANDLE pa) reentrant;
-MGNT_RCV_HANDLE mgnt_rcv(void);
-void mgnt_proc(MGNT_RCV_HANDLE pm);
-void mgnt_rcv_resume(MGNT_RCV_HANDLE pm) reentrant;
+void init_mac(void);
+void set_mac_nav_timing_from_esf(PHY_RCV_HANDLE pp);
+SEND_ID_TYPE send_esf(u8 phase, u16 nav_value);
+STATUS config_esf_xmode(COMM_MODE_TYPE comm_mode);
+void mac_layer_proc(void);
+STATUS declare_channel_occupation(SEND_ID_TYPE dll_sid, u32 wait_time_after_sending);
+BOOL is_channel_busy(void);
 
-#if APP_RCV_SS_SNR == 1
-s8 get_phy_ss(PHY_RCV_HANDLE pp);
-s8 get_phy_snr(PHY_RCV_HANDLE pp);
-#endif
+/* Nearby Nodes Monitoring */
+STATUS update_nearby_active_nodes(UID_HANDLE src_uid);
+u8 get_nearby_active_nodes_num(void);
+u8 acquire_nearby_active_nodes_set(u8 * buffer);
+void set_mac_parameter(u16 mac_stick_base_value, u16 mac_stick_anneal_value);
+
+void declare_channel_monopoly(u32 over_time_stick);
+void cancel_channel_monopoly(void);
 
 
-#if DEVICE_TYPE == DEVICE_CC
-SEND_ID_TYPE app_uid_send(APP_SEND_STRUCT * pas);
-STATUS app_transaction(APP_SEND_HANDLE pas, APP_RCV_HANDLE pv, BASE_LEN_TYPE asdu_uplink_len, u16 app_delay);
-#ifdef USE_MAC
-SEND_ID_TYPE app_send_ca(APP_SEND_HANDLE app_send_handle, u32 wait_time_after_sending);
-#endif
-#endif
 
 #endif
+
 
 
 

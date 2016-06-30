@@ -19,7 +19,7 @@
 //#include "powermesh_datatype.h"
 //#include "powermesh_config.h"
 //#include "powermesh_spec.h"
-//#include "powermesh_timing.h"9
+//#include "powermesh_timing.h"
 //#include "hardware.h"
 //#include "general.h"
 //#include "rscodec.h"
@@ -398,10 +398,6 @@ void phy_rcv_int_svr(PHY_RCV_HANDLE pp)
 		led_phy_int_on();
 #endif
 #endif 
-
-#ifdef USE_MAC
-	clr_csma_deadlock(phase);
-#endif
 }
 
 /*******************************************************************************
@@ -445,7 +441,6 @@ void phy_rcv_proc(PHY_RCV_HANDLE pp)
 						if(*pt_plc_rcv_len==4 && (check_srf(&(pp->plc_rcv_buffer[i][0])) == CORRECT))
 						{
 							check_ok = CORRECT;
-							pp->phy_rcv_info |= PHY_FLAG_SRF;
 						}
 					}					
 					else
@@ -467,6 +462,11 @@ void phy_rcv_proc(PHY_RCV_HANDLE pp)
 								pp->phy_rcv_ss[i] = dbuv(pp->plc_rcv_pos[i],pp->plc_rcv_agc_word);
 								pp->phy_rcv_ebn0[i] = ebn0(pp->plc_rcv_pos[i],pp->plc_rcv_pon[i]);
 								pp->phy_rcv_supposed_ch = supposed_ch;
+
+								if(phpr & PLC_FLAG_SRF)
+								{
+									pp->phy_rcv_info |= PHY_FLAG_SRF;					//2016-06-08 谐波有指示,主波无指示, 仅有srf信息, 会引发接收长度为0的bug. fixed
+								}
 
 								if(i==3)												// ch3是最后一个扫描的频率, 收到即接收完成
 								{
@@ -646,6 +646,9 @@ void phy_rcv_resume(PHY_RCV_HANDLE pp) reentrant
 		}
 		pp->phy_rcv_valid = 0;
 		pp->plc_rcv_valid = 0;
+#ifdef USE_MAC
+		_phy_channel_busy_indication[pp->phase] = 0;
+#endif
 	}
 	else
 	{
@@ -678,7 +681,7 @@ SEND_ID_TYPE phy_send(PHY_SEND_HANDLE pps) reentrant
 	return sid;
 }
 
-#ifdef USE_DIAG
+#ifdef USE_PSR
 /*******************************************************************************
 * Function Name  : wait_until_send_over
 * Description    : 阻塞等待发送结束,报告发送状态
@@ -693,7 +696,7 @@ STATUS wait_until_send_over(SEND_ID_TYPE sid)
 	{
 #if NODE_TYPE==NODE_MASTER
 		SET_BREAK_THROUGH("quit wait_until_send_over\r\n");
-		powermesh_main_thread_useless_resp_clear(); 	//清除协议接收
+		powermesh_main_thread_useless_resp_clear(); 	//清除协议接收, 防止接收层有阻塞, 无法接收新的ESF
 		powermesh_clear_apdu_rcv(); 					//清除应用层接收
 #endif
 

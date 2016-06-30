@@ -791,13 +791,13 @@ STATUS app_transaction(APP_SEND_HANDLE pas, APP_RCV_HANDLE pv, BASE_LEN_TYPE asd
 	{
 		SET_BREAK_THROUGH("quit app_transaction()\r\n");
 
-#ifdef USE_MAC
-		declare_channel_occupation(pas->phase,wait_sticks);		//transaction sticks包括了发送
-#endif
-
 		sid = app_send(pas);
 		if(sid != INVALID_RESOURCE_ID)
 		{
+#ifdef USE_MAC
+			declare_channel_occupation(sid, wait_sticks);
+#endif
+
 			wait_until_send_over(sid);
 			set_timer(tid, wait_sticks);
 #ifdef DEBUG_INDICATOR
@@ -834,36 +834,24 @@ STATUS app_transaction(APP_SEND_HANDLE pas, APP_RCV_HANDLE pv, BASE_LEN_TYPE asd
 #ifdef USE_MAC
 /*******************************************************************************
 * Function Name  : SEND_ID_TYPE app_send_ca(APP_SEND_HANDLE app_send_handle, u32 nav_timing, u32 max_wait_timing)
-* Description    : 以csma-ca发送独占信道声明,app_send
+* Description    : 根据传入的协议计算下行包长度, 与后面要等待的时间加在一起作为nav时间, 设置queue为mac受控
 * Input          : None
 * Output         : None
 * Return         : None
 *******************************************************************************/
-SEND_ID_TYPE app_send_ca(APP_SEND_HANDLE app_send_handle, u32 transaction_timing, u32 max_send_hold_timing)
+SEND_ID_TYPE app_send_ca(APP_SEND_HANDLE app_send_handle, u32 wait_time_after_sending)
 {
-	SEND_ID_TYPE sid_esf, sid_app;
-	u8 phase;
+	SEND_ID_TYPE sid_app;
+	u32 phy_sending_time;
 
-	phase = app_send_handle->phase;
-	if(phase > CFG_PHASE_CNT)
+	sid_app = app_send(app_send_handle);
+	if(sid_app != INVALID_RESOURCE_ID)
 	{
-		return INVALID_RESOURCE_ID;
+		phy_sending_time = calc_queue_sticks(sid_app);
+		set_queue_mac_hold(sid_app, TRUE, phy_sending_time + wait_time_after_sending);
 	}
 
-	sid_esf = INVALID_RESOURCE_ID;							//set default value
-	sid_app = INVALID_RESOURCE_ID;
-
-	sid_esf = send_esf(app_send_handle->phase, transaction_timing);
-
-	if(sid_esf != INVALID_RESOURCE_ID)
-	{
-		sid_app = app_send(app_send_handle);
-		if(sid_app != INVALID_RESOURCE_ID)
-		{
-			req_mac_queue_supervise(app_send_handle->phase,sid_esf,sid_app,transaction_timing,max_send_hold_timing);
-		}
-	}
-	return sid_app;				//返回esf, esf 发送结束的时候启动定时, 原来的计算transaction的时间函数就不用改了
+	return sid_app;
 }
 
 #endif

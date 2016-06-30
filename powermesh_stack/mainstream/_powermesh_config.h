@@ -59,6 +59,11 @@
 #define PSR_STAGE_DELAY_STICKS			(PSR_STAGE_DELAY_STICKS_BASE	* T_SCALE)		//PSR 每级处理增加的延时, 目的: 使等待超出的时间与级数近似无关
 #define PSR_MARGIN_STICKS				(PSR_MARGIN_STICKS_BASE 		* T_SCALE)
 
+#define APP_MC_MARGIN_STICKS			20
+#define APP_MC_INITIAL_STICKS			20			//every 
+
+
+
 
 /* Phase Config */
 #if DEVICE_TYPE==DEVICE_CC
@@ -79,12 +84,12 @@
 #if DEVICE_TYPE==DEVICE_CC
 	#define CFG_MEM_MINOR_BLOCKS_CNT				16				// MINOR类型内存最大分配块数
 	#define CFG_MEM_SUPERIOR_BLOCKS_CNT				6				// SUPERIOR类型内存最大分配块数
-#elif DEVICE_TYPE==DEVICE_MT || DEVICE_TYPE==DEVICE_SS || DEVICE_TYPE==DEVICE_SE || DEVICE_TYPE==DEVICE_CV
+#elif DEVICE_TYPE==DEVICE_MT || DEVICE_TYPE==DEVICE_SS || DEVICE_TYPE==DEVICE_SE
 	#define CFG_MEM_MINOR_BLOCKS_CNT				4
 	#define CFG_MEM_SUPERIOR_BLOCKS_CNT				3				// DST考虑转发加回复, 最大需要三块SUPERIOR内存
-#elif DEVICE_TYPE==DEVICE_DC
-	#define CFG_MEM_MINOR_BLOCKS_CNT				8
-	#define CFG_MEM_SUPERIOR_BLOCKS_CNT				4
+#elif DEVICE_TYPE==DEVICE_DC || DEVICE_TYPE==DEVICE_CV
+	#define CFG_MEM_MINOR_BLOCKS_CNT				4
+	#define CFG_MEM_SUPERIOR_BLOCKS_CNT				3
 #endif
 
 /* Rscodec Config */
@@ -130,7 +135,6 @@
 /* Sending Queue Config */
 #if DEVICE_TYPE==DEVICE_CC
 	#define CFG_QUEUE_CNT							CFG_MEM_SUPERIOR_BLOCKS_CNT
-	#define CFG_MAC_QUEUE_SUPERVISE_CNT				CFG_QUEUE_CNT
 #elif DEVICE_TYPE==DEVICE_MT
 	#define CFG_QUEUE_CNT							2
 #elif DEVICE_TYPE==DEVICE_DC						
@@ -151,10 +155,12 @@
 #define CFG_XMT_AMP_MIN_VALUE						0x08
 
 /* MAC Config */
-#define CFG_MAC_STICK_BASE							8				// bpsk (pilot+sync_word)=6.4ms
-//#define CFG_MAC_STICK_BASE							100
-#define CFG_MAC_STICK_DISF							8 * CFG_MAC_STICK_BASE
-#define CFG_MAC_STICK_BACKOFF						4 * CFG_MAC_STICK_BASE	//DS15的检查时间为18ms
+#define CFG_DEFAULT_MAC_STICK_BASE							10				// bpsk (pilot+sync_word)=6.4ms, 但处理需要时间, 8ms比较勉强
+#define CFG_DEFAULT_MAC_STICK_ANNEAL						200				// 信道检测落后于发送控制, 因此发送后增加一个退火状态, 避免一个节点连续发送持续占用信道
+#define CFG_MAX_NEARBY_NODES						16				//附近主节点数目
+#define CFG_MAX_NAV_TIMING							0xfff0			//最大NAV时间, 65520ms, 即一分钟
+#define CFG_MAX_NAV_VALUE							0x0fff			//最大NAV值, 最小单位16ms
+#define CFG_MAC_MONOPOLY_COVER_TIM					5000			//对于连续的过程前调用, 如组网,使得整个过程不容易被打断;
 
 /* EBC Config */
 #if DEVICE_TYPE==DEVICE_CC

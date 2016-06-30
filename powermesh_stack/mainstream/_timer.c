@@ -123,7 +123,7 @@ void timer_int_svr(void)
 	/* Phy Send Proc */
 	send_queue_proc();
 #ifdef USE_MAC
-	mac_queue_supervise_proc();
+	mac_layer_proc();
 #endif
 
 
@@ -132,10 +132,8 @@ void timer_int_svr(void)
 	{
 		_phy_rcv_obj[i].phase = i;
 		phy_rcv_proc(&_phy_rcv_obj[i]);
-		
 		_dll_rcv_obj[i].phase = i;
 		dll_rcv_proc(&_dll_rcv_obj[i]);
-
 		_psr_rcv_obj[i].phase = i;
 		nw_rcv_proc(&_psr_rcv_obj[i]);
 #ifdef USE_PSR
@@ -143,13 +141,6 @@ void timer_int_svr(void)
 		mgnt_app_rcv_proc(&_app_rcv_obj[i]);
 #endif
 	}
-
-#ifdef USE_MAC
-	for(i=0;i<CFG_PHASE_CNT;i++)
-	{
-		mac_layer_proc(i);
-	}
-#endif
 }
 
 /*---------------------------------------------------------------------------- 
@@ -333,7 +324,7 @@ void delete_timer(TIMER_ID_TYPE timer_id)
 	}
 }
 
-#ifdef USE_DIAG
+#ifdef USE_EBC
 /*******************************************************************************
 * Function Name  : pause_timer()
 * Description    : pause a timer

@@ -165,7 +165,7 @@ void OSMemPut(OS_MEM_TYPE type, void * pblk) reentrant
 #endif		
 	}
 	
-	if(pmem &&((u32)pblk < (u32)(pmem->OSMemAddr)))				// check whether the returned memory belongs to this tcb region
+	if(pmem && ((u32)pblk < (u32)(pmem->OSMemAddr)))				// check whether the returned memory belongs to this tcb region
 	{
 #ifdef DEBUG_DISP_INFO
 		my_printf("put mem out of lower bound!\n");

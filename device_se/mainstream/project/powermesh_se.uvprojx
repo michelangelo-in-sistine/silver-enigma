@@ -562,6 +562,11 @@
               <FileType>1</FileType>
               <FilePath>..\..\..\powermesh_stack\mainstream\_app_nvr_data.c</FilePath>
             </File>
+            <File>
+              <FileName>_mac.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\powermesh_stack\mainstream\_mac.c</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
@@ -626,6 +631,11 @@
               <FileName>stm32f0xx_flash.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\..\..\stm32f030_common\StdPeriph\src\stm32f0xx_flash.c</FilePath>
+            </File>
+            <File>
+              <FileName>stm32f0xx_dma.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\stm32f030_common\StdPeriph\src\stm32f0xx_dma.c</FilePath>
             </File>
           </Files>
         </Group>

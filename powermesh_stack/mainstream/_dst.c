@@ -53,8 +53,8 @@ u8 xdata dst_sent_conf[CFG_PHASE_CNT];					// 发出的dst帧
 u8 xdata dst_proceeded_conf[CFG_PHASE_CNT];				// 转发过的dst帧
 
 #if (DEVICE_TYPE==DEVICE_CC) || (defined DEVICE_READING_CONTROLLER) || ((DEVICE_TYPE==DEVICE_CV))
-u8 xdata dst_index[CFG_PHASE_CNT];
-//u8 xdata dst_index;
+//u8 xdata dst_index[CFG_PHASE_CNT];
+u8 xdata dst_index;
 #else
 //DST_BACKUP_STRUCT xdata dst_config_backup;				// MT的回复条件与接收条件相同
 #endif
@@ -79,7 +79,8 @@ void init_dst(void)
 	mem_clr(&dst_proceeded_conf,sizeof(dst_proceeded_conf),1);	//防止第一帧因index为0不能被转发, 将其设置为绝不可能出现的状态
 	
 #if NODE_TYPE==NODE_MASTER
-	mem_clr(dst_index,sizeof(dst_index),1);
+	//mem_clr(dst_index,sizeof(dst_index),1);
+	dst_index = 0;
 #endif
 	//dst_config_obj.rate = RATE_BPSK;
 	//dst_config_obj.jumps = 0x22;
@@ -228,7 +229,7 @@ SEND_ID_TYPE dst_send(DST_SEND_HANDLE dst_handle) reentrant
 			delay += windows_delay_sticks(dst_config_obj.ppdu_len,xmode,scan,0,next_window);
 		}
 #ifdef DEBUG_DST
-		my_printf("left:%bu,next:%bu,delay:%lu\r\n",left_window,next_window,delay);
+//		my_printf("left:%bu,next:%bu,delay:%lu\r\n",left_window,next_window,delay);
 #endif
 	}
 
@@ -279,7 +280,7 @@ void dst_rcv_proc(DLL_RCV_HANDLE pd)
 			dst_sent_conf[pd->phase] = 0;					//标志这一包开始不是自己发送的, 否则发送一次后可能同index的包将接不到
 
 			/* 如无锁定DST全局变量将根据每一次接收到的洪泛设置而改变, 目前仅对MT有效 */
-#if DEVICE_TYPE==DEVICE_MT
+#if DEVICE_TYPE==DEVICE_MT || DEVICE_TYPE==DEVICE_SE || DEVICE_TYPE==DEVICE_CV
 			if(!(dst_config_obj.forward_prop & BIT_DST_FORW_CONFIG_LOCK))
 			{
 				PHY_RCV_HANDLE pp;
@@ -625,7 +626,8 @@ s8 get_dst_index(u8 phase)
 	{
 		return INVALID_RESOURCE_ID;
 	}
-	return dst_index[phase]++ & BIT_DST_CONF_INDEX;
+	//return dst_index[phase]++ & BIT_DST_CONF_INDEX;
+	return dst_index++ & BIT_DST_CONF_INDEX;
 }
 #endif
 

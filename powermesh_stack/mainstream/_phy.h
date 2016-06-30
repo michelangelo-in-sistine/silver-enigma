@@ -21,6 +21,7 @@
 /* Includes ------------------------------------------------------------------*/
 
 /* Exported constants & macro --------------------------------------------------------*/
+#define BIT_PHY_SEND_PROP_MAC_HOLD	0x10					//发送受MAC控制, 为1时暂缓发送
 #define BIT_PHY_SEND_PROP_SCAN		0x08
 #define BIT_PHY_SEND_PROP_SRF		0x04
 #define BIT_PHY_SEND_PROP_ESF		0x02

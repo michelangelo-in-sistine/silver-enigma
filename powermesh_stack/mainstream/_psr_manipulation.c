@@ -210,11 +210,13 @@ STATUS psr_setup(u8 phase, u16 pipe_id, ARRAY_HANDLE script, u16 script_len)
 
 		mem_cpy(npdu,npdu_duplicate,dss.lsdu_len);		//dll_send will modify dss
 
-#ifdef USE_MAC
-		declare_channel_occupation(dss.phase,phy_trans_sticks(dss.lsdu_len + LEN_TOTAL_OVERHEAD_BEYOND_LSDU, dss.xmode & 0x03, dss.prop & BIT_DLL_SEND_PROP_SCAN) + expiring_sticks);
-#endif
-		
 		sid = dll_send(&dss);
+#ifdef USE_MAC
+		if(sid != INVALID_RESOURCE_ID)
+		{
+			declare_channel_occupation(sid,expiring_sticks);
+		}
+#endif
 		status = wait_until_send_over(sid);
 		if(!status)
 		{
@@ -923,11 +925,14 @@ STATUS psr_transaction_core(u16 pipe_id, ARRAY_HANDLE nsdu, BASE_LEN_TYPE nsdu_l
 	pss.nsdu = nsdu;
 	pss.nsdu_len = nsdu_len;
 
-#ifdef USE_MAC
-	declare_channel_occupation(pss.phase,phy_trans_sticks(pss.nsdu_len + LEN_TOTAL_OVERHEAD_BEYOND_NSDU, decode_xmode((pipe_ref->xmode_rmode[0]) >> 4), 0) + expiring_sticks);
-#endif
-	
 	sid = psr_send(&pss);
+#ifdef USE_MAC
+	if(sid != INVALID_RESOURCE_ID)
+	{
+		declare_channel_occupation(sid,expiring_sticks);
+	}
+#endif
+
 	status = wait_until_send_over(sid);
 	if(!status)
 	{

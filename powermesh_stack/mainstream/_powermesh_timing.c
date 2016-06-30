@@ -67,7 +67,7 @@ u32 non_scan_expiring_sticks(u8 rate)
 	}
 }
 
-#ifdef USE_DIAG
+#ifdef USE_EBC
 /*******************************************************************************
 * Function Name  : dll_ack_expiring_sticks
 * Description    : 计算链路层响应时间

@@ -36,6 +36,9 @@ typedef struct
 	BASE_LEN_TYPE send_cnt;			// 已发送字节数
 	u8 scan_order;			// 当前scan模式发送的信道
 	SEND_STATUS status;		// 当前状态
+#ifdef USE_MAC
+	u16 nav_value;					// 需esf广播声明独占信道的NAV值, 每1单位16ms
+#endif
 }SEND_QUEUE_ITEM_STRUCT;
 
 /* Private macro -------------------------------------------------------------*/
@@ -200,7 +203,7 @@ STATUS push_send_queue(SEND_ID_TYPE sid, PHY_SEND_HANDLE pss) reentrant
 	}
 
 	/* check phase validility */
-	if(pss->phase > 2)
+	if(pss->phase > CFG_PHASE_CNT)
 	{
 #ifdef DEBUG_DISP_INFO
 		my_printf("error phase: %bX\r\n",pss->phase);
@@ -445,55 +448,60 @@ void send_queue_proc()
 				queue = &_phy_send_queue[i];
 				if(queue->status == SEND_STATUS_PENDING)
 				{
-					if(queue->delay==0)
-					{
 #ifdef USE_MAC
-						if(!get_mac_approve_privilege(queue->phase))
-						{
-							if(!is_mac_approved(queue->phase,queue->xmode&0x03))
-							{
-								break;			//如果没有发送特权,信道又不允许,只能等待
-							}
-						}
+					if(!(queue->prop & BIT_PHY_SEND_PROP_MAC_HOLD)) 		//检查queue的hold标志
 #endif
-						queue->total_bytes = phy_complete_ppci_queue(queue);
+					{
+						if(queue->delay==0)
+						{
+							queue->total_bytes = phy_complete_ppci_queue(queue);
 
-						if(queue->total_bytes)
-						{
-							write_reg_all(ADR_WPTD,0xFF);
-							write_reg_all(ADR_XMT_RCV,0x80);			//防止一路发送时其他两路进入接收态;
-#ifdef AMP_CONTROL							
-							write_reg_all(ADR_XMT_AMP,CFG_XMT_AMP_DEFAULT_VALUE);
-#endif
-							write_reg(queue->phase,ADR_ADDA,0x00);
-							if(queue->prop & BIT_PHY_SEND_PROP_SCAN)
+							if(queue->total_bytes)
 							{
-								write_reg(queue->phase,ADR_XMT_CTRL,(queue->xmode&0x0F)|0x10);
+								write_reg_all(ADR_WPTD,0xFF);
+								write_reg_all(ADR_XMT_RCV,0x80);			//防止一路发送时其他两路进入接收态;
+#ifdef AMP_CONTROL							
+								write_reg_all(ADR_XMT_AMP,CFG_XMT_AMP_DEFAULT_VALUE);
+#endif
+								write_reg(queue->phase,ADR_ADDA,0x00);
+								if(queue->prop & BIT_PHY_SEND_PROP_SCAN)
+								{
+									write_reg(queue->phase,ADR_XMT_CTRL,(queue->xmode&0x0F)|0x10);
+								}
+								else
+								{
+									write_reg(queue->phase,ADR_XMT_CTRL,queue->xmode);
+								}
+								tx_on(queue->phase);
+								send_buf(queue->phase,queue->ppdu[0]);
+								queue->status = SEND_STATUS_SENDING;
+								queue->send_cnt = 1;
+								sending_queue = queue;
+								state = SEND_QUEUE_PROC_SEND_BODY;
+								dwa_cnt = 0;
+#ifdef USE_MAC
+								{
+									extern u8 _phy_channel_busy_indication[];
+									_phy_channel_busy_indication[queue->phase] = 0; 	//2016-06-06清除掉由于误同步导致的csma, 因为转为发送态后其不能被0x10中断取消
+								}
+#endif
+#ifdef DEBUG_PHY
+								if(!(sending_queue->prop & BIT_PHY_SEND_PROP_ESF))
+								{
+									my_printf("PHY:@%bx@%bx|",sending_queue->phase,read_reg(sending_queue->phase,ADR_XMT_CTRL));
+									uart_send_asc(&queue->ppdu[0],1);
+								}
+#endif
+								break;
 							}
 							else
 							{
-								write_reg(queue->phase,ADR_XMT_CTRL,queue->xmode);
+								/* if completement returns 0, abort sending */
+								OSMemPut(SUPERIOR, queue->ppdu);
+								queue->status = SEND_STATUS_FAIL;
+								state = SEND_QUEUE_PROC_IDLE;
+								break;
 							}
-							tx_on(queue->phase);
-							send_buf(queue->phase,queue->ppdu[0]);
-							queue->status = SEND_STATUS_SENDING;
-							queue->send_cnt = 1;
-							sending_queue = queue;
-							state = SEND_QUEUE_PROC_SEND_BODY;
-							dwa_cnt = 0;
-#ifdef DEBUG_PHY
-							my_printf("PHY:@%bx@%bx|",sending_queue->phase,read_reg(sending_queue->phase,ADR_XMT_CTRL));
-							uart_send_asc(&queue->ppdu[0],1);
-#endif
-					break;
-						}
-						else
-						{
-							/* if completement returns 0, abort sending */
-							OSMemPut(SUPERIOR, queue->ppdu);
-							queue->status = SEND_STATUS_FAIL;
-							state = SEND_QUEUE_PROC_IDLE;
-							break;
 						}
 					}
 				}
@@ -533,7 +541,10 @@ void send_queue_proc()
 				{
 					send_buf(sending_queue->phase, sending_queue->ppdu[sending_queue->send_cnt]);
 #ifdef DEBUG_PHY
-					uart_send_asc(&sending_queue->ppdu[sending_queue->send_cnt],1);
+					if(!(sending_queue->prop & BIT_PHY_SEND_PROP_ESF))
+					{
+						uart_send_asc(&sending_queue->ppdu[sending_queue->send_cnt],1);
+					}
 #endif
 					sending_queue->send_cnt++;
 				}
@@ -577,7 +588,10 @@ void send_queue_proc()
 					state = SEND_QUEUE_PROC_SCAN_INTERVAL;			// SCAN_INTERVAL必须是单独的状态, 不能是PENDING, 防止被其他到期的QUEUE SEND任务将SCAN包打断
 				}
 #ifdef DEBUG_PHY
-				my_printf("\r\n");
+				if(!(sending_queue->prop & BIT_PHY_SEND_PROP_ESF))
+				{
+					my_printf("\r\n");
+				}
 #endif
 			}
 			else
@@ -616,8 +630,11 @@ void send_queue_proc()
 				sending_queue->send_cnt=1;
 				state = SEND_QUEUE_PROC_SEND_BODY;
 #ifdef DEBUG_PHY
-				my_printf("PHY:@%bx@%bx|",sending_queue->phase,read_reg(sending_queue->phase,ADR_XMT_CTRL));
-				uart_send_asc(&sending_queue->ppdu[0],1);
+				if(!(sending_queue->prop & BIT_PHY_SEND_PROP_ESF))
+				{
+					my_printf("PHY:@%bx@%bx|",sending_queue->phase,read_reg(sending_queue->phase,ADR_XMT_CTRL));
+					uart_send_asc(&sending_queue->ppdu[0],1);
+				}
 #endif
 			}
 			break;
@@ -645,12 +662,12 @@ void send_queue_proc()
 * Output         : None
 * Return         : 
 *******************************************************************************/
-BOOL is_queue_pending(u8 phase)
+BOOL is_queue_pending(void)
 {
 	u8 i;
 	for(i=0;i<CFG_QUEUE_CNT;i++)
 	{
-		if((_phy_send_queue[i].status == SEND_STATUS_PENDING)&&(_phy_send_queue[i].phase == phase))
+		if((_phy_send_queue[i].status == SEND_STATUS_PENDING))
 		{
 			return TRUE;
 		}
@@ -695,5 +712,151 @@ void cancel_all_pending_queue(void)
 	}
 }
 
+/*******************************************************************************
+* Function Name  : is_queue_holding()
+* Description    : queue中是否有发送受mac控制的帧, 且delay已为0的帧存在
+					
+* Input          : None
+* Output         : None
+* Return         : QUEUE索引值, 失败则返回-1
+*******************************************************************************/
+SEND_ID_TYPE is_queue_holding(void)
+{
+	u8 i;
+	
+	for(i=0;i<CFG_QUEUE_CNT;i++)
+	{
+		if((_phy_send_queue[i].status == SEND_STATUS_PENDING)&&(_phy_send_queue[i].delay == 0)&&(_phy_send_queue[i].prop&BIT_PHY_SEND_PROP_MAC_HOLD))
+		{
+			return i;
+		}
+	}
+	return INVALID_RESOURCE_ID;
+}
+
+/*******************************************************************************
+* Function Name  : set_queue_mac_hold()
+* Description    : 设置Queue的mac层hold标志, 设置该标志的帧, 需要csma和esf竞争才能发出, 没设置该标志的帧不受影响
+					
+* Input          : None
+* Output         : None
+* Return         : QUEUE索引值, 失败则返回-1
+*******************************************************************************/
+STATUS set_queue_mac_hold(SEND_ID_TYPE sid, BOOL enable, u32 nav_timing)
+{
+	if((sid>=CFG_QUEUE_CNT) || (_phy_send_queue[sid].status != SEND_STATUS_PENDING))
+	{
+#ifdef DEBUG_DISP_INFO
+		my_printf("release_queue_mac_hold():error send id %bu\r\n",sid);
 #endif
+		return FAIL;
+	}
+	else
+	{
+		if(enable)
+		{
+			_phy_send_queue[sid].prop |= BIT_PHY_SEND_PROP_MAC_HOLD;
+			if(nav_timing > CFG_MAX_NAV_TIMING)
+			{
+#ifdef DEBUG_DISP_INFO
+				my_printf("release_queue_mac_hold():error nav_timing 0x%X, max 0x%X\r\n",nav_timing, CFG_MAX_NAV_TIMING);
+#endif
+				_phy_send_queue[sid].nav_value = CFG_MAX_NAV_VALUE;
+			}
+			else
+			{
+				_phy_send_queue[sid].nav_value = (u16)(nav_timing>>4);
+				if((nav_timing & 0x0F) && (_phy_send_queue[sid].nav_value < CFG_MAX_NAV_VALUE))
+				{
+					_phy_send_queue[sid].nav_value++;					//如果设置nav_timing=fff0, 加1会溢出
+				}
+			}
+			
+		}
+		else
+		{
+#ifdef DEBUG_MAC
+			extern BOOL _mac_print_log_enable;
+			if(_mac_print_log_enable)
+			{
+				if(_phy_send_queue[sid].prop & BIT_PHY_SEND_PROP_MAC_HOLD)
+				{
+					my_printf("NAV declare %X\r\n",_phy_send_queue[sid].nav_value);
+				}
+			}
+#endif
+			_phy_send_queue[sid].prop &= (~BIT_PHY_SEND_PROP_MAC_HOLD);
+		}
+	}
+	return OKAY;
+}
+
+/*******************************************************************************
+* Function Name  : get_queue_phase()
+* Description    : 获得发送queue的相位, 调用者保证sid有效
+					
+* Input          : None
+* Output         : None
+* Return         : 失败返回0
+*******************************************************************************/
+u8 get_queue_phase(SEND_ID_TYPE sid)
+{
+	return _phy_send_queue[sid].phase;
+}
+
+/*******************************************************************************
+* Function Name  : get_queue_nav_value()
+* Description    : 获得queue的nav hold时间
+					
+* Input          : None
+* Output         : None
+* Return         : 失败返回0
+*******************************************************************************/
+u16 get_queue_nav_value(SEND_ID_TYPE sid)
+{
+	return _phy_send_queue[sid].nav_value;
+}
+
+/*******************************************************************************
+* Function Name  : get_send_status()
+* Description    : 查询发送状态, 不改变发送状态
+* Input          : None
+* Output         : None
+* Return         : None
+*******************************************************************************/
+SEND_STATUS get_send_status(SEND_ID_TYPE sid)
+{
+	return _phy_send_queue[sid].status;
+}
+
+/*******************************************************************************
+* Function Name  : calc_queue_sticks()
+* Description    : 计算队列中的项目的发送时间
+* Input          : None
+* Output         : None
+* Return         : None
+*******************************************************************************/
+u32 calc_queue_sticks(SEND_ID_TYPE sid)
+{
+	return phy_trans_sticks(_phy_send_queue[sid].ppdu_len, _phy_send_queue[sid].xmode & 0x03, _phy_send_queue[sid].prop & BIT_PHY_SEND_PROP_SCAN);
+}
+
+/*******************************************************************************
+* Function Name  : set_queue_delay()
+* Description    : 重新设置queue的delay时间, 调用者保证sid有效
+* Input          : None
+* Output         : None
+* Return         : None
+*******************************************************************************/
+void set_queue_delay(SEND_ID_TYPE sid, u32 delay)
+{
+	ENTER_CRITICAL();
+	_phy_send_queue[sid].delay = delay;
+my_printf("queue:%bu,set delay:%u\r\n",sid,delay);
+	EXIT_CRITICAL();
+}
+
+
+#endif
+/******************* (C) COPYRIGHT 2016 *****END OF FILE****/
 

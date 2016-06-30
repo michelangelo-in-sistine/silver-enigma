@@ -22,6 +22,7 @@
 void timer_int_entry(TIM_TypeDef * timer);
 void usart_int_entry(USART_TypeDef * usart);
 void phy_int_entry(uint32_t exti_line);
+void dma_tc_svr(void);
 
 
 

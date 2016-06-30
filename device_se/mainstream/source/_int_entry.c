@@ -56,7 +56,7 @@ void usart_int_entry(USART_TypeDef * usart)
 	if(USART_GetITStatus(usart, USART_IT_RXNE) != RESET)
 	{
 		byte_data = USART_ReceiveData(usart);
-		uart_rcv_int_svr(byte_data);
+		debug_uart_rcv_int_svr(byte_data);
 	}
 	else
 	{
@@ -152,5 +152,19 @@ void bad_usart_int_proc(USART_TypeDef* bad_usart_port)
 			my_printf("over run\r\n");
 		}
 	}
+}
+
+/*******************************************************************************
+* Function Name  : dma_tc_svr
+* Description    : 
+* Input          : 
+* Output         : 
+* Return         : 
+*******************************************************************************/
+#define DEBUG_DMA_FLAG									(DMA1_FLAG_TC4|DMA1_FLAG_HT4|DMA1_FLAG_GL4)
+void dma_tc_svr(void)
+{
+	DMA_ClearFlag(DEBUG_DMA_FLAG);
+	dma_uart_start();
 }
 

@@ -34,9 +34,16 @@ STATUS push_send_queue(SEND_ID_TYPE sid, PHY_SEND_HANDLE pss) reentrant;
 void send_queue_proc(void);
 
 #ifdef USE_MAC
-BOOL is_queue_pending(u8 phase);
+BOOL is_queue_pending(void);
 STATUS cancel_pending_queue(SEND_ID_TYPE sid);
 void cancel_all_pending_queue(void);
-
+SEND_ID_TYPE is_queue_holding(void);
+STATUS set_queue_mac_hold(SEND_ID_TYPE sid, BOOL enable, u32 nav_timing);
+u8 get_queue_phase(SEND_ID_TYPE sid);
+u16 get_queue_nav_value(SEND_ID_TYPE sid);
+SEND_STATUS get_send_status(SEND_ID_TYPE sid);
+u32 calc_queue_sticks(SEND_ID_TYPE sid);
 #endif
+void set_queue_delay(SEND_ID_TYPE sid, u32 delay);
+
 #endif

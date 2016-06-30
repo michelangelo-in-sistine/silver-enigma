@@ -170,6 +170,10 @@ void init_measure(void)
 		calib_i.k = get_app_nvr_data_i_k();
 		calib_i.b = get_app_nvr_data_i_b();
 	}
+	else
+	{
+		my_printf("no valid calib data\r\n");
+	}
 }
 
 s32 convert_uint24_to_int24(u32 value)

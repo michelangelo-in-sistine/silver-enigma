@@ -1,7 +1,7 @@
 #include "compile_define.h"
 #include "stm32f0xx.h"
 #include "_int_entry.h"
-
+#include "powermesh_include.h"
 /**
   ******************************************************************************
   * @file    ADC/ADC_BasicExample/stm32f0xx_it.c 
@@ -70,9 +70,13 @@ void NMI_Handler(void)
 void HardFault_Handler(void)
 {
   /* Go to infinite loop when Hard Fault exception occurs */
-  while (1)
-  {
-  }
+	u32 sp_val;
+	sp_val = get_sp_val();
+	report_stack("HardFaultException",sp_val);
+	
+	while (1)
+	{
+	}
 }
 
 /**
@@ -140,5 +144,9 @@ void EXTI4_15_IRQHandler(void)
 	phy_int_entry(EXTI_Line8);
 }
 
+void DMA1_Channel4_5_IRQHandler(void)
+{
+	dma_tc_svr();
+}
 
 /************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/

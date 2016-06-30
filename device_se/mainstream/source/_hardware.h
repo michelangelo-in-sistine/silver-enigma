@@ -21,6 +21,22 @@
 #include "bl6810.h"
 
 
+/* Hardware Definition ------------------------------------------------------------------*/
+#define DEBUG_UART_PORT 					USART2
+#define DEBUG_UART_RCC_APBPeriph 			RCC_APB1Periph_USART2
+#define DEBUG_UART_IRQChannel 				USART2_IRQn
+#define DEBUG_UART_GPIO_RCC_AHBPeriph		RCC_AHBPeriph_GPIOA
+
+#define DEBUG_UART_GPIO 					GPIOA
+#define DEBUG_UART_GPIO_AF					GPIO_AF_1
+
+#define DEBUG_UART_TXD 						GPIO_Pin_2
+#define DEBUG_UART_RXD 						GPIO_Pin_3
+#define DEBUG_UART_TXD_PinSource			GPIO_PinSource2
+#define DEBUG_UART_RXD_PinSource			GPIO_PinSource3
+
+
+
 /* Exported constants & macro --------------------------------------------------------*/
 #define read_reg(phase, addr) 		read_spi(addr)
 #define write_reg(phase, addr, value)	write_spi(addr,value)
@@ -40,10 +56,11 @@ void reset_measure_device(void);
 void init_phy_hardware(void);
 
 void init_timer_hardware(void);
-void init_usart2_hardware(void);
+void init_debug_uart_hardware(void);
 void init_gpio(void);
 void uart_send8(u8 byte_data);
 void usart2_int_entry(void);
+void my_putchar(u8 x);
 
 
 
@@ -77,6 +94,18 @@ TIMING_CALCULATION_TYPE srf_trans_sticks(u8 rate,u8 scan);
 void init_measure_com_hardware(void);
 void measure_com_send8(u8 byte_data);
 u8 measure_com_read8(u8 * rec_byte);
+
+/* Dma */
+void init_dma(void);
+void dma_uart_send(u8 * addr, u16 len);
+void dma_buffer_append(u8 byte);
+void dma_buffer_fill(u8 * send_content_head, u16 len);
+void dma_uart_start(void);
+void enable_usart_dma(u8 enable);
+
+/* Debug */
+__asm u32 get_sp_val(void);
+void report_stack(const char * str, u32 sp_val);
 
 #endif
 

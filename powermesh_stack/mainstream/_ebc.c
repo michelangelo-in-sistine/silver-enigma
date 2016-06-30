@@ -592,10 +592,6 @@ u8 ebc_broadcast(EBC_BROADCAST_HANDLE pt_ebc)
 //	expiring_sticks += (expiring_sticks>>6);	// 2012-12-13 max waiting time * 1.0156(1/64)	
 	expiring_sticks += (expiring_sticks>>4)+100;
 
-#ifdef USE_MAC
-	declare_channel_occupation(ds.phase,phy_trans_sticks(ds.lsdu_len + LEN_TOTAL_OVERHEAD_BEYOND_LSDU, ds.xmode & 0x03, ds.prop & BIT_DLL_SEND_PROP_SCAN) + expiring_sticks);
-#endif
-
 	sid = dll_send(&ds);
 
 	// check send result
@@ -605,6 +601,11 @@ u8 ebc_broadcast(EBC_BROADCAST_HANDLE pt_ebc)
 		OSMemPut(MINOR,lsdu);
 		return 0;
 	}
+#ifdef USE_MAC
+	declare_channel_occupation(sid, expiring_sticks);
+#endif
+
+
 	status = wait_until_send_over(sid);
 	if(!status)
 	{
@@ -779,9 +780,6 @@ STATUS ebc_identify(EBC_BROADCAST_HANDLE pt_ebc, u16 random_id, u8 xdata * ident
 		ds.delay = DLL_SEND_DELAY_STICKS;
 
 		expiring_sticks = dll_ack_expiring_sticks(ds.lsdu_len + LEN_TOTAL_OVERHEAD_BEYOND_LSDU, rmode&0x03, scan);
-#ifdef USE_MAC
-		declare_channel_occupation(ds.phase,phy_trans_sticks(ds.lsdu_len + LEN_TOTAL_OVERHEAD_BEYOND_LSDU, ds.xmode & 0x03, ds.prop & BIT_DLL_SEND_PROP_SCAN) + expiring_sticks);
-#endif
 
 		sid = dll_send(&ds);
 		if(sid==INVALID_RESOURCE_ID)
@@ -794,6 +792,9 @@ STATUS ebc_identify(EBC_BROADCAST_HANDLE pt_ebc, u16 random_id, u8 xdata * ident
 			OSMemPut(MINOR,lsdu_send);
 			return FAIL;
 		}
+#ifdef USE_MAC
+		declare_channel_occupation(sid, expiring_sticks);
+#endif
 		status = wait_until_send_over(sid);
 		if(!status)
 		{

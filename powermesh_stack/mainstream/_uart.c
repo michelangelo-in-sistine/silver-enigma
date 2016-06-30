@@ -20,8 +20,6 @@ u8	xdata _uart_rcv_loading;
 u16	xdata _uart_rcv_bytes;
 u16 xdata _uart_rcv_timer_stamp;
 
-#define my_putchar(x)	uart_send8(x)
-
 void powermesh_debug_cmd_proc(u8 xdata * ptr, u16 total_rec_bytes);
 
 
@@ -42,17 +40,17 @@ void init_uart(void)
 
 	/* 启动硬件 */
 	init_measure_com_hardware();
-	init_usart2_hardware();
+	init_debug_uart_hardware();
 }
 
 /*******************************************************************************
-* Function Name  : uart_rcv_int_svr
+* Function Name  : debug_uart_rcv_int_svr
 * Description    : 
 * Input          : None
 * Output         : None
 * Return         : None
 *******************************************************************************/
-void uart_rcv_int_svr(u8 rec_data)
+void debug_uart_rcv_int_svr(u8 rec_data)
 {
 	if(!_uart_rcv_valid)
 	{
@@ -129,6 +127,62 @@ void uart_rcv_resume(void)
 	_uart_rcv_loading = 0;
 	_uart_rcv_bytes = 0;
 }
+
+/*******************************************************************************
+* Function Name  : uart_send
+* Description    : Send n-byte vector via USART2
+* Input          : The head address, bytes info
+* Output         : None
+* Return         : None
+*******************************************************************************/
+#if NODE_TYPE==NODE_MASTER
+void uart_send(u8 * pt, u8 len)
+{
+	u8	i;
+	for(i=0;i<len;i++)
+	{
+		my_putchar(*(pt++));
+	}
+#ifdef USE_DMA
+	dma_uart_start();
+#endif
+}
+
+#endif
+
+/*******************************************************************************
+* Function Name  : uart_send_asc
+* Description    : Send n-byte vector via USART by ASCII Code
+* Input          : The head address, bytes info
+* Output         : None
+* Return         : None
+*******************************************************************************/
+void uart_send_asc(ARRAY_HANDLE pt, u16 len) reentrant
+{
+	u16 i;
+	u8 temp;
+	
+	if(len>0)
+	{
+		for(i=0;i<len;i++)
+		{
+			temp = (*pt)>>4;
+			temp = temp + ((temp < 10) ? '0' : ('A'-10));
+			my_putchar(temp);
+
+			temp = (*pt++)&0x0F;
+			temp = temp + ((temp < 10) ? '0' : ('A'-10));
+
+			my_putchar(temp);
+		}
+		//uart_send8(' ');	
+#ifdef USE_DMA
+		dma_uart_start();
+#endif
+	}
+	
+}
+
 
 /*******************************************************************************
 * Function Name  : my_printf
@@ -342,37 +396,32 @@ void my_printf(const char code * fmt, ...) reentrant
 		}
 
 	}
+#ifdef USE_DMA
+	dma_uart_start();
+#endif	
 	va_end(args);
 }
 
-void uart_send_asc(ARRAY_HANDLE pt, u16 len) reentrant
-{
-	u16 i;
-	u8 temp;
-	
-	if(len>0)
-	{
-		for(i=0;i<len;i++)
-		{
-			temp = (*pt)>>4;
-			temp = temp + ((temp < 10) ? '0' : ('A'-10));
-			uart_send8(temp);
-
-			temp = (*pt++)&0x0F;
-			temp = temp + ((temp < 10) ? '0' : ('A'-10));
-
-			uart_send8(temp);
-		}
-		//uart_send8(' ');	
-	}
-}
-
+/*******************************************************************************
+* Function Name  : bcd2dec()
+* Description    : 
+* Input          : 
+* Output         : None
+* Return         : 
+*******************************************************************************/
 u8 bcd2dec(u8 bcd)
 {
 	return (bcd>>4)*10 + (bcd&0x0F);
 }
 
 
+/*******************************************************************************
+* Function Name  : read_int()
+* Description    : 
+* Input          : 
+* Output         : 
+* Return         : 
+*******************************************************************************/
 u32 read_int(u8 * ptr, u8 len)
 {
 	u32 value = 0;
@@ -386,6 +435,13 @@ u32 read_int(u8 * ptr, u8 len)
 }
 
 
+/*******************************************************************************
+* Function Name  : debug_uart_cmd_proc()
+* Description    : 
+* Input          : None
+* Output         : None
+* Return         : 
+*******************************************************************************/
 void debug_uart_cmd_proc(void)
 {
 	u16 xdata total_rec_bytes;
@@ -933,6 +989,137 @@ void powermesh_debug_cmd_proc(u8 xdata * ptr, u16 total_rec_bytes)
 				out_buffer_len += read_bytes;
 				break;
 			}
+			else if(cmd == 'A' && rest_rec_bytes >= 6)	//0x41 + 域ID, VID, GID 设置
+			{
+				extern u16 _self_domain;
+				extern u16 _self_vid;
+				extern u16 _self_gid;
+
+				u16 temp;
+
+				temp = *ptr++;
+				temp <<= 8;
+				temp += *ptr++;
+				_self_domain = temp;
+
+				temp = *ptr++;
+				temp <<= 8;
+				temp += *ptr++;
+				_self_vid = temp;
+
+				temp = *ptr++;
+				temp <<= 8;
+				temp += *ptr++;
+				_self_gid = temp;
+
+				save_id_info_into_app_nvr();
+				init_app_nvr_data();
+				init_app();
+				break;
+			}
+			else if(cmd == 'H' && rest_rec_bytes >= 12)	//0x48 + UID + 域ID, VID, GID
+			{
+				u16 did, vid, gid;
+				UID_HANDLE uid;
+
+				uid = ptr;
+
+				ptr += 6;
+
+				did = *ptr++;
+				did <<=8;
+				did += *ptr++;
+
+				vid = *ptr++;
+				vid <<=8;
+				vid += *ptr++;
+
+				gid = *ptr++;
+				gid <<=8;
+				gid += *ptr++;
+
+				if(set_se_node_id_by_uid(uid,did,vid,gid))
+				{
+					my_printf("addr set ok");
+				}
+				break;
+			}
+			else if(cmd == 0x4A && rest_rec_bytes>= 7) //acp_req_by_uid: 0x4A + UID + wspbody
+			{
+				UID_HANDLE uid;
+				u8 return_len;
+
+				uid = ptr;
+				ptr += 6;
+				
+				return_len = acp_req_by_uid(uid, ptr, rest_rec_bytes-6, ptw, 20);
+				out_buffer_len += return_len;
+				break;
+			}
+			else if(cmd == 0x4B && rest_rec_bytes>= 8) //0x4B + domain id + vid + wsp_body
+			{
+				u16 domain_id;
+				u16 vid;
+				u16 temp;
+				u8 return_len;
+
+				//u8 uid[] = {0x57,0x0a,0x00,0x4f,0x00,0x29};
+
+				temp = *ptr++;
+				temp <<= 8;
+				temp += *ptr++;
+				domain_id = temp;
+
+				temp = *ptr++;
+				temp <<= 8;
+				temp += *ptr++;
+				vid = temp;
+
+				return_len = acp_req_by_vid(NULL, domain_id, vid, ptr, rest_rec_bytes-4, ptw, 20);
+				out_buffer_len += return_len;
+				break;
+			}
+			else if(cmd==0x4C && rest_rec_bytes>= 2)
+			{
+				u16 domain_id;
+				u16 temp;
+
+				temp = *ptr++;
+				temp <<= 8;
+				temp += *ptr++;
+				domain_id = temp;
+			
+				acp_domain_broadcast(domain_id,ptr,rest_rec_bytes-1);
+				break;
+			}
+			else if(cmd==0x4D && rest_rec_bytes>= 7)
+			{
+				u16 temp;
+				u16 domain_id;
+				u16 start_vid;
+				u16 end_vid;
+				u8 return_len;
+
+				temp = *ptr++;
+				temp <<= 8;
+				temp += *ptr++;
+				domain_id = temp;
+
+				temp = *ptr++;
+				temp <<= 8;
+				temp += *ptr++;
+				start_vid = temp;
+				
+				temp = *ptr++;
+				temp <<= 8;
+				temp += *ptr++;
+				end_vid = temp;
+			
+				return_len = acp_req_mc(domain_id, start_vid, end_vid, ptr, rest_rec_bytes-6, NULL, (end_vid-start_vid) * 20);
+				out_buffer_len += return_len;
+				break;
+			}
+			
 			else if(cmd==0xBD && rest_rec_bytes==1)		//0xBDBD, 搜索根节点
 			{
 				u8 new_nodes = 0;

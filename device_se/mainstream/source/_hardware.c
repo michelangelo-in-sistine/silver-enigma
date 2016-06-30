@@ -41,6 +41,11 @@
 #define BL6523_RST_PIN			GPIO_Pin_6
 
 
+/* Private variables ---------------------------------------------------------*/
+u8  _uart_output_enable = 1;
+u8  _dma_uart_enable = 1;
+
+
 /* Private function prototypes -----------------------------------------------*/
 void led_flash(uint16_t pin);
 void led_on(uint16_t pin);
@@ -88,6 +93,12 @@ void system_reset_behavior()
 	GPIO_SetBits(BL6810_CTRL_GPIO_PORT, BL6810_RST_PIN);	
 	GPIO_SetBits(BL6523_GPIO_PORT, BL6523_RST_PIN);
 
+	for(i=0;i<4;i++)
+	{
+		for(j=0;j<599999UL;j++);
+		led_flash(LED_TEST3_PIN);
+		led_flash(LED_TEST4_PIN);
+	}
 }
 
 void reset_measure_device(void)
@@ -240,7 +251,7 @@ void init_gpio(void)
 	
 }
 
-void init_usart2_hardware(void)
+void init_debug_uart_hardware(void)
 {
 	GPIO_InitTypeDef GPIO_InitStructure;
 	USART_InitTypeDef USART_InitStructure;
@@ -248,42 +259,33 @@ void init_usart2_hardware(void)
 	NVIC_InitTypeDef NVIC_InitStructure;
 
 	/* Enable GPIO clock */
-	RCC_AHBPeriphClockCmd(RCC_AHBPeriph_GPIOA, ENABLE);
+	RCC_AHBPeriphClockCmd(DEBUG_UART_GPIO_RCC_AHBPeriph, ENABLE);
 
 	/* Enable USART clock */
-//	RCC_APB2PeriphClockCmd(RCC_APB2Periph_USART1, ENABLE);
-	RCC_APB1PeriphClockCmd(RCC_APB1Periph_USART2, ENABLE);
+	RCC_APB1PeriphClockCmd(DEBUG_UART_RCC_APBPeriph, ENABLE);
 
 	/* Connect PXx to USARTx_Tx */
-	GPIO_PinAFConfig(GPIOA, GPIO_PinSource2, GPIO_AF_1);	//USART1
-	GPIO_PinAFConfig(GPIOA, GPIO_PinSource3, GPIO_AF_1);
+	GPIO_PinAFConfig(DEBUG_UART_GPIO, DEBUG_UART_TXD_PinSource, DEBUG_UART_GPIO_AF);	//USART1
+	GPIO_PinAFConfig(DEBUG_UART_GPIO, DEBUG_UART_RXD_PinSource, DEBUG_UART_GPIO_AF);
 
 	/* Configure USART Tx as alternate function push-pull */
-	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_2;
+	GPIO_InitStructure.GPIO_Pin = DEBUG_UART_TXD;
 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF;
 	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_10MHz;
 	GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
 	GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_UP;
-	GPIO_Init(GPIOA, &GPIO_InitStructure);
+	GPIO_Init(DEBUG_UART_GPIO, &GPIO_InitStructure);
 	
-	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_3;
+	GPIO_InitStructure.GPIO_Pin = DEBUG_UART_RXD;
     GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF;
-	GPIO_Init(GPIOA, &GPIO_InitStructure);
-	
-	/* Configure USART Rx as alternate function push-pull */
-	//GPIO_InitStructure.GPIO_Pin = GPIO_Pin_9;
-	//GPIO_Init(GPIOA, &GPIO_InitStructure);
-
-	//GPIO_InitStructure.GPIO_Pin = GPIO_Pin_10;
-	//GPIO_Init(GPIOA, &GPIO_InitStructure);
-
+	GPIO_Init(DEBUG_UART_GPIO, &GPIO_InitStructure);
 
 	/* USART时钟 */
 	USART_ClockInitStructure.USART_Clock = USART_Clock_Disable;
 	USART_ClockInitStructure.USART_CPOL = USART_CPOL_Low;
 	USART_ClockInitStructure.USART_CPHA = USART_CPHA_2Edge;
 	USART_ClockInitStructure.USART_LastBit = USART_LastBit_Disable;
-	USART_ClockInit(USART2, &USART_ClockInitStructure );
+	USART_ClockInit(DEBUG_UART_PORT, &USART_ClockInitStructure );
 	
 	/* Uart口配置 */
 	USART_InitStructure.USART_BaudRate = 115200;
@@ -292,103 +294,105 @@ void init_usart2_hardware(void)
 	USART_InitStructure.USART_Parity = USART_Parity_No;
 	USART_InitStructure.USART_HardwareFlowControl = USART_HardwareFlowControl_None;
 	USART_InitStructure.USART_Mode = USART_Mode_Rx | USART_Mode_Tx;
-	USART_Init(USART2, &USART_InitStructure );
+	USART_Init(DEBUG_UART_PORT, &USART_InitStructure );
 	
 	/* 设置,使能 */
-	USART_Cmd(USART2, ENABLE);
+	USART_Cmd(DEBUG_UART_PORT, ENABLE);
 
 	/* Uart接收中断使能 */
-	USART_ITConfig(USART2, USART_IT_RXNE, ENABLE);
+	USART_ITConfig(DEBUG_UART_PORT, USART_IT_RXNE, ENABLE);
 
 	/* Enable the USART Interrupt */
-	NVIC_InitStructure.NVIC_IRQChannel = USART2_IRQn;
+	NVIC_InitStructure.NVIC_IRQChannel = DEBUG_UART_IRQChannel;
 	NVIC_InitStructure.NVIC_IRQChannelPriority = 0;
 	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
 	NVIC_Init(&NVIC_InitStructure);
+
+#ifdef USE_DMA
+	init_dma();
+#endif	
 }
+
 
 void uart_send8(u8 byte_data)
 {
-	while(USART_GetFlagStatus(USART2, USART_FLAG_TXE) == RESET);
-	USART_SendData(USART2, byte_data);
+	while(USART_GetFlagStatus(DEBUG_UART_PORT, USART_FLAG_TXE) == RESET);
+	USART_SendData(DEBUG_UART_PORT, byte_data);
 }
 
 
+//void usart2_int_entry(void)
+//{
+//	u8 byte_data;
 
-
-#define UART_PORT USART2
-void usart2_int_entry(void)
-{
-	u8 byte_data;
-
-	if(USART_GetITStatus(USART2, USART_IT_RXNE) != RESET)
-	{
-		byte_data = USART_ReceiveData(USART2);
-		uart_rcv_int_svr(byte_data);
-	}
-	else
-	{
-		my_printf("error int:");
-		if(USART_GetITStatus(UART_PORT, USART_IT_PE) != RESET)
-		{
-			my_printf("USART_IT_PE\r\n");
-			USART_ClearITPendingBit(UART_PORT,USART_IT_PE);
-		}
-		else if(USART_GetITStatus(UART_PORT, USART_IT_TXE) != RESET)
-		{
-			my_printf("USART_IT_TXE\r\n");
-			USART_ClearITPendingBit(UART_PORT,USART_IT_TXE);
-		}
-		else if(USART_GetITStatus(UART_PORT, USART_IT_TC) != RESET)
-		{
-			my_printf("USART_IT_TC\r\n");
-			USART_ClearITPendingBit(UART_PORT,USART_IT_TC);
-		}
-		else if(USART_GetITStatus(UART_PORT, USART_IT_RXNE) != RESET)
-		{
-			my_printf("USART_IT_RXNE\r\n");
-			USART_ClearITPendingBit(UART_PORT,USART_IT_RXNE);
-		}
-		else if(USART_GetITStatus(UART_PORT, USART_IT_IDLE) != RESET)
-		{
-			my_printf("USART_IT_IDLE\r\n");
-			USART_ClearITPendingBit(UART_PORT,USART_IT_IDLE);
-		}
-		else if(USART_GetITStatus(UART_PORT, USART_IT_LBD) != RESET)
-		{
-			my_printf("USART_IT_LBD\r\n");
-			USART_ClearITPendingBit(UART_PORT,USART_IT_LBD);
-		}
-		else if(USART_GetITStatus(UART_PORT, USART_IT_CTS) != RESET)
-		{
-			my_printf("USART_IT_CTS\r\n");
-			USART_ClearITPendingBit(UART_PORT,USART_IT_CTS);
-		}
-		else if(USART_GetITStatus(UART_PORT, USART_IT_ORE) != RESET)
-		{
-			my_printf("USART_IT_ORE\r\n");
-			USART_ClearITPendingBit(UART_PORT,USART_IT_ORE);
-		}
-		else if(USART_GetITStatus(UART_PORT, USART_IT_NE) != RESET)
-		{
-			my_printf("USART_IT_NE\r\n");
-			USART_ClearITPendingBit(UART_PORT,USART_IT_NE);
-		}
-		else if(USART_GetITStatus(UART_PORT, USART_IT_FE) != RESET)
-		{
-			my_printf("USART_IT_FE\r\n");
-			USART_ClearITPendingBit(UART_PORT,USART_IT_FE);
-		}
-		else
-		{
-			if (USART_GetFlagStatus(UART_PORT, USART_FLAG_ORE) != RESET)//注意！不能使用if(USART_GetITStatus(USART1, USART_IT_RXNE) != RESET)来判断
-		    {
-				my_printf("over run\r\n");
-		        USART_ReceiveData(UART_PORT);
-    		}
-		}
-	}
-}
+//	if(USART_GetITStatus(DEBUG_UART_PORT, USART_IT_RXNE) != RESET)
+//	{
+//		byte_data = USART_ReceiveData(DEBUG_UART_PORT);
+//		debug_uart_rcv_int_svr(byte_data);
+//	}
+//	else
+//	{
+//		my_printf("error int:");
+//		if(USART_GetITStatus(DEBUG_UART_PORT, USART_IT_PE) != RESET)
+//		{
+//			my_printf("USART_IT_PE\r\n");
+//			USART_ClearITPendingBit(DEBUG_UART_PORT,USART_IT_PE);
+//		}
+//		else if(USART_GetITStatus(DEBUG_UART_PORT, USART_IT_TXE) != RESET)
+//		{
+//			my_printf("USART_IT_TXE\r\n");
+//			USART_ClearITPendingBit(DEBUG_UART_PORT,USART_IT_TXE);
+//		}
+//		else if(USART_GetITStatus(DEBUG_UART_PORT, USART_IT_TC) != RESET)
+//		{
+//			my_printf("USART_IT_TC\r\n");
+//			USART_ClearITPendingBit(DEBUG_UART_PORT,USART_IT_TC);
+//		}
+//		else if(USART_GetITStatus(DEBUG_UART_PORT, USART_IT_RXNE) != RESET)
+//		{
+//			my_printf("USART_IT_RXNE\r\n");
+//			USART_ClearITPendingBit(DEBUG_UART_PORT,USART_IT_RXNE);
+//		}
+//		else if(USART_GetITStatus(DEBUG_UART_PORT, USART_IT_IDLE) != RESET)
+//		{
+//			my_printf("USART_IT_IDLE\r\n");
+//			USART_ClearITPendingBit(DEBUG_UART_PORT,USART_IT_IDLE);
+//		}
+//		else if(USART_GetITStatus(DEBUG_UART_PORT, USART_IT_LBD) != RESET)
+//		{
+//			my_printf("USART_IT_LBD\r\n");
+//			USART_ClearITPendingBit(DEBUG_UART_PORT,USART_IT_LBD);
+//		}
+//		else if(USART_GetITStatus(DEBUG_UART_PORT, USART_IT_CTS) != RESET)
+//		{
+//			my_printf("USART_IT_CTS\r\n");
+//			USART_ClearITPendingBit(DEBUG_UART_PORT,USART_IT_CTS);
+//		}
+//		else if(USART_GetITStatus(DEBUG_UART_PORT, USART_IT_ORE) != RESET)
+//		{
+//			my_printf("USART_IT_ORE\r\n");
+//			USART_ClearITPendingBit(DEBUG_UART_PORT,USART_IT_ORE);
+//		}
+//		else if(USART_GetITStatus(DEBUG_UART_PORT, USART_IT_NE) != RESET)
+//		{
+//			my_printf("USART_IT_NE\r\n");
+//			USART_ClearITPendingBit(DEBUG_UART_PORT,USART_IT_NE);
+//		}
+//		else if(USART_GetITStatus(DEBUG_UART_PORT, USART_IT_FE) != RESET)
+//		{
+//			my_printf("USART_IT_FE\r\n");
+//			USART_ClearITPendingBit(DEBUG_UART_PORT,USART_IT_FE);
+//		}
+//		else
+//		{
+//			if (USART_GetFlagStatus(DEBUG_UART_PORT, USART_FLAG_ORE) != RESET)//注意！不能使用if(USART_GetITStatus(USART1, USART_IT_RXNE) != RESET)来判断
+//		    {
+//				my_printf("over run\r\n");
+//		        USART_ReceiveData(DEBUG_UART_PORT);
+//    		}
+//		}
+//	}
+//}
 
 /*******************************************************************************
 * Function Name  : init_spi
@@ -900,4 +904,245 @@ u8 measure_com_read8(u8 * pt_rec_byte)
 
 	return 0;
 }
+
+/****************************************DMA Related *********************************************************/
+/* Hardware Definition ---------------------------------------------------------*/
+#define DEBUG_USART_TDR									USART2_BASE+0x28
+#define DEBUG_DMA_CHANNEL								DMA1_Channel4
+#define DEBUG_DMA_IRQ									DMA1_Channel4_5_IRQn
+#define DEBUG_DMA_FLAG									(DMA1_FLAG_TC4|DMA1_FLAG_HT4|DMA1_FLAG_GL4)
+
+
+/* Private Macron ------------------------------------------------------------*/
+#define DMA_BUFFER_DEPTH 								512
+
+
+/* Private variables ---------------------------------------------------------*/
+#ifdef USE_DMA
+u8 __dma_buffer[DMA_BUFFER_DEPTH];
+u8 * __dma_output_tail_ptr;				//pointer point to the tail of current dma transmission
+u8 * __dma_buffer_tail_ptr;				//pointer point to the tail of buffer
+
+
+/*******************************************************************************
+* Function Name  : init_dma
+* Description    : 
+* Input          : 
+* Output         : 
+* Return         : 
+*******************************************************************************/
+void init_dma(void)
+{
+	DMA_InitTypeDef DMA_InitStructure;
+	NVIC_InitTypeDef NVIC_InitStructure;
+	
+	/* DMA1 channel4 configuration */
+	RCC_AHBPeriphClockCmd(RCC_AHBPeriph_DMA1, ENABLE);
+	
+	DMA_DeInit(DEBUG_DMA_CHANNEL);
+	DMA_InitStructure.DMA_PeripheralBaseAddr = (u32)DEBUG_USART_TDR;
+	DMA_InitStructure.DMA_MemoryBaseAddr = (u32)__dma_buffer;
+	DMA_InitStructure.DMA_DIR = DMA_DIR_PeripheralDST;//from memory read 
+	DMA_InitStructure.DMA_BufferSize = 0;
+	DMA_InitStructure.DMA_PeripheralInc = DMA_PeripheralInc_Disable;
+	DMA_InitStructure.DMA_MemoryInc = DMA_MemoryInc_Enable;
+	DMA_InitStructure.DMA_PeripheralDataSize = DMA_PeripheralDataSize_Byte;
+	DMA_InitStructure.DMA_MemoryDataSize = DMA_MemoryDataSize_Byte;
+	DMA_InitStructure.DMA_Mode = DMA_Mode_Normal;
+	DMA_InitStructure.DMA_Priority = DMA_Priority_Low;
+	DMA_InitStructure.DMA_M2M = DMA_M2M_Disable;
+	DMA_Init(DEBUG_DMA_CHANNEL, &DMA_InitStructure);
+
+	DMA_ITConfig(DEBUG_DMA_CHANNEL, DMA_IT_TC, ENABLE);
+	DMA_Cmd(DEBUG_DMA_CHANNEL, ENABLE); 
+
+	/* Enable External Int */
+	NVIC_InitStructure.NVIC_IRQChannel = DEBUG_DMA_IRQ;
+	NVIC_InitStructure.NVIC_IRQChannelPriority = 1;
+	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
+	NVIC_Init(&NVIC_InitStructure);
+
+	__dma_buffer_tail_ptr = __dma_buffer;
+	__dma_output_tail_ptr = __dma_buffer;
+
+	enable_usart_dma(1);
+}
+
+/*******************************************************************************
+* Function Name  : dma_buffer_append
+* Description    : 
+* Input          : 
+* Output         : 
+* Return         : 
+*******************************************************************************/
+void dma_buffer_append(u8 byte)
+{
+	ENTER_CRITICAL();
+	if(__dma_buffer_tail_ptr <= (__dma_buffer+DMA_BUFFER_DEPTH))
+	{
+		*__dma_buffer_tail_ptr++ = byte;
+	}
+	EXIT_CRITICAL();
+}
+
+/*******************************************************************************
+* Function Name  : dma_buffer_fill
+* Description    : 
+* Input          : 
+* Output         : 
+* Return         : 
+*******************************************************************************/
+void dma_buffer_fill(u8 * send_content_head, u16 len)
+{
+	if(len<=DMA_BUFFER_DEPTH)
+	{
+		ENTER_CRITICAL();
+		if(!DMA_GetCurrDataCounter(DEBUG_DMA_CHANNEL))
+		{
+			__dma_buffer_tail_ptr = __dma_buffer;
+			__dma_output_tail_ptr = __dma_buffer;
+		}
+		else
+		{
+			if(len>(__dma_buffer + DMA_BUFFER_DEPTH - __dma_buffer_tail_ptr))
+			{
+				while(DMA_GetCurrDataCounter(DEBUG_DMA_CHANNEL));				// if buffer is almost full, wait until sendover
+				__dma_buffer_tail_ptr = __dma_buffer;
+				__dma_output_tail_ptr = __dma_buffer;
+			}
+		}
+		mem_cpy(__dma_buffer_tail_ptr,send_content_head,len);
+		__dma_buffer_tail_ptr = __dma_buffer + len;
+
+		EXIT_CRITICAL();
+	}
+}
+
+/*******************************************************************************
+* Function Name  : dma_uart_start
+* Description    : 
+* Input          : 
+* Output         : 
+* Return         : 
+*******************************************************************************/
+void dma_uart_start()
+{
+	ENTER_CRITICAL();
+	if(!DMA_GetCurrDataCounter(DEBUG_DMA_CHANNEL))
+	{
+		if(__dma_buffer_tail_ptr>__dma_output_tail_ptr)
+		{
+			DMA_Cmd(DEBUG_DMA_CHANNEL, DISABLE);
+			DEBUG_DMA_CHANNEL->CMAR = (u32)(__dma_output_tail_ptr);
+			DEBUG_DMA_CHANNEL->CNDTR = (u16)(__dma_buffer_tail_ptr - __dma_output_tail_ptr);
+			USART_DMACmd(USART2, USART_DMAReq_Tx, ENABLE);
+			DMA_Cmd(DEBUG_DMA_CHANNEL, ENABLE); 
+			__dma_output_tail_ptr = __dma_buffer_tail_ptr;
+		}
+		else
+		{
+			__dma_buffer_tail_ptr = __dma_buffer;
+			__dma_output_tail_ptr = __dma_buffer;
+			
+		}
+	}
+	EXIT_CRITICAL();
+}
+
+/*******************************************************************************
+* Function Name  : dma_uart_send
+* Description    : 
+* Input          : 
+* Output         : 
+* Return         : 
+*******************************************************************************/
+void dma_uart_send(u8 * send_content_head, u16 len)
+{
+	dma_buffer_fill(send_content_head, len);
+	dma_uart_start();
+}
+
+
+
+/*******************************************************************************
+* Function Name  : enable_usart_dma
+* Description    : 是否使用dma输出打印信息, 对于HardFault等中断内信息打印无法使用dma, (因为已不能响应中断)
+* Input          : None
+* Output         : None
+* Return         : None
+*******************************************************************************/
+void enable_usart_dma(u8 enable)
+{
+	_dma_uart_enable = enable;
+}
+
+#endif
+/****************************************DMA Related End******************************************************/
+
+/*******************************************************************************
+* Function Name  : my_putchar
+* Description    : 统一打印入口处理
+* Input          : None
+* Output         : None
+* Return         : None
+*******************************************************************************/
+void my_putchar(u8 x)
+{
+	if(_uart_output_enable)
+	{
+#ifdef USE_DMA
+		if(_dma_uart_enable)
+		{
+			dma_buffer_append(x);
+		}
+		else
+#endif
+		{
+			uart_send8(x);
+		}
+	}
+}
+
+/*******************************************************************************
+* Function Name  : get_sp_val
+* Description    : 返回SP的数值
+* Input          : None
+* Output         : None
+* Return         : None
+*******************************************************************************/
+__asm u32 get_sp_val(void)
+{
+	MOV r0,sp
+	BX  r14
+}
+
+/*******************************************************************************
+* Function Name  : report_stack
+* Description    : 输入堆栈地址,将当前堆栈区的PC值打印出来
+* Input          : None
+* Output         : None
+* Return         : None
+*******************************************************************************/
+void report_stack(const char * str, u32 sp_val)
+{
+	u32* pt_stack_val;
+//	u32 FaultHandlerSource;
+//	u32 FaultHandlerAddress;
+
+	pt_stack_val = (u32*)(sp_val);
+#ifdef USE_DMA	
+	enable_usart_dma(0);
+#endif
+	my_printf("%s\r\n",str);
+	my_printf("R0: 0x%lx\r\n",*pt_stack_val++);
+	my_printf("R1: 0x%lx\r\n",*pt_stack_val++);
+	my_printf("R2: 0x%lx\r\n",*pt_stack_val++);
+	my_printf("R3: 0x%lx\r\n",*pt_stack_val++);
+	my_printf("R12:0x%lx\r\n",*pt_stack_val++);
+	my_printf("LR: 0x%lx\r\n",*pt_stack_val++);
+	my_printf("PC: 0x%lx\r\n",*pt_stack_val++);
+	my_printf("PSR:0x%lx\r\n",*pt_stack_val++);
+}
+
+
 

@@ -25,9 +25,9 @@
 #if NODE_TYPE==NODE_MASTER
 #include "_network_management.h"
 #include "_network_optimization.h"
+#include "_mac.h"
 #endif
 
 #if DEVICE_TYPE==DEVICE_CC
-#include "_mac.h"
 #include "_powerdrop_datasave.h"
 #endif

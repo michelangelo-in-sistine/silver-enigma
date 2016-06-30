@@ -75,7 +75,7 @@
 #define USE_DIAG
 #define USE_EBC
 #define USE_PSR
-
+#define USE_MAC
 
 /*========================== Debug/Release Switch  ================*/
 /* Release Define ----------------------------------------*/
@@ -92,6 +92,7 @@
 
 /* Debug Output Define ----------------------------------------*/
 #define DEBUG_MODE
+#define USE_DMA
 #define DEBUG_UART_PROC 1
 #ifdef DEBUG_MODE
 	#define DEBUG_LEVEL 3

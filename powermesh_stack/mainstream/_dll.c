@@ -75,7 +75,11 @@ void init_dll()
 	}
 #ifdef USE_EBC	
 	init_ebc();
+#if DEVICE_TYPE == DEVICE_MT
 	set_ebc_response_enable(TRUE);
+#else
+	set_ebc_response_enable(FALSE);
+#endif
 #endif
 #ifdef USE_MAC
 	init_mac();
@@ -295,14 +299,18 @@ void dll_rcv_proc(DLL_RCV_HANDLE pd)
 				}
 				else
 				{
+					u8 dlct = ppdu[SEC_DLCT];
+#ifdef USE_MAC
+					if((dlct & BIT_DLCT_ACK) == 0)
+					{
+						update_nearby_active_nodes(&ppdu[SEC_SRC]);					// 2016-06-02 保持一个对周边节点
+					}
+#endif
+		
 					if(check_uid(pp->phase,&ppdu[SEC_DEST]) != WRONG)				// CORRECT/BROADCAST/SOMEBODY ALL PASS!
 					{
-						u8 dlct = ppdu[SEC_DLCT];
 #ifdef DEBUG_DISP_DLL_RCV
-if((ppdu[SEC_NPDU] & 0xF0) != CST_DST_PROTOCOL)
-{
-			print_phy_rcv(pp);
-}
+						print_phy_rcv(pp);
 //			my_printf("RCV PHASE:%bX %bX %bX %bX\r\n",pp->plc_rcv_acps[0],pp->plc_rcv_acps[1],pp->plc_rcv_acps[2],pp->plc_rcv_acps[3]);
 //			my_printf("RELATION:%bX",get_acps_relation(pp->phy_rcv_valid&0x03, pp->plc_rcv_acps[0], pp->phy_rcv_data[SEC_NBF_COND]));
 #endif		
@@ -538,9 +546,6 @@ STATUS dll_diag(DLL_SEND_HANDLE pdss, ARRAY_HANDLE buffer)		// 2012-12-26 modify
 #endif
 
 	expiring_sticks = diag_expiring_sticks(pdss);
-#ifdef USE_MAC
-	declare_channel_occupation(pdss->phase,phy_trans_sticks(pdss->lsdu_len + LEN_TOTAL_OVERHEAD_BEYOND_LSDU, (pdss->xmode & 0x03), (pdss->prop & BIT_DLL_SEND_PROP_SCAN)) + expiring_sticks);
-#endif
 	sid = dll_send(pdss);
 	if(sid==INVALID_RESOURCE_ID)
 	{
@@ -548,6 +553,9 @@ STATUS dll_diag(DLL_SEND_HANDLE pdss, ARRAY_HANDLE buffer)		// 2012-12-26 modify
 		return FAIL;
 	}
 
+#ifdef USE_MAC
+	declare_channel_occupation(sid,expiring_sticks);
+#endif
 
 	/* wait send over */
 	status = wait_until_send_over(sid);

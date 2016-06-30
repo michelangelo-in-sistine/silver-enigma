@@ -82,6 +82,7 @@ void set_quit_loops(void);
 void clr_quit_loops(void);
 u8 get_noise_status(u8 phase);
 void mfoi_report(u8 phase, u8 ch);
+BOOL mem_cmp_reverse(ARRAY_HANDLE pt1, ARRAY_HANDLE pt2, BASE_LEN_TYPE len) reentrant;
 
 #ifdef DEBUG_DISP_INFO
 	#define SET_BREAK_THROUGH(incication) if(check_quit_loops()){my_printf(incication);break;}

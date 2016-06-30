@@ -1690,7 +1690,7 @@ RESULT acps_diag(u8 phase, UID_HANDLE target_uid_handle, u8 diag_rate)
 	dss.lsdu_len = 8;
 	dss.prop = BIT_DLL_SEND_PROP_SCAN|BIT_DLL_SEND_PROP_ACUPDATE;				//一律按acps发送
 	dss.xmode = 0x10 | diag_rate;
-	dss.delay = 0;
+	dss.delay = DLL_SEND_DELAY_STICKS;
 	sid = dll_send(&dss);
 
 	if(sid==INVALID_RESOURCE_ID)
