@@ -9,30 +9,25 @@
 
 #define MEASURE_RESET()		write_measure_reg(0x3F, 0x005A5A5A)
 #define MEASURE_PGA1()		write_measure_reg(0x15, 0x00000000)
-#define MEASURE_PGA2()		write_measure_reg(0x15, 0x00000111)
-#define MEASURE_PGA4()		write_measure_reg(0x15, 0x00000222)
-#define MEASURE_PGA8()		write_measure_reg(0x15, 0x00000333)
-#define MEASURE_PGA16()		write_measure_reg(0x15, 0x00000404)
-#define MEASURE_PGA24()		write_measure_reg(0x15, 0x00000555)
-#define MEASURE_PGA32()		write_measure_reg(0x15, 0x00000666)
+#define MEASURE_PGA2()		write_measure_reg(0x15, 0x00000101)
+#define MEASURE_PGA4()		write_measure_reg(0x15, 0x00000202)
+#define MEASURE_PGA8()		write_measure_reg(0x15, 0x00000303)
+#define MEASURE_PGA16()		write_measure_reg(0x15, 0x00000404)		//温度通道不放大
+#define MEASURE_PGA24()		write_measure_reg(0x15, 0x00000505)
+#define MEASURE_PGA32()		write_measure_reg(0x15, 0x00000606)
 
 #define MEASURE_REG_I		0x01		//电流测量通道IA
 #define MEASURE_REG_T		0x02		//温度测量通道IB
 #define MEASURE_REG_V		0x03		//电压测量通道V
 
-#define MEASURE_POINTS_CNT	2
+
 #define CALIB_MEAN_TIME		4
 #define MEASURE_MEAN_TIME	4
 
-typedef struct
-{
-	s32 x[MEASURE_POINTS_CNT];
-	s32 y[MEASURE_POINTS_CNT];
-	float k;
-	float b;
-}CALIB_STRUCT;
 
-CALIB_STRUCT xdata calib_v, calib_i;
+
+CALIB_VI_STRUCT xdata calib_v, calib_i;
+CALIB_T_STRUCT xdata * p_calib_t;
 
 
 /*******************************************************************************
@@ -169,9 +164,14 @@ void init_measure(void)
 		calib_v.b = get_app_nvr_data_u_b();
 		calib_i.k = get_app_nvr_data_i_k();
 		calib_i.b = get_app_nvr_data_i_b();
+		p_calib_t = (CALIB_T_STRUCT xdata *)get_app_nvr_data_t_data();
 	}
 	else
 	{
+		mem_clr(&calib_v,sizeof(calib_v),1);
+		mem_clr(&calib_i,sizeof(calib_i),1);
+		p_calib_t = (CALIB_T_STRUCT xdata *)get_app_nvr_data_t_data();
+		mem_clr(p_calib_t,sizeof(CALIB_T_STRUCT),1);
 		my_printf("no valid calib data\r\n");
 	}
 }
@@ -188,38 +188,19 @@ s32 convert_uint24_to_int24(u32 value)
 	}
 }
 
-
-
-//void set_calib_point_test(u8 index, s32 reg_value, s32 real_value)
-//{
-//	calib_v.x[index] = reg_value;
-//	calib_v.y[index] = real_value;
-
-//	if(index == MEASURE_POINTS_CNT - 1)
-//	{
-//		calib_v.k = (float)(calib_v.y[1] - calib_v.y[0])/(float)(calib_v.x[1] - calib_v.x[0]);
-//		if(calib_v.y[0] > calib_v.y[1])
-//		{
-//			calib_v.b = calib_v.y[0] - calib_v.k * calib_v.x[0];
-//		}
-//		else
-//		{
-//			calib_v.b = calib_v.y[1] - calib_v.k * calib_v.x[1];
-//		}
-//	}
-//}
-
-//s32 measure_test(s32 reg_value)
-//{
-//	return (s32)(calib_v.k * reg_value + calib_v.b);
-//}
-
-void set_calib_point(u8 index, CALIB_STRUCT xdata * calib, u8 measure_reg_addr, s16 real_value)
+/*******************************************************************************
+* Function Name  : 
+* Description    : 
+* Input          : 
+* Output         : 
+* Return         : 
+*******************************************************************************/
+void set_calib_point(u8 index, CALIB_VI_STRUCT xdata * calib, u8 measure_reg_addr, s16 real_value)
 {
 	s32 reg_value = 0;
 	u8 i;
 
-	if(index>=MEASURE_POINTS_CNT)
+	if(index>=MEASURE_VI_POINTS_CNT)
 	{
 		my_printf("calib point index error\n");
 		return;
@@ -236,7 +217,7 @@ void set_calib_point(u8 index, CALIB_STRUCT xdata * calib, u8 measure_reg_addr, 
 
 //my_printf("index:%d,reg_value:%d,real_value:%d\n",index,reg_value,real_value);
 
-	if(index == MEASURE_POINTS_CNT - 1)
+	if(index == MEASURE_VI_POINTS_CNT - 1)
 	{
 		calib->k = (float)(calib->y[1] - calib->y[0])/(float)(calib->x[1] - calib->x[0]);
 		if(calib->y[0] > calib->y[1])
@@ -250,7 +231,14 @@ void set_calib_point(u8 index, CALIB_STRUCT xdata * calib, u8 measure_reg_addr, 
 	}
 }
 
-s16 measure_current_param(CALIB_STRUCT xdata * calib, u8 measure_reg_addr)
+/*******************************************************************************
+* Function Name  : 
+* Description    : 
+* Input          : 
+* Output         : 
+* Return         : 
+*******************************************************************************/
+s16 measure_current_param(CALIB_VI_STRUCT xdata * calib, u8 measure_reg_addr)
 {
 	s32 reg_value = 0;
 	u8 i;
@@ -269,17 +257,68 @@ s16 measure_current_param(CALIB_STRUCT xdata * calib, u8 measure_reg_addr)
 }
 
 
+/*******************************************************************************
+* Function Name  : 
+* Description    : 
+* Input          : 
+* Output         : 
+* Return         : 
+*******************************************************************************/
 void set_v_calib_point(u8 index, s16 v_real_value)
 {
 	set_calib_point(index, &calib_v, MEASURE_REG_V, v_real_value);
 }
 
+/*******************************************************************************
+* Function Name  : 
+* Description    : 
+* Input          : 
+* Output         : 
+* Return         : 
+*******************************************************************************/
 void set_i_calib_point(u8 index, s16 i_real_value)
 {
 	set_calib_point(index, &calib_i, MEASURE_REG_I, i_real_value);
 }
 
+/*******************************************************************************
+* Function Name  : 温度校准使用分段线性
+* Description    : 
+* Input          : 
+* Output         : 
+* Return         : 
+*******************************************************************************/
+void set_t_calib_point(u8 index, s16 real_t, s32 reg_value)
+{
+//	s32 reg_value = 0;
+//	u8 i;
 
+	if(index < MEASURE_T_POINTS_CNT)
+	{
+		//for(i=0;i<CALIB_MEAN_TIME;i++)
+		//{
+		//	reg_value += read_measure_reg(MEASURE_REG_V);	//串口读一次时间很长,远低于刷新率
+		//}
+		//reg_value /= CALIB_MEAN_TIME;
+		
+		p_calib_t->t[index] = real_t;			//reg值作为x, 计算k时分母够大
+		p_calib_t->reg[index] = reg_value;
+
+		if(index>=p_calib_t->points)			//分段点必须连续, 否则会出错
+		{
+			p_calib_t->points = index + 1;
+		}
+	}
+}
+
+
+/*******************************************************************************
+* Function Name  : 
+* Description    : 
+* Input          : 
+* Output         : 
+* Return         : 
+*******************************************************************************/
 s16 measure_current_v(void)
 {
 	s16 current_v;
@@ -298,12 +337,84 @@ s16 measure_current_v(void)
 	return current_v;
 }
 
+/*******************************************************************************
+* Function Name  : 
+* Description    : 
+* Input          : 
+* Output         : 
+* Return         : 
+*******************************************************************************/
 s16 measure_current_i(void)
 {
 	my_printf("calib_i, k:%d, b:%d\r\n", (u32)(calib_i.k*100000), (u32)(calib_i.b*100000));
 	return measure_current_param(&calib_i, MEASURE_REG_I);
 }
 
+/*******************************************************************************
+* Function Name  : 
+* Description    : p_calib_t必须保证有MEASURE_T_POINTS_CNT个点,必须单调存储t与reg的对应关系
+* Input          : 
+* Output         : 
+* Return         : 
+*******************************************************************************/
+s16 measure_current_t(s32 reg_value)
+{
+	//s32 reg_value = 0;
+	u8 i;
+	s16 t1,t2;
+	s32 reg1,reg2;
+	u8 points;
+
+//	for(i=0;i<MEASURE_MEAN_TIME;i++)
+//	{
+//		reg_value += convert_uint24_to_int24(read_measure_reg(MEASURE_REG_T));
+
+//	}
+//	reg_value /= MEASURE_MEAN_TIME;
+
+
+	points = p_calib_t->points;
+
+	if(reg_value < p_calib_t->reg[0])
+	{
+		t1 = p_calib_t->t[0];
+		reg1 = p_calib_t->reg[0];
+		t2 = p_calib_t->t[1];
+		reg2 = p_calib_t->reg[1];
+	}
+	else if(reg_value >= p_calib_t->reg[points-1])
+	{
+		t1 = p_calib_t->t[points-2];
+		reg1 = p_calib_t->reg[points-2];
+		t2 = p_calib_t->t[points-1];
+		reg2 = p_calib_t->reg[points-1];
+	}
+	else
+	{
+		for(i=0;i<points-1;i++)
+		{
+			if(reg_value >= p_calib_t->reg[i] && reg_value < p_calib_t->reg[i+1])
+			{
+				t1 = p_calib_t->t[i];
+				reg1 = p_calib_t->reg[i];
+				t2 = p_calib_t->t[i+1];
+				reg2 = p_calib_t->reg[i+1];
+				break;
+			}
+		}
+	}
+
+	return (s16)(t1 + (float)(t2-t1)*(reg_value-reg1)/(reg2-reg1));
+}
+
+
+/*******************************************************************************
+* Function Name  : 
+* Description    : 
+* Input          : 
+* Output         : 
+* Return         : 
+*******************************************************************************/
 STATUS save_calib_into_app_nvr(void)
 {
 	set_app_nvr_data_u(calib_v.k, calib_v.b);

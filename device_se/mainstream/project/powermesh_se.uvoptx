@@ -201,50 +201,65 @@
         <Bp>
           <Number>0</Number>
           <Type>0</Type>
-          <LineNumber>1078</LineNumber>
+          <LineNumber>378</LineNumber>
           <EnabledFlag>1</EnabledFlag>
-          <Address>134259454</Address>
+          <Address>134249706</Address>
           <ByteObject>0</ByteObject>
           <HtxType>0</HtxType>
           <ManyObjects>0</ManyObjects>
           <SizeOfObject>0</SizeOfObject>
           <BreakByAccess>0</BreakByAccess>
           <BreakIfRCount>1</BreakIfRCount>
-          <Filename>..\..\..\powermesh_stack\mainstream\_uart.c</Filename>
+          <Filename>..\..\..\powermesh_stack\mainstream\_measure.c</Filename>
           <ExecCommand></ExecCommand>
-          <Expression>\\powermesh_se\../../../powermesh_stack/mainstream/_uart.c\1078</Expression>
+          <Expression>\\powermesh_se\../../../powermesh_stack/mainstream/_measure.c\378</Expression>
         </Bp>
       </Breakpoint>
       <WatchWindow1>
         <Ww>
           <count>0</count>
           <WinNumber>1</WinNumber>
-          <ItemText>domain_id</ItemText>
+          <ItemText>p_calib_t</ItemText>
         </Ww>
         <Ww>
           <count>1</count>
           <WinNumber>1</WinNumber>
-          <ItemText>ptr_acp</ItemText>
+          <ItemText>_uart_rcv_buffer</ItemText>
         </Ww>
         <Ww>
           <count>2</count>
           <WinNumber>1</WinNumber>
-          <ItemText>ptr_acp-&gt;acp_body</ItemText>
+          <ItemText>index</ItemText>
         </Ww>
         <Ww>
           <count>3</count>
           <WinNumber>1</WinNumber>
-          <ItemText>dst_config_obj</ItemText>
+          <ItemText>temp</ItemText>
         </Ww>
         <Ww>
           <count>4</count>
           <WinNumber>1</WinNumber>
-          <ItemText>sticks</ItemText>
+          <ItemText>index</ItemText>
         </Ww>
         <Ww>
           <count>5</count>
           <WinNumber>1</WinNumber>
-          <ItemText>_self_vid</ItemText>
+          <ItemText>reg_value</ItemText>
+        </Ww>
+        <Ww>
+          <count>6</count>
+          <WinNumber>1</WinNumber>
+          <ItemText>ptr</ItemText>
+        </Ww>
+        <Ww>
+          <count>7</count>
+          <WinNumber>1</WinNumber>
+          <ItemText>t</ItemText>
+        </Ww>
+        <Ww>
+          <count>8</count>
+          <WinNumber>1</WinNumber>
+          <ItemText>t1</ItemText>
         </Ww>
       </WatchWindow1>
       <MemoryWindow1>
@@ -303,7 +318,7 @@
       <GroupNumber>1</GroupNumber>
       <FileNumber>1</FileNumber>
       <FileType>1</FileType>
-      <tvExp>1</tvExp>
+      <tvExp>0</tvExp>
       <tvExpOptDlg>0</tvExpOptDlg>
       <bDave2>0</bDave2>
       <PathWithFileName>..\source\_hardware.c</PathWithFileName>

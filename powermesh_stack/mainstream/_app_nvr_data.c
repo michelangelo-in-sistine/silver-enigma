@@ -17,7 +17,6 @@
 #include "powermesh_include.h"
 #include "_userflash.h"
 
-
 /* Private Datatype-----------------------------------------------------------*/
 typedef struct
 {
@@ -30,12 +29,14 @@ typedef struct
 	u16 vid;
 	u16 gid;
 
+	u8 calib_t[sizeof(CALIB_T_STRUCT)];		//为了节约内存, calib_t的矫正数据直接存放在nvr数据体里
+
 	u8 crc_high;				//直接写, 在arm中由于大端表示, 将不能通过crc验证
 	u8 crc_low;
 }APP_DATA_STRUCT;
 
 /* private variables ---------------------------------------------------------*/
-APP_DATA_STRUCT _app_nvr_data;
+APP_DATA_STRUCT xdata _app_nvr_data;
 
 
 /* private functions ---------------------------------------------------------*/
@@ -70,6 +71,12 @@ float get_app_nvr_data_i_b(void)
 {
 	return _app_nvr_data.i_b;
 }
+
+u8 * get_app_nvr_data_t_data(void)
+{
+	return _app_nvr_data.calib_t;
+}
+
 
 
 void set_app_nvr_data_domain_id(u16 domain_id)

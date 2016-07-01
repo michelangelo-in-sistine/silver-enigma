@@ -813,7 +813,7 @@ void powermesh_debug_cmd_proc(u8 xdata * ptr, u16 total_rec_bytes)
 				write_spi(addr,value);
 				proc_rec_bytes++;
 			}
-			else if(cmd=='r' && rest_rec_bytes>=1)	//0x72 读6532
+			else if(cmd==0x70 && rest_rec_bytes>=1)	//0x70 读6532
 			{
 				extern s32 convert_uint24_to_int24(u32 value);
 
@@ -821,7 +821,7 @@ void powermesh_debug_cmd_proc(u8 xdata * ptr, u16 total_rec_bytes)
 				value = convert_uint24_to_int24(read_measure_reg(*ptr++));
 				my_printf("read:%d\n",value);
 			}
-			else if(cmd=='w' && rest_rec_bytes>=4)	//0x77 写6532
+			else if(cmd==0x71 && rest_rec_bytes>=4)	//0x71 写6532
 			{
 				u8 addr;
 				u32 dword = 0;
@@ -837,7 +837,7 @@ void powermesh_debug_cmd_proc(u8 xdata * ptr, u16 total_rec_bytes)
 				my_printf("set:%lX\n",dword);
 			}
 			
-			else if(cmd=='v' && rest_rec_bytes>=2)	//0x76		设置测量点电压
+			else if(cmd==0x72 && rest_rec_bytes>=2)	//0x72		设置测量点电压
 			{
 			
 				u8 index;
@@ -849,7 +849,7 @@ void powermesh_debug_cmd_proc(u8 xdata * ptr, u16 total_rec_bytes)
 				set_v_calib_point(index,value);
 				break;
 			}
-			else if(cmd=='i' && rest_rec_bytes>=2)	//0x69		设置测量点电流
+			else if(cmd==0x73 && rest_rec_bytes>=2)	//0x73		设置测量点电流
 			{
 				u8 index;
 				u16 value;
@@ -863,7 +863,7 @@ void powermesh_debug_cmd_proc(u8 xdata * ptr, u16 total_rec_bytes)
 			}
 
 			
-			else if(cmd=='t')	//0x74		测试读取当前电压电流
+			else if(cmd==0x74)	//0x74		测试读取当前电压电流
 			{
 				s32 v,i;
 				
@@ -872,19 +872,71 @@ void powermesh_debug_cmd_proc(u8 xdata * ptr, u16 total_rec_bytes)
 				my_printf("v:%d,i:%d\n",v,i);
 				break;
 			}
-			else if(cmd=='r')					//72
+			else if(cmd==0x75)					//75
 			{
 				my_printf("reset 6523\n");
 				reset_measure_device();			//重启6523
 				break;
 			}
 
-			else if(cmd=='s')					//0x73
+			else if(cmd==0x76)					//0x73
 			{
 				save_calib_into_app_nvr();
 				my_printf("save");
 				break;
 			}
+			else if(cmd==0x77 && rest_rec_bytes>=1) //0x77 set temperature calib point
+			{
+				u8 index;
+				s16 t;
+				s32 reg_value;
+				u32 temp;
+
+				index = *ptr++;
+//				temp = read_int(ptr,2);
+//				ptr += 2;
+//				reg_value = read_int(ptr,rest_rec_bytes-3);
+				temp = *ptr++;
+				temp <<= 8;
+				temp += *ptr++;
+				t = (s16)temp;
+				
+				temp = *ptr++;
+				temp <<= 8;
+				temp += *ptr++;
+				temp <<= 8;
+				temp += *ptr++;
+				temp <<= 8;
+				temp += *ptr++;
+				reg_value = (s32)temp;
+				
+				my_printf("index:%d,temp:%d,reg_value:%d\r\n",index,t,reg_value);
+
+				set_t_calib_point(index,t,reg_value);
+			
+				break;
+			}
+			else if(cmd==0x78 && rest_rec_bytes>=4) 					//0x78 calc temperature
+			{
+				s16 t;
+				s32 value;
+				u32 temp;
+
+				temp = *ptr++;
+				temp <<= 8;
+				temp += *ptr++;
+				temp <<= 8;
+				temp += *ptr++;
+				temp <<= 8;
+				temp += *ptr++;
+				
+				value = (s32)(temp);
+				t = measure_current_t(value);
+				my_printf("value: %d, current t :%d\r\n",value,t);
+			
+				break;
+			}
+			
 			
 			else if(cmd=='S' && rest_rec_bytes>=9)		//0x53: 53 + X_MODE + SCAN + SRF + AC_UPDATE + 4B Delay + PACKAGE
 			{
@@ -1119,6 +1171,7 @@ void powermesh_debug_cmd_proc(u8 xdata * ptr, u16 total_rec_bytes)
 				out_buffer_len += return_len;
 				break;
 			}
+			
 			
 			else if(cmd==0xBD && rest_rec_bytes==1)		//0xBDBD, 搜索根节点
 			{

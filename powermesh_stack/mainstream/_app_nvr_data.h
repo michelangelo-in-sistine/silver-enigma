@@ -36,5 +36,8 @@ u16 get_app_nvr_data_vid(void);
 void set_app_nvr_data_gid(u16 gid);
 u16 get_app_nvr_data_gid(void);
 
+u8 * get_app_nvr_data_t_data(void);
+
+
 #endif
 
