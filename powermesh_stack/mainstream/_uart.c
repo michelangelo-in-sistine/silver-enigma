@@ -936,8 +936,12 @@ void powermesh_debug_cmd_proc(u8 xdata * ptr, u16 total_rec_bytes)
 			
 				break;
 			}
-			
-			
+			else if(cmd==0x79)											//0x79 save nvr()
+			{
+				save_calib_into_app_nvr();
+				my_printf("save calib into nvr\r\n");
+				break;
+			}
 			else if(cmd=='S' && rest_rec_bytes>=9)		//0x53: 53 + X_MODE + SCAN + SRF + AC_UPDATE + 4B Delay + PACKAGE
 			{
 				PHY_SEND_STRUCT xdata pss;
@@ -1307,6 +1311,7 @@ void powermesh_debug_cmd_proc(u8 xdata * ptr, u16 total_rec_bytes)
 
 			else
 			{
+				my_printf("unknown cmd 0x%X\r\n",cmd);
 				uart_rcv_resume();
 				break;
 			}
