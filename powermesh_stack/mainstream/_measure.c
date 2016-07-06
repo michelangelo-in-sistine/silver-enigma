@@ -9,12 +9,12 @@
 
 #define MEASURE_RESET()		write_measure_reg(0x3F, 0x005A5A5A)
 #define MEASURE_PGA1()		write_measure_reg(0x15, 0x00000000)
-#define MEASURE_PGA2()		write_measure_reg(0x15, 0x00000111)
-#define MEASURE_PGA4()		write_measure_reg(0x15, 0x00000222)
-#define MEASURE_PGA8()		write_measure_reg(0x15, 0x00000333)
+#define MEASURE_PGA2()		write_measure_reg(0x15, 0x00000101)
+#define MEASURE_PGA4()		write_measure_reg(0x15, 0x00000202)
+#define MEASURE_PGA8()		write_measure_reg(0x15, 0x00000303)
 #define MEASURE_PGA16()		write_measure_reg(0x15, 0x00000404)
-#define MEASURE_PGA24()		write_measure_reg(0x15, 0x00000555)
-#define MEASURE_PGA32()		write_measure_reg(0x15, 0x00000666)
+#define MEASURE_PGA24()		write_measure_reg(0x15, 0x00000505)
+#define MEASURE_PGA32()		write_measure_reg(0x15, 0x00000606)
 
 #define MEASURE_REG_I		0x01		//电流测量通道IA
 #define MEASURE_REG_T		0x02		//温度测量通道IB
