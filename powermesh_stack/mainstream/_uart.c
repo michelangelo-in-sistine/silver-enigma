@@ -885,61 +885,55 @@ void powermesh_debug_cmd_proc(u8 xdata * ptr, u16 total_rec_bytes)
 				my_printf("save");
 				break;
 			}
-			else if(cmd==0x77 && rest_rec_bytes>=1) //0x77 set temperature calib point
+			else if(cmd==0x77 && rest_rec_bytes>=3) //0x77 set temperature calib point
 			{
 				u8 index;
 				s16 t;
-				s32 reg_value;
+				s32 reg_value = 0;
 				u32 temp;
 
 				index = *ptr++;
-//				temp = read_int(ptr,2);
-//				ptr += 2;
-//				reg_value = read_int(ptr,rest_rec_bytes-3);
+
 				temp = *ptr++;
 				temp <<= 8;
 				temp += *ptr++;
 				t = (s16)temp;
-				
-				temp = *ptr++;
-				temp <<= 8;
-				temp += *ptr++;
-				temp <<= 8;
-				temp += *ptr++;
-				temp <<= 8;
-				temp += *ptr++;
-				reg_value = (s32)temp;
-				
-				my_printf("index:%d,temp:%d,reg_value:%d\r\n",index,t,reg_value);
+
+				if(rest_rec_bytes>= 7)
+				{
+					temp = *ptr++;
+					temp <<= 8;
+					temp += *ptr++;
+					temp <<= 8;
+					temp += *ptr++;
+					temp <<= 8;
+					temp += *ptr++;
+					reg_value = (s32)temp;
+				}
+				//my_printf("index:%d,temp:%d,reg_value:%d\r\n",index,t,reg_value);
 
 				set_t_calib_point(index,t,reg_value);
 			
 				break;
 			}
-			else if(cmd==0x78 && rest_rec_bytes>=4) 					//0x78 calc temperature
+			else if(cmd==0x78) 					//0x78 calc temperature
 			{
 				s16 t;
-				s32 value;
-				u32 temp;
+//				s32 value;
+//				u32 temp;
 
-				temp = *ptr++;
-				temp <<= 8;
-				temp += *ptr++;
-				temp <<= 8;
-				temp += *ptr++;
-				temp <<= 8;
-				temp += *ptr++;
+//				temp = *ptr++;
+//				temp <<= 8;
+//				temp += *ptr++;
+//				temp <<= 8;
+//				temp += *ptr++;
+//				temp <<= 8;
+//				temp += *ptr++;
 				
-				value = (s32)(temp);
-				t = measure_current_t(value);
-				my_printf("value: %d, current t :%d\r\n",value,t);
+//				value = (s32)(temp);
+				t = measure_current_t();
+				my_printf("current t :%d\r\n",t);
 			
-				break;
-			}
-			else if(cmd==0x79)											//0x79 save nvr()
-			{
-				save_calib_into_app_nvr();
-				my_printf("save calib into nvr\r\n");
 				break;
 			}
 			else if(cmd=='S' && rest_rec_bytes>=9)		//0x53: 53 + X_MODE + SCAN + SRF + AC_UPDATE + 4B Delay + PACKAGE

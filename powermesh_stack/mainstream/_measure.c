@@ -283,23 +283,25 @@ void set_i_calib_point(u8 index, s16 i_real_value)
 
 /*******************************************************************************
 * Function Name  : 温度校准使用分段线性
-* Description    : 
+* Description    : if reg_value ==0 直接下分段表
 * Input          : 
 * Output         : 
 * Return         : 
 *******************************************************************************/
 void set_t_calib_point(u8 index, s16 real_t, s32 reg_value)
 {
-//	s32 reg_value = 0;
-//	u8 i;
+	u8 i;
 
 	if(index < MEASURE_T_POINTS_CNT)
 	{
-		//for(i=0;i<CALIB_MEAN_TIME;i++)
-		//{
-		//	reg_value += read_measure_reg(MEASURE_REG_V);	//串口读一次时间很长,远低于刷新率
-		//}
-		//reg_value /= CALIB_MEAN_TIME;
+		if(reg_value==0)
+		{
+			for(i=0;i<CALIB_MEAN_TIME;i++)
+			{
+				reg_value += convert_uint24_to_int24(read_measure_reg(MEASURE_REG_T));	//串口读一次时间很长,远低于刷新率
+			}
+			reg_value /= CALIB_MEAN_TIME;
+		}
 		
 		p_calib_t->t[index] = real_t;			//reg值作为x, 计算k时分母够大
 		p_calib_t->reg[index] = reg_value;
@@ -308,6 +310,7 @@ void set_t_calib_point(u8 index, s16 real_t, s32 reg_value)
 		{
 			p_calib_t->points = index + 1;
 		}
+		my_printf("index:%d,t:%d,reg_value:%d\r\n",index,real_t,reg_value);
 	}
 }
 
@@ -357,21 +360,22 @@ s16 measure_current_i(void)
 * Output         : 
 * Return         : 
 *******************************************************************************/
-s16 measure_current_t(s32 reg_value)
+//s16 measure_current_t(s32 reg_value)
+s16 measure_current_t(void)
 {
-	//s32 reg_value = 0;
+	s32 reg_value = 0;
 	u8 i;
 	s16 t1,t2;
 	s32 reg1,reg2;
 	u8 points;
 
-//	for(i=0;i<MEASURE_MEAN_TIME;i++)
-//	{
-//		reg_value += convert_uint24_to_int24(read_measure_reg(MEASURE_REG_T));
+	for(i=0;i<MEASURE_MEAN_TIME;i++)
+	{
+		reg_value += convert_uint24_to_int24(read_measure_reg(MEASURE_REG_T));
+	}
+	reg_value /= MEASURE_MEAN_TIME;
 
-//	}
-//	reg_value /= MEASURE_MEAN_TIME;
-
+	my_printf("reg_value:%d\r\n",reg_value);
 
 	points = p_calib_t->points;
 
