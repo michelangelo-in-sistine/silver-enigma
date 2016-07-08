@@ -1,5 +1,6 @@
 #include "compile_define.h"
 #include "powermesh_include.h"
+#include "math.h"
 
 
 #define MEASURE_UNPROTECT()	write_measure_reg(0x3E, 0x00000055)
@@ -188,36 +189,24 @@ s32 convert_uint24_to_int24(u32 value)
 	}
 }
 
+s32 read_mean_measure_reg(u8 measure_reg_addr)
+{
+	u8 i;
+	s32 reg_value = 0;
+	
+	for(i=0;i<CALIB_MEAN_TIME;i++)
+	{
+		reg_value += convert_uint24_to_int24(read_measure_reg(measure_reg_addr));	//串口读一次时间很长,远低于刷新率
+	}
+	reg_value /= CALIB_MEAN_TIME;
+	
+	return reg_value;
+}
 
-
-//void set_calib_point_test(u8 index, s32 reg_value, s32 real_value)
-//{
-//	calib_v.x[index] = reg_value;
-//	calib_v.y[index] = real_value;
-
-//	if(index == MEASURE_POINTS_CNT - 1)
-//	{
-//		calib_v.k = (float)(calib_v.y[1] - calib_v.y[0])/(float)(calib_v.x[1] - calib_v.x[0]);
-//		if(calib_v.y[0] > calib_v.y[1])
-//		{
-//			calib_v.b = calib_v.y[0] - calib_v.k * calib_v.x[0];
-//		}
-//		else
-//		{
-//			calib_v.b = calib_v.y[1] - calib_v.k * calib_v.x[1];
-//		}
-//	}
-//}
-
-//s32 measure_test(s32 reg_value)
-//{
-//	return (s32)(calib_v.k * reg_value + calib_v.b);
-//}
 
 void set_calib_point(u8 index, CALIB_STRUCT xdata * calib, u8 measure_reg_addr, s16 real_value)
 {
 	s32 reg_value = 0;
-	u8 i;
 
 	if(index>=MEASURE_POINTS_CNT)
 	{
@@ -225,12 +214,8 @@ void set_calib_point(u8 index, CALIB_STRUCT xdata * calib, u8 measure_reg_addr, 
 		return;
 	}
 
-	for(i=0;i<CALIB_MEAN_TIME;i++)
-	{
-		reg_value += read_measure_reg(measure_reg_addr);	//串口读一次时间很长,远低于刷新率
-	}
-	reg_value /= CALIB_MEAN_TIME;
-	
+	reg_value = read_mean_measure_reg(measure_reg_addr);
+
 	calib->x[index] = reg_value;		//reg值作为x, 计算k时分母够大
 	calib->y[index] = real_value;
 
@@ -252,15 +237,9 @@ void set_calib_point(u8 index, CALIB_STRUCT xdata * calib, u8 measure_reg_addr, 
 
 s16 measure_current_param(CALIB_STRUCT xdata * calib, u8 measure_reg_addr)
 {
-	s32 reg_value = 0;
-	u8 i;
+	s32 reg_value;
 
-	for(i=0;i<MEASURE_MEAN_TIME;i++)
-	{
-		reg_value += convert_uint24_to_int24(read_measure_reg(measure_reg_addr));
-
-	}
-	reg_value /= MEASURE_MEAN_TIME;
+	reg_value = read_mean_measure_reg(measure_reg_addr);
 //#ifdef DEBUG
 	my_printf("measure reg value%d\n",reg_value);
 //#endif
@@ -311,3 +290,28 @@ STATUS save_calib_into_app_nvr(void)
 	return save_app_nvr_data();
 }
 
+const float ADC_OFFSET =  3.3; 
+const float ADC_MV_PER_STEP = 8.2244e-004;			//mv per step
+const float B = 3950;
+const float T0 = 273+25;
+
+s16 calc_temperature(s32 reg_value)
+{
+	float v;
+	float r;
+	float t;
+
+	v = (reg_value - ADC_OFFSET) * ADC_MV_PER_STEP;		//voltage in resistor
+	r = (5/v*1000 - 11);
+	t = ((B * T0)/(log(r/10)*T0 + B)-273)*100;
+	return (s16)t;
+}
+
+s16 measure_current_t(void)
+{
+	s32 reg_value;
+	
+	reg_value = read_mean_measure_reg(MEASURE_REG_T);
+	my_printf("reg_value:%d,",reg_value);
+	return calc_temperature(-reg_value);
+}

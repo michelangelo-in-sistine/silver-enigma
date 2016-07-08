@@ -9,7 +9,7 @@ s16 measure_current_v(void);
 s16 measure_current_i(void);
 
 STATUS save_calib_into_app_nvr(void);
-
-
+s16 calc_temperature(s32 reg_value);
+s16 measure_current_t(void);
 
 

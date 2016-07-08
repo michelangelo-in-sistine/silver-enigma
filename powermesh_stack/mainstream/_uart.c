@@ -813,31 +813,31 @@ void powermesh_debug_cmd_proc(u8 xdata * ptr, u16 total_rec_bytes)
 				write_spi(addr,value);
 				proc_rec_bytes++;
 			}
-			else if(cmd=='r' && rest_rec_bytes>=1)	//0x72 读6532
-			{
-				extern s32 convert_uint24_to_int24(u32 value);
+			//else if(cmd=='r' && rest_rec_bytes>=1)	//0x72 读6532
+			//{
+			//	extern s32 convert_uint24_to_int24(u32 value);
 
-				s32 value;
-				value = convert_uint24_to_int24(read_measure_reg(*ptr++));
-				my_printf("read:%d\n",value);
-			}
-			else if(cmd=='w' && rest_rec_bytes>=4)	//0x77 写6532
-			{
-				u8 addr;
-				u32 dword = 0;
+			//	s32 value;
+			//	value = convert_uint24_to_int24(read_measure_reg(*ptr++));
+			//	my_printf("read:%d\n",value);
+			//}
+			//else if(cmd=='w' && rest_rec_bytes>=4)	//0x77 写6532
+			//{
+			//	u8 addr;
+			//	u32 dword = 0;
 
-				addr = *ptr++;
-				dword += *ptr++;
-				dword <<= 8;
-				dword += *ptr++;
-				dword <<= 8;
-				dword += *ptr++;
-				
-				write_measure_reg(addr,dword);
-				my_printf("set:%lX\n",dword);
-			}
+			//	addr = *ptr++;
+			//	dword += *ptr++;
+			//	dword <<= 8;
+			//	dword += *ptr++;
+			//	dword <<= 8;
+			//	dword += *ptr++;
+			//	
+			//	write_measure_reg(addr,dword);
+			//	my_printf("set:%lX\n",dword);
+			//}
 			
-			else if(cmd=='v' && rest_rec_bytes>=2)	//0x76		设置测量点电压
+			else if(cmd==0x70 && rest_rec_bytes>=2)	//0x70		设置测量点电压
 			{
 			
 				u8 index;
@@ -849,7 +849,7 @@ void powermesh_debug_cmd_proc(u8 xdata * ptr, u16 total_rec_bytes)
 				set_v_calib_point(index,value);
 				break;
 			}
-			else if(cmd=='i' && rest_rec_bytes>=2)	//0x69		设置测量点电流
+			else if(cmd==0x71 && rest_rec_bytes>=2)	//0x71		设置测量点电流
 			{
 				u8 index;
 				u16 value;
@@ -863,7 +863,7 @@ void powermesh_debug_cmd_proc(u8 xdata * ptr, u16 total_rec_bytes)
 			}
 
 			
-			else if(cmd=='t')	//0x74		测试读取当前电压电流
+			else if(cmd==0x72)	//0x72		测试读取当前电压电流
 			{
 				s32 v,i;
 				
@@ -872,19 +872,48 @@ void powermesh_debug_cmd_proc(u8 xdata * ptr, u16 total_rec_bytes)
 				my_printf("v:%d,i:%d\n",v,i);
 				break;
 			}
-			else if(cmd=='r')					//72
+			else if(cmd==0x73)					//73
 			{
 				my_printf("reset 6523\n");
 				reset_measure_device();			//重启6523
 				break;
 			}
+			else if(cmd==0x74 && rest_rec_bytes >= 4)
+			{
+				s16 t;
 
-			else if(cmd=='s')					//0x73
+				s32 reg_value;
+
+				reg_value = *ptr++;
+				reg_value <<= 8;
+				reg_value += *ptr++;
+				reg_value <<= 8;
+				reg_value += *ptr++;
+				reg_value <<= 8;
+				reg_value += *ptr++;
+
+				t = calc_temperature(reg_value);
+
+				my_printf("reg_value:%d,t:%d\r\n",reg_value,t);
+				break;
+			}
+			else if(cmd==0x75)
+			{
+				s16 t;
+				
+				t = measure_current_t();
+				my_printf("current t:%d\r\n",t);
+				break;
+			}
+
+			else if(cmd==0x79)					//0x73
 			{
 				save_calib_into_app_nvr();
 				my_printf("save");
 				break;
 			}
+
+			
 			
 			else if(cmd=='S' && rest_rec_bytes>=9)		//0x53: 53 + X_MODE + SCAN + SRF + AC_UPDATE + 4B Delay + PACKAGE
 			{
