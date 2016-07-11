@@ -187,6 +187,12 @@ void phy_rcv_int_svr(PHY_RCV_HANDLE pp)
 				case 0x04:
 					if(pp->plc_rcv_we & (0x10<<i))
 					{
+//{
+//	u8 temp1, temp2;
+//	temp1 = read_reg(phase,0x36);
+//	temp2 = read_reg(phase,0x37);
+//	my_printf("reg25:%bx,reg36:%bx,reg37:%bx\r\n",rcv_info,temp1,temp2);
+//}
 						rec_byte = read_reg(phase,ADR_RCV_BYTE0 + i * 4);
 						rec_parity = read_reg(phase,ADR_RCV_BYTE0 + i * 4 + 1);
 
@@ -194,6 +200,27 @@ void phy_rcv_int_svr(PHY_RCV_HANDLE pp)
 						{
 							*pt_plc_rcv_parity_err += 1;
 						}
+
+/* 测试通信被打断的情况, 设置一个模块干扰 */
+
+				if(*pt_plc_rcv_len == 1)
+				{
+					APP_SEND_STRUCT ass;
+					u8 apdu[32];
+				//
+					ass.phase = 0;
+					ass.protocol = PROTOCOL_DST;
+					mem_clr(apdu,sizeof(apdu),1);
+					ass.apdu = apdu;
+					ass.apdu_len = sizeof(apdu);
+
+					config_dst_flooding(RATE_BPSK|CHNL_CH3,0,0,0,0);
+					app_send(&ass);
+				}
+
+
+
+						
 
 #ifdef USE_RSCODEC
 						if(((pp->plc_rcv_valid & 0x03)!=0x00) && (*pt_plc_rcv_parity_err > PARITY_ERR_TOL))	//2013-10-10 利用BPSK有纠错解码的特性, 允许其不考虑接收阶段的错误字节数, 能大大提高长包的成功率
@@ -468,6 +495,22 @@ void phy_rcv_proc(PHY_RCV_HANDLE pp)
 									pp->phy_rcv_info |= PHY_FLAG_SRF;					//2016-06-08 谐波有指示,主波无指示, 仅有srf信息, 会引发接收长度为0的bug. fixed
 								}
 
+		/* 测试SCAN被DS15打断的情况, 设置一个模块只要收到scan数据包就发送ds15干扰 */
+		
+		//if(i==1)
+		//{
+		//	APP_SEND_STRUCT ass;
+		//	u8 apdu[32];
+		////
+		//	ass.phase = 0;
+		//	ass.protocol = PROTOCOL_DST;
+		//	ass.apdu = apdu;
+		//	ass.apdu_len = sizeof(apdu);
+
+		//	config_dst_flooding(RATE_DS15,0,0,0,0);
+		//	app_send(&ass);
+		//}
+
 								if(i==3)												// ch3是最后一个扫描的频率, 收到即接收完成
 								{
 									pp->phy_rcv_valid = pp->phy_rcv_info | PLC_FLAG_SCAN;
@@ -532,6 +575,10 @@ void phy_rcv_proc(PHY_RCV_HANDLE pp)
 								set_timer(pp->phy_tid,non_scan_expiring_sticks(pp->plc_rcv_valid&0x03));
 							}
 						}
+
+my_printf("i:%bx,len:%bx,plc_valid:%bx,phy_info:%bx,phy_valid:%bx\r\n",i,pp->phy_rcv_len,pp->plc_rcv_valid,pp->phy_rcv_info,pp->phy_rcv_valid); 			
+
+						
 					}
 #ifdef USE_MAC
 					else
