@@ -31,9 +31,16 @@ typedef struct
 	s32 y[MEASURE_POINTS_CNT];
 	float k;
 	float b;
-}CALIB_STRUCT;
+}LINEAR_CALIB_STRUCT;
 
-CALIB_STRUCT xdata calib_v, calib_i;
+typedef struct
+{
+	float t0;
+}EXP_CALIB_STRUCT;
+
+LINEAR_CALIB_STRUCT xdata calib_v, calib_i;
+EXP_CALIB_STRUCT xdata calib_t;
+
 
 
 /*******************************************************************************
@@ -170,6 +177,7 @@ void init_measure(void)
 		calib_v.b = get_app_nvr_data_u_b();
 		calib_i.k = get_app_nvr_data_i_k();
 		calib_i.b = get_app_nvr_data_i_b();
+		calib_t.t0 = get_app_nvr_data_t0();
 	}
 	else
 	{
@@ -204,7 +212,7 @@ s32 read_mean_measure_reg(u8 measure_reg_addr)
 }
 
 
-void set_calib_point(u8 index, CALIB_STRUCT xdata * calib, u8 measure_reg_addr, s16 real_value)
+void set_linear_calib_point(u8 index, LINEAR_CALIB_STRUCT xdata * calib, u8 measure_reg_addr, s16 real_value)
 {
 	s32 reg_value = 0;
 
@@ -235,7 +243,7 @@ void set_calib_point(u8 index, CALIB_STRUCT xdata * calib, u8 measure_reg_addr, 
 	}
 }
 
-s16 measure_current_param(CALIB_STRUCT xdata * calib, u8 measure_reg_addr)
+s16 measure_current_param(LINEAR_CALIB_STRUCT xdata * calib, u8 measure_reg_addr)
 {
 	s32 reg_value;
 
@@ -250,12 +258,12 @@ s16 measure_current_param(CALIB_STRUCT xdata * calib, u8 measure_reg_addr)
 
 void set_v_calib_point(u8 index, s16 v_real_value)
 {
-	set_calib_point(index, &calib_v, MEASURE_REG_V, v_real_value);
+	set_linear_calib_point(index, &calib_v, MEASURE_REG_V, v_real_value);
 }
 
 void set_i_calib_point(u8 index, s16 i_real_value)
 {
-	set_calib_point(index, &calib_i, MEASURE_REG_I, i_real_value);
+	set_linear_calib_point(index, &calib_i, MEASURE_REG_I, i_real_value);
 }
 
 
@@ -287,23 +295,60 @@ STATUS save_calib_into_app_nvr(void)
 {
 	set_app_nvr_data_u(calib_v.k, calib_v.b);
 	set_app_nvr_data_i(calib_i.k, calib_i.b);
+	set_app_nvr_data_t0(calib_t.t0);
 	return save_app_nvr_data();
 }
 
-const float ADC_OFFSET =  3.3; 
+const float ADC_OFFSET =  -3.3; 
 const float ADC_MV_PER_STEP = 8.2244e-004;			//mv per step
 const float B = 3950;
-const float T0 = 273+25;
 
-s16 calc_temperature(s32 reg_value)
+float calc_exp_index(s32 reg_value)
 {
 	float v;
 	float r;
+	float index;
+
+	v = (reg_value - ADC_OFFSET) * ADC_MV_PER_STEP;			//voltage in theromal resistor, unit: mv
+	r = (5/v*1000 - 11);									//resistor value, unit: k ohm
+	index = log(r/10)/B;
+	
+	return index;
+}
+
+float set_exp_calib_point(s16 t_real_value, s32 reg_value)
+{
+	float index;
+	float t;
+	
+	index = calc_exp_index(reg_value);
+	t = (float)(t_real_value)/100 + 273.15;
+	t = t/(1-index*t);
+
+	calib_t.t0 = t;
+
+	return t;
+}
+
+void set_t_calib_point(s16 t_real_value)
+{
+	s32 reg_value;
+	float t;
+	
+	reg_value = read_mean_measure_reg(MEASURE_REG_T);
+	t = set_exp_calib_point(t_real_value, -reg_value);
+
+	calib_t.t0 = t;
+	return;
+}
+
+s16 calc_temperature(s32 reg_value)
+{
+	float index;
 	float t;
 
-	v = (reg_value - ADC_OFFSET) * ADC_MV_PER_STEP;		//voltage in resistor
-	r = (5/v*1000 - 11);
-	t = ((B * T0)/(log(r/10)*T0 + B)-273)*100;
+	index = calc_exp_index(reg_value);
+	t = (calib_t.t0/(1+index*calib_t.t0) - 273.15)*100;
 	return (s16)t;
 }
 
@@ -315,3 +360,4 @@ s16 measure_current_t(void)
 	my_printf("reg_value:%d,",reg_value);
 	return calc_temperature(-reg_value);
 }
+

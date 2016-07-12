@@ -9,6 +9,9 @@ s16 measure_current_v(void);
 s16 measure_current_i(void);
 
 STATUS save_calib_into_app_nvr(void);
+
+float set_exp_calib_point(s16 t_real_value, s32 reg_value);
+void set_t_calib_point(s16 t_real_value);
 s16 calc_temperature(s32 reg_value);
 s16 measure_current_t(void);
 

@@ -165,7 +165,7 @@ void init_powermesh(void)
 		my_printf("\r\nRS_DECODE_LEN:%bu, RS_ENCODE_LEN:%bu\r\n",CFG_RS_DECODE_LENGTH,CFG_RS_ENCODE_LENGTH);
 #endif
 		get_timing_version(&ver);
-		my_printf("LAST COMPILED AT %s, %s\r\n",compile_date,compile_time);
+		my_printf("\r\nLAST COMPILED AT %s, %s\r\n",compile_date,compile_time);
 
 		#ifndef RELEASE
 		my_printf("DISTURB CODE:%bx\r\n",CRC_DISTURB);

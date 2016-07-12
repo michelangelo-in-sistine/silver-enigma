@@ -897,7 +897,19 @@ void powermesh_debug_cmd_proc(u8 xdata * ptr, u16 total_rec_bytes)
 				my_printf("reg_value:%d,t:%d\r\n",reg_value,t);
 				break;
 			}
-			else if(cmd==0x75)
+
+			else if(cmd == 0x75 && rest_rec_bytes >= 2)					// calib t
+			{
+				s16 t;
+
+				t = read_int(ptr,rest_rec_bytes);
+			
+				my_printf("t=%d\r\n",t);
+				set_t_calib_point(t);
+				break;
+			}
+
+			else if(cmd==0x76)						//0x76 calc t
 			{
 				s16 t;
 				
@@ -905,6 +917,40 @@ void powermesh_debug_cmd_proc(u8 xdata * ptr, u16 total_rec_bytes)
 				my_printf("current t:%d\r\n",t);
 				break;
 			}
+
+			else if(cmd == 0x77 && rest_rec_bytes >= 3)					// calib t
+			{
+				s16 t;
+				s32 reg_value;
+				float t0;
+
+				t = read_int(ptr,2);
+				reg_value = read_int(ptr+2,rest_rec_bytes-2);
+			
+				my_printf("t=%d,reg=%d\r\n",t,reg_value);
+				t0 = set_exp_calib_point(t,reg_value);
+
+				my_printf("calc t0 = %d.%d\r\n",(s16)(t0),((s16)(t0*100) % 100));
+				
+				break;
+			}
+
+			else if(cmd==0x78 && rest_rec_bytes >= 2)					// 
+			{
+				s32 reg_value;
+				s16 t;
+				
+				reg_value = read_int(ptr,rest_rec_bytes);
+				my_printf("reg_value:%d\r\n",reg_value);
+
+				t = calc_temperature(reg_value);
+				my_printf("reg_value:%d,t:%d\r\n",reg_value,t);
+				break;
+			}
+
+			
+
+			
 
 			else if(cmd==0x79)					//0x73
 			{

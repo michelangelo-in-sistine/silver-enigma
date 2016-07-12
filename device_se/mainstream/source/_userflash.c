@@ -28,8 +28,8 @@ typedef enum {FAILED = 0, PASSED = !FAILED} TestStatus;
  #define FLASH_USER_START_ADDR   ((uint32_t)0x08009000)   /* Start @ of user Flash area */
  #define FLASH_USER_END_ADDR     ((uint32_t)0x08040000)   /* End @ of user Flash area */
 #else
- #define FLASH_PAGE_SIZE         ((uint32_t)0x00000400)   /* FLASH Page Size */
- #define FLASH_USER_START_ADDR   ((uint32_t)0x0800fc00)   /* Start @ of user Flash area */
+ #define FLASH_PAGE_SIZE         ((uint32_t)0x00000100)   /* FLASH Page Size */
+ #define FLASH_USER_START_ADDR   ((uint32_t)0x0800ff00)   /* Start @ of user Flash area */	//改变无意义, 0x400是一个最小的擦写单位
  #define FLASH_USER_END_ADDR     ((uint32_t)0x08010000)   /* End @ of user Flash area */
 #endif /* STM32F072 */
 
@@ -39,6 +39,7 @@ uint32_t EraseCounter = 0x00, Address = 0x00;
 __IO FLASH_Status FLASHStatus = FLASH_COMPLETE;
 __IO TestStatus MemoryProgramStatus = PASSED;
 
+//const char user_data[300] __attribute__((at(0x8000ff00)));
 
 /* Private function prototypes -----------------------------------------------*/
 /* Private functions ---------------------------------------------------------*/
