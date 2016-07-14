@@ -202,27 +202,6 @@ void phy_rcv_int_svr(PHY_RCV_HANDLE pp)
 							*pt_plc_rcv_parity_err += 1;
 						}
 
-/* 测试通信被打断的情况, 设置一个模块干扰 */
-
-//				if(*pt_plc_rcv_len == 1)
-//				{
-//					APP_SEND_STRUCT ass;
-//					u8 apdu[32];
-//				//
-//					ass.phase = 0;
-//					ass.protocol = PROTOCOL_DST;
-//					mem_clr(apdu,sizeof(apdu),1);
-//					ass.apdu = apdu;
-//					ass.apdu_len = sizeof(apdu);
-
-//					config_dst_flooding(RATE_DS15|CHNL_CH3,0,0,0,0);
-//					app_send(&ass);
-//				}
-
-
-
-						
-
 #ifdef USE_RSCODEC
 						if(((pp->plc_rcv_valid & 0x03)!=0x00) && (*pt_plc_rcv_parity_err > PARITY_ERR_TOL))	//2013-10-10 利用BPSK有纠错解码的特性, 允许其不考虑接收阶段的错误字节数, 能大大提高长包的成功率
 #else
