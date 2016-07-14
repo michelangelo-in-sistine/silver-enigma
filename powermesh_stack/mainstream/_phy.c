@@ -179,6 +179,7 @@ void phy_rcv_int_svr(PHY_RCV_HANDLE pp)
 #ifdef FIX_AGC_WHEN_RCV
 						write_reg(phase,ADR_AGC_CWORD,(read_reg(phase,ADR_AGC_CWORD)|0x80));
 #endif
+						pp->plc_rcv_time_stamp[i] = get_global_clock16();
 					}
 #ifdef USE_MAC
 					_phy_channel_busy_indication[phase] |= (0x10<<i);
@@ -203,20 +204,20 @@ void phy_rcv_int_svr(PHY_RCV_HANDLE pp)
 
 /* 测试通信被打断的情况, 设置一个模块干扰 */
 
-				if(*pt_plc_rcv_len == 1)
-				{
-					APP_SEND_STRUCT ass;
-					u8 apdu[32];
-				//
-					ass.phase = 0;
-					ass.protocol = PROTOCOL_DST;
-					mem_clr(apdu,sizeof(apdu),1);
-					ass.apdu = apdu;
-					ass.apdu_len = sizeof(apdu);
+//				if(*pt_plc_rcv_len == 1)
+//				{
+//					APP_SEND_STRUCT ass;
+//					u8 apdu[32];
+//				//
+//					ass.phase = 0;
+//					ass.protocol = PROTOCOL_DST;
+//					mem_clr(apdu,sizeof(apdu),1);
+//					ass.apdu = apdu;
+//					ass.apdu_len = sizeof(apdu);
 
-					config_dst_flooding(RATE_BPSK|CHNL_CH3,0,0,0,0);
-					app_send(&ass);
-				}
+//					config_dst_flooding(RATE_DS15|CHNL_CH3,0,0,0,0);
+//					app_send(&ass);
+//				}
 
 
 
@@ -480,6 +481,31 @@ void phy_rcv_proc(PHY_RCV_HANDLE pp)
 
 					if(check_ok == CORRECT)
 					{
+						/* 2016-07-14 根据rcv_info判断速率有错误的问题 改成根据时间判断速率, 修正plc_rcv_valid指示的速率 */ 
+						/* 判断如果时间毫秒数小于8 * data_len为BPSK(正常约2倍), 否则小于64倍为DS15(正常约30倍), 其余为DS63
+						*/
+						{
+							u16 time_diff;
+							u16 temp;
+
+							time_diff = get_global_clock16() - pp->plc_rcv_time_stamp[i];
+							temp = (u16)(*pt_plc_rcv_len)<<3;
+							
+							pp->plc_rcv_valid &= 0xFC;
+							if(time_diff > temp)
+							{
+								temp <<= 3;
+								if(time_diff < temp)
+								{
+									pp->plc_rcv_valid |= RATE_DS15;
+								}
+								else
+								{
+									pp->plc_rcv_valid |= RATE_DS63;
+								}
+							}
+						}
+						
 						if(phpr & PLC_FLAG_SCAN)										// SCAN只关注标注的CH, 谐波忽略
 						{
 							if(current_ch & supposed_ch)								//如果当前处理的通路在帧头指示的通路之中
