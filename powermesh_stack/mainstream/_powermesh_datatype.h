@@ -157,6 +157,8 @@ typedef struct
 	u8	phy_rcv_protect;
 	BASE_LEN_TYPE	phy_rcv_pkg_len[4];
 	TIMER_ID_TYPE phy_tid;
+
+	u16 plc_rcv_time_stamp[4];	
 }xdata PHY_RCV_STRUCT;
 
 typedef PHY_SEND_STRUCT xdata * PHY_SEND_HANDLE;

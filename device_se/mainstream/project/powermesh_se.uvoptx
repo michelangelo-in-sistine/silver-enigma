@@ -184,7 +184,11 @@
         <SetRegEntry>
           <Number>0</Number>
           <Key>JL2CM3</Key>
+<<<<<<< HEAD
           <Name>-U4294967295 -O78 -S1 -ZTIFSpeedSel10000 -A0 -C0 -JU1 -JI127.0.0.1 -JP0 -RST0 -N00("ARM CoreSight SW-DP") -D00(0BB11477) -L00(0) -TO18 -TC10000000 -TP21 -TDS8007 -TDT0 -TDC1F -TIEFFFFFFFF -TIP8 -TB1 -TFE0 -FO31 -FD20000000 -FC1000 -FN1 -FF0STM32F0xx_64.FLM -FS08000000 -FL010000 -FP0($$Device:STM32F030C8$Flash\STM32F0xx_64.FLM)</Name>
+=======
+          <Name>-U4294967295 -O78 -S1 -ZTIFSpeedSel10000 -A0 -C0 -JU1 -JI127.0.0.1 -JP0 -RST0 -TO18 -TC10000000 -TP21 -TDS8007 -TDT0 -TDC1F -TIEFFFFFFFF -TIP8 -TB1 -TFE0 -FO15 -FD20000000 -FC1000 -FN1 -FF0STM32F0xx_64.FLM -FS08000000 -FL010000 -FP0($$Device:STM32F030C8$Flash\STM32F0xx_64.FLM)</Name>
+>>>>>>> master
         </SetRegEntry>
         <SetRegEntry>
           <Number>0</Number>
@@ -198,7 +202,11 @@
           <Type>0</Type>
           <LineNumber>324</LineNumber>
           <EnabledFlag>1</EnabledFlag>
+<<<<<<< HEAD
           <Address>134276072</Address>
+=======
+          <Address>134250646</Address>
+>>>>>>> master
           <ByteObject>0</ByteObject>
           <HtxType>0</HtxType>
           <ManyObjects>0</ManyObjects>

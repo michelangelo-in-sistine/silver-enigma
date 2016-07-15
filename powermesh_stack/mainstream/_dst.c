@@ -300,7 +300,6 @@ void dst_rcv_proc(DLL_RCV_HANDLE pd)
 			if(conf & BIT_DST_CONF_SEARCH)
 			{
 #if DEVICE_TYPE!=DEVICE_CC														//CC不能被Search搜索
-
 				DST_SEND_STRUCT xdata dst;
 
 				if(((forward&BIT_DST_FORW_MID)&&(check_meter_id(nsdu))) || 
@@ -366,7 +365,18 @@ void dst_rcv_proc(DLL_RCV_HANDLE pd)
 				{
 					pdst->phase = pd->phase;
 					mem_cpy(pdst->src_uid,&pd->lpdu[SEC_LPDU_SRC],6);
+#if DEVICE_TYPE == DEVICE_CC || DEVICE_TYPE == DEVICE_CV
+					/* CC 不受dst影响, 单独设置一次, MT为了节省代码空间, 直接从dst_config_obj读取 */
+					{
+						PHY_RCV_HANDLE pp;
+	
+						pp = GET_PHY_HANDLE(pd);
+						pdst->comm_mode = (pp->phy_rcv_supposed_ch) | ((pp->phy_rcv_valid)&0x0B);
+					}
+#else
 					pdst->comm_mode = dst_config_obj.comm_mode;
+					
+#endif
 					pdst->uplink = (conf & BIT_DST_CONF_UPLINK)?1:0;
 					pdst->apdu = nsdu+1;					//去掉MPDU Head
 					pdst->apdu_len = pd->lpdu_len-(LEN_LPCI+LEN_DST_NPCI+1);

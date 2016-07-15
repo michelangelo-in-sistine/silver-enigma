@@ -23,6 +23,7 @@ int main(void)
 		apdu_len = app_rcv(&ars);
 		if(apdu_len)
 		{
+			my_printf("rcv comm_mode:%x\r\n",ars.comm_mode);
 			acp_rcv_proc(&ars);
 		}
 	}

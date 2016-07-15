@@ -179,6 +179,7 @@ void phy_rcv_int_svr(PHY_RCV_HANDLE pp)
 #ifdef FIX_AGC_WHEN_RCV
 						write_reg(phase,ADR_AGC_CWORD,(read_reg(phase,ADR_AGC_CWORD)|0x80));
 #endif
+						pp->plc_rcv_time_stamp[i] = get_global_clock16();
 					}
 #ifdef USE_MAC
 					_phy_channel_busy_indication[phase] |= (0x10<<i);
@@ -187,6 +188,12 @@ void phy_rcv_int_svr(PHY_RCV_HANDLE pp)
 				case 0x04:
 					if(pp->plc_rcv_we & (0x10<<i))
 					{
+//{
+//	u8 temp1, temp2;
+//	temp1 = read_reg(phase,0x36);
+//	temp2 = read_reg(phase,0x37);
+//	my_printf("reg25:%bx,reg36:%bx,reg37:%bx\r\n",rcv_info,temp1,temp2);
+//}
 						rec_byte = read_reg(phase,ADR_RCV_BYTE0 + i * 4);
 						rec_parity = read_reg(phase,ADR_RCV_BYTE0 + i * 4 + 1);
 
@@ -453,6 +460,31 @@ void phy_rcv_proc(PHY_RCV_HANDLE pp)
 
 					if(check_ok == CORRECT)
 					{
+						/* 2016-07-14 根据rcv_info判断速率有错误的问题 改成根据时间判断速率, 修正plc_rcv_valid指示的速率 */ 
+						/* 判断如果时间毫秒数小于8 * data_len为BPSK(正常约2倍), 否则小于64倍为DS15(正常约30倍), 其余为DS63
+						*/
+						{
+							u16 time_diff;
+							u16 temp;
+
+							time_diff = get_global_clock16() - pp->plc_rcv_time_stamp[i];
+							temp = (u16)(*pt_plc_rcv_len)<<3;
+							
+							pp->plc_rcv_valid &= 0xFC;
+							if(time_diff > temp)
+							{
+								temp <<= 3;
+								if(time_diff < temp)
+								{
+									pp->plc_rcv_valid |= RATE_DS15;
+								}
+								else
+								{
+									pp->plc_rcv_valid |= RATE_DS63;
+								}
+							}
+						}
+						
 						if(phpr & PLC_FLAG_SCAN)										// SCAN只关注标注的CH, 谐波忽略
 						{
 							if(current_ch & supposed_ch)								//如果当前处理的通路在帧头指示的通路之中
@@ -467,6 +499,22 @@ void phy_rcv_proc(PHY_RCV_HANDLE pp)
 								{
 									pp->phy_rcv_info |= PHY_FLAG_SRF;					//2016-06-08 谐波有指示,主波无指示, 仅有srf信息, 会引发接收长度为0的bug. fixed
 								}
+
+		/* 测试SCAN被DS15打断的情况, 设置一个模块只要收到scan数据包就发送ds15干扰 */
+		
+		//if(i==1)
+		//{
+		//	APP_SEND_STRUCT ass;
+		//	u8 apdu[32];
+		////
+		//	ass.phase = 0;
+		//	ass.protocol = PROTOCOL_DST;
+		//	ass.apdu = apdu;
+		//	ass.apdu_len = sizeof(apdu);
+
+		//	config_dst_flooding(RATE_DS15,0,0,0,0);
+		//	app_send(&ass);
+		//}
 
 								if(i==3)												// ch3是最后一个扫描的频率, 收到即接收完成
 								{
@@ -532,6 +580,10 @@ void phy_rcv_proc(PHY_RCV_HANDLE pp)
 								set_timer(pp->phy_tid,non_scan_expiring_sticks(pp->plc_rcv_valid&0x03));
 							}
 						}
+
+my_printf("i:%bx,len:%bx,plc_valid:%bx,phy_info:%bx,phy_valid:%bx\r\n",i,pp->phy_rcv_len,pp->plc_rcv_valid,pp->phy_rcv_info,pp->phy_rcv_valid); 			
+
+						
 					}
 #ifdef USE_MAC
 					else
