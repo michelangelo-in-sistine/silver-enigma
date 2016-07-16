@@ -241,6 +241,8 @@ typedef EBC_ACQUIRE_STRUCT xdata * EBC_ACQUIRE_HANDLE;
 typedef unsigned char PROTOCOL_TYPE;
 #define PROTOCOL_PSR 0x60
 #define PROTOCOL_DST 0x10
+#define PROTOCOL_PTP 0xF0
+
 
 typedef enum
 {
@@ -475,6 +477,21 @@ typedef struct
 	u8 stamps;
 	BASE_LEN_TYPE ppdu_len;		// 本次数据包长
 }DST_CONFIG_STRUCT;		// CC用这个数据体配置发送模式, MT用这个数据体设置回复模式
+
+typedef struct
+{
+	u8 comm_mode;
+}PTP_CONFIG_STRUCT;
+
+typedef struct
+{
+	u8 phase;
+	u8 ptp_rcv_indication;
+	u8 src_uid[6];
+	u8 comm_mode;
+	u8 * apdu;
+	BASE_LEN_TYPE apdu_len;
+}PTP_STACK_RCV_STRUCT, *PTP_STACK_RCV_HANDLE;
 
 typedef struct
 {

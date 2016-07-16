@@ -128,10 +128,16 @@ void init_powermesh(void)
 
 	init_phy();
 	init_dll();
+
 #ifdef USE_PSR
 	init_psr();
 #endif
+#ifdef USE_DST
 	init_dst();
+#endif
+#ifdef USE_PTP
+	init_ptp();
+#endif
 	init_mgnt_app();
 
 #if NODE_TYPE==NODE_MASTER

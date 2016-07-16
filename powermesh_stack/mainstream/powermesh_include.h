@@ -16,6 +16,7 @@
 #include "_ebc.h"
 #include "_psr.h"
 #include "_dst.h"
+#include "_ptp.h"
 #include "_mgnt_app.h"
 #include "_uart.h"
 #include "_app.h"
@@ -26,8 +27,4 @@
 #include "_network_management.h"
 #include "_network_optimization.h"
 #include "_mac.h"
-#endif
-
-#if DEVICE_TYPE==DEVICE_CC
-#include "_powerdrop_datasave.h"
 #endif

@@ -122,6 +122,10 @@ SEND_ID_TYPE app_send(APP_SEND_HANDLE pas)
 //			}
 			break;
 		}
+		case(PROTOCOL_PTP):
+		{
+			break;
+		}
 		default:
 		{
 #ifdef DEBUG_APP
@@ -173,6 +177,8 @@ SEND_ID_TYPE app_send(APP_SEND_HANDLE pas)
 			break;
 		}
 #endif
+
+#ifdef USE_DST
 		case(PROTOCOL_DST):
 		{
 			DST_SEND_HANDLE dst;
@@ -187,6 +193,30 @@ SEND_ID_TYPE app_send(APP_SEND_HANDLE pas)
 			sid = dst_send(dst);
 			break;
 		}
+#endif
+
+#ifdef USE_PTP
+		case(PROTOCOL_PTP):
+		{
+			DLL_SEND_HANDLE dss;
+
+			dss = (DLL_SEND_HANDLE)(send_struct);
+			*ptw++ = CST_PTP_PROTOCOL;
+			mem_cpy(ptw,pas->apdu,pas->apdu_len);
+
+			dss->phase = pas->phase;
+			dss->target_uid_handle = pas->target_uid;
+			dss->lsdu = send_buffer;
+			dss->lsdu_len = pas->apdu_len + LEN_PTP_NPCI+LEN_MPCI;
+
+			dss->prop = (get_ptp_comm_mode() & CHNL_SCAN)?BIT_DLL_SEND_PROP_SCAN:0;
+			dss->xmode = get_ptp_comm_mode() & 0xF3;
+			dss->delay = DLL_SEND_DELAY_STICKS;
+			sid = dll_send(dss);
+
+			break;
+		}
+#endif
 	}
 	
 	OSMemPut(MINOR,send_struct);
@@ -235,7 +265,6 @@ BASE_LEN_TYPE app_rcv(APP_RCV_HANDLE pa)
 
 	for(i=0;i<CFG_PHASE_CNT;i++)
 	{
-		DST_STACK_RCV_HANDLE pdst;
 #ifdef USE_PSR
 		APP_STACK_RCV_HANDLE papp;
 	
@@ -256,7 +285,7 @@ BASE_LEN_TYPE app_rcv(APP_RCV_HANDLE pa)
 			pa->apdu_len = papp->apdu_len;
 			mem_clr(pa->src_uid,6,1);
 			pa->comm_mode = 0;
-#if APP_RCV_SS_SNR == 1
+#if (defined APP_RCV_SS_SNR) && (APP_RCV_SS_SNR == 1)
 			pa->ss = get_phy_ss(GET_PHY_HANDLE(papp));
 			pa->snr = get_phy_snr(GET_PHY_HANDLE(papp));
 #endif
@@ -264,31 +293,70 @@ BASE_LEN_TYPE app_rcv(APP_RCV_HANDLE pa)
 			return pa->apdu_len;
 		}
 #endif
-		pdst = &_dst_rcv_obj[i];
-		if(pdst->dst_rcv_indication)
-		{
-			pa->phase = pdst->phase;
-			pa->protocol = PROTOCOL_DST;
-			pa->pipe_id = 0;
-			if(pa->apdu)
-			{
-				if(pdst->apdu_len>CFG_APDU_MAX_LENGTH)			//防止写越界
-				{
-					pdst->apdu_len = CFG_APDU_MAX_LENGTH;
-				}
-				mem_cpy(pa->apdu,pdst->apdu,pdst->apdu_len);
-			}
 
-			pa->apdu_len = pdst->apdu_len;
-			mem_cpy(pa->src_uid,pdst->src_uid,6);
-			pa->comm_mode = pdst->comm_mode;
-#if APP_RCV_SS_SNR == 1
-			pa->ss = get_phy_ss(GET_PHY_HANDLE(pdst));
-			pa->snr = get_phy_snr(GET_PHY_HANDLE(pdst));
+#ifdef USE_DST
+		{
+			DST_STACK_RCV_HANDLE pdst;
+
+			pdst = &_dst_rcv_obj[i];
+			if(pdst->dst_rcv_indication)
+			{
+				pa->phase = pdst->phase;
+				pa->protocol = PROTOCOL_DST;
+				pa->pipe_id = 0;
+				if(pa->apdu)
+				{
+					if(pdst->apdu_len>CFG_APDU_MAX_LENGTH)			//防止写越界
+					{
+						pdst->apdu_len = CFG_APDU_MAX_LENGTH;
+					}
+					mem_cpy(pa->apdu,pdst->apdu,pdst->apdu_len);
+				}
+
+				pa->apdu_len = pdst->apdu_len;
+				mem_cpy(pa->src_uid,pdst->src_uid,6);
+				pa->comm_mode = pdst->comm_mode;
+#if (defined APP_RCV_SS_SNR) && (APP_RCV_SS_SNR == 1)
+				pa->ss = get_phy_ss(GET_PHY_HANDLE(pdst));
+				pa->snr = get_phy_snr(GET_PHY_HANDLE(pdst));
 #endif
-			dst_rcv_resume(pdst);
-			return pa->apdu_len;
+				dst_rcv_resume(pdst);
+				return pa->apdu_len;
+			}
 		}
+#endif
+
+#ifdef USE_PTP
+		{
+			PTP_STACK_RCV_HANDLE pptp;
+			
+			pptp = &_ptp_rcv_obj[i];
+			if(pptp->ptp_rcv_indication)
+			{
+				pa->phase = pptp->phase;
+				pa->protocol = PROTOCOL_PTP;
+				pa->pipe_id = 0;
+				if(pa->apdu)
+				{
+					if(pptp->apdu_len>CFG_APDU_MAX_LENGTH)			//防止写越界
+					{
+						pptp->apdu_len = CFG_APDU_MAX_LENGTH;
+					}
+					mem_cpy(pa->apdu,pptp->apdu,pptp->apdu_len);
+				}
+				pa->apdu_len = pptp->apdu_len;
+				mem_cpy(pa->src_uid,pptp->src_uid,6);
+				pa->comm_mode = pptp->comm_mode;
+#if (defined APP_RCV_SS_SNR) && (APP_RCV_SS_SNR == 1)
+				pa->ss = get_phy_ss(GET_PHY_HANDLE(pptp));
+				pa->snr = get_phy_snr(GET_PHY_HANDLE(pptp));
+#endif
+				ptp_rcv_resume(pptp);
+				return pa->apdu_len;
+			}
+		}
+
+#endif
 	}
 	return 0;
 }
@@ -692,7 +760,7 @@ void mgnt_app_rcv_proc(APP_STACK_RCV_HANDLE papp)
 	}
 }
 #endif
-#if APP_RCV_SS_SNR == 1
+#if (defined APP_RCV_SS_SNR) && (APP_RCV_SS_SNR == 1)
 /*******************************************************************************
 * Function Name  : get_phy_ss
 * Description    : 获得底层接收的信号强度, 获得的是四个频率接收的信号强度中最大的值
@@ -768,11 +836,13 @@ STATUS app_transaction(APP_SEND_HANDLE pas, APP_RCV_HANDLE pv, BASE_LEN_TYPE asd
 		max_retry = CFG_MAX_PSR_TRANSACTION_TRY;
 
 	}
+#ifdef USE_DST
 	else if(pas->protocol == PROTOCOL_DST)
 	{
 		wait_sticks = dst_transaction_sticks(pas->apdu_len, asdu_uplink_len, app_delay);
 		max_retry = CFG_MAX_DST_TRANSACTION_TRY;
 	}
+#endif
 	else
 	{
 		my_printf("error protocol\r\n");

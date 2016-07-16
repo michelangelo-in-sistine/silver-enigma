@@ -1641,7 +1641,7 @@ u8 phy_acps_compare2(PHY_RCV_STRUCT * phy)
 }
 
 
-
+#ifdef USE_DST
 /*******************************************************************************
 * Function Name  : acps_diag
 * Description    : 使用DST判断模块相位差, 原理是指定节点, 发一个无意义的DST转发包, 源端监听对方发出的转发包, 判断彼此相位差
@@ -1733,6 +1733,7 @@ RESULT acps_diag(u8 phase, UID_HANDLE target_uid_handle, u8 diag_rate)
 	OSMemPut(SUPERIOR, lsdu);
 	return result;
 }
+#endif
 
 #if BRING_USER_DATA==1
 /*******************************************************************************

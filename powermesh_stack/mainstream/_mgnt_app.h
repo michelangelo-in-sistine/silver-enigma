@@ -36,7 +36,7 @@ MGNT_RCV_HANDLE mgnt_rcv(void);
 void mgnt_proc(MGNT_RCV_HANDLE pm);
 void mgnt_rcv_resume(MGNT_RCV_HANDLE pm) reentrant;
 
-#if APP_RCV_SS_SNR == 1
+#if (defined APP_RCV_SS_SNR) && (APP_RCV_SS_SNR == 1)
 s8 get_phy_ss(PHY_RCV_HANDLE pp);
 s8 get_phy_snr(PHY_RCV_HANDLE pp);
 #endif

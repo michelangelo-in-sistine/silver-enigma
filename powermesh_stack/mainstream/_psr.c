@@ -69,43 +69,59 @@ BOOL is_pipe_source(u16 pipe_id);
 void nw_rcv_proc(PSR_RCV_HANDLE pn)
 {
 	DLL_RCV_HANDLE pd;
-	DST_STACK_RCV_HANDLE pdst;
-	
-	pdst = &_dst_rcv_obj[pn->phase];
 
-#ifdef USE_PSR
-	if((!pn->psr_rcv_valid) && (!pdst->dst_rcv_indication))
-#else
-	if(!pdst->dst_rcv_indication)
-#endif
+	pd = GET_DLL_HANDLE(pn);
+	if(pd->dll_rcv_valid && !(pd->dll_rcv_valid & BIT_DLL_SRF))
 	{
-		pd = GET_DLL_HANDLE(pn);
-		if(pd->dll_rcv_valid && !(pd->dll_rcv_valid & BIT_DLL_SRF))
+		if(!(pd->lpdu[SEC_LPDU_DLCT] & BIT_DLCT_DIAG))
 		{
-			if(!(pd->lpdu[SEC_LPDU_DLCT] & BIT_DLCT_DIAG))
+			switch(pd->lpdu[SEC_LPDU_PSR_ID]&0xF0)
 			{
-				switch(pd->lpdu[SEC_LPDU_PSR_ID]&0xF0)
-				{
 #ifdef USE_PSR
-					case(CST_PSR_PROTOCOL):
+				case(CST_PSR_PROTOCOL):
+				{
+					if(!pn->psr_rcv_valid)
 					{
 						psr_rcv_proc(pn);
-						break;
 					}
+					break;
+				}
 #endif
-					case(CST_DST_PROTOCOL):
+
+#ifdef USE_DST
+				case(CST_DST_PROTOCOL):
+				{
+					DST_STACK_RCV_HANDLE pdst;
+					pdst = &_dst_rcv_obj[pn->phase];
+					if(!pdst->dst_rcv_indication)
 					{
 						dst_rcv_proc(pd);
-						break;
 					}
-					default:
-					{
-#ifdef DEBUG_PSR
-						my_printf("UNKNOWN NW PROTOCOL!\r\n");
-						print_phy_rcv(GET_PHY_HANDLE(pn));
+					break;
+				}
 #endif
-						dll_rcv_resume(pd);
+
+#ifdef USE_PTP
+				case(CST_PTP_PROTOCOL):
+				{
+					PTP_STACK_RCV_HANDLE pptp;
+
+					pptp = &_ptp_rcv_obj[pn->phase];
+					if(!pptp->ptp_rcv_indication)
+					{
+						ptp_rcv_proc(pd);
 					}
+					break;
+				}
+#endif
+
+				default:
+				{
+#ifdef DEBUG_DISP_INFO
+					my_printf("UNKNOWN NW PROTOCOL!\r\n");
+					print_phy_rcv(GET_PHY_HANDLE(pn));
+#endif
+					dll_rcv_resume(pd);
 				}
 			}
 		}
@@ -124,7 +140,9 @@ void init_psr(void)
 {
 	init_psr_record_db();
 	mem_clr(&_psr_rcv_obj,sizeof(PSR_RCV_STRUCT),CFG_PHASE_CNT);
+#ifdef USE_DST
 	mem_clr(&_dst_rcv_obj,sizeof(DST_STACK_RCV_STRUCT),CFG_PHASE_CNT);
+#endif
 	mem_clr(_psr_index,sizeof(_psr_index),1);
 
 #if NODE_TYPE==NODE_MASTER

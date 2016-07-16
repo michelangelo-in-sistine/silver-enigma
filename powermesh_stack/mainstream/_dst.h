@@ -28,7 +28,7 @@
 #ifdef DEBUG_DST
 extern u8 xdata debug_dst_fixed_window;
 extern u8 xdata debug_dst_fixed_jumps;
-
+extern DST_CONFIG_STRUCT dst_config_obj;
 #endif
 
 /* Exported functions ------------------------------------------------------- */

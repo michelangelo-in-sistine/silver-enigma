@@ -46,6 +46,8 @@ u32 dst_flooding_search_sticks(void);
 u32 dst_transaction_sticks(BASE_LEN_TYPE asdu_downlink_len, BASE_LEN_TYPE asdu_uplink_len, u16 resp_delay);
 u32 app_dst_expiring_sticks(BASE_LEN_TYPE asdu_downlink_len, BASE_LEN_TYPE asdu_uplink_len, u16 resp_delay);
 
+u32 ptp_transmission_sticks(BASE_LEN_TYPE apdu_len);
+u32 atp_transaction_sticks(BASE_LEN_TYPE asdu_downlink_len, BASE_LEN_TYPE asdu_uplink_len, u16 resp_delay);
 
 
 #endif

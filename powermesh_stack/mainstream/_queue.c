@@ -654,6 +654,34 @@ void send_queue_proc()
 	
 }
 
+/*******************************************************************************
+* Function Name  : get_send_status()
+* Description    : 查询发送状态, 不改变发送状态
+* Input          : None
+* Output         : None
+* Return         : None
+*******************************************************************************/
+SEND_STATUS get_send_status(SEND_ID_TYPE sid)
+{
+	return _phy_send_queue[sid].status;
+}
+
+
+/*******************************************************************************
+* Function Name  : set_queue_delay()
+* Description    : 重新设置queue的delay时间, 调用者保证sid有效
+* Input          : None
+* Output         : None
+* Return         : None
+*******************************************************************************/
+void set_queue_delay(SEND_ID_TYPE sid, u32 delay)
+{
+	ENTER_CRITICAL();
+	_phy_send_queue[sid].delay = delay;
+my_printf("queue:%bu,set delay:%u\r\n",sid,delay);
+	EXIT_CRITICAL();
+}
+
 #ifdef USE_MAC
 /*******************************************************************************
 * Function Name  : is_queue_pending()
@@ -817,17 +845,7 @@ u16 get_queue_nav_value(SEND_ID_TYPE sid)
 	return _phy_send_queue[sid].nav_value;
 }
 
-/*******************************************************************************
-* Function Name  : get_send_status()
-* Description    : 查询发送状态, 不改变发送状态
-* Input          : None
-* Output         : None
-* Return         : None
-*******************************************************************************/
-SEND_STATUS get_send_status(SEND_ID_TYPE sid)
-{
-	return _phy_send_queue[sid].status;
-}
+
 
 /*******************************************************************************
 * Function Name  : calc_queue_sticks()
@@ -841,22 +859,10 @@ u32 calc_queue_sticks(SEND_ID_TYPE sid)
 	return phy_trans_sticks(_phy_send_queue[sid].ppdu_len, _phy_send_queue[sid].xmode & 0x03, _phy_send_queue[sid].prop & BIT_PHY_SEND_PROP_SCAN);
 }
 
-/*******************************************************************************
-* Function Name  : set_queue_delay()
-* Description    : 重新设置queue的delay时间, 调用者保证sid有效
-* Input          : None
-* Output         : None
-* Return         : None
-*******************************************************************************/
-void set_queue_delay(SEND_ID_TYPE sid, u32 delay)
-{
-	ENTER_CRITICAL();
-	_phy_send_queue[sid].delay = delay;
-my_printf("queue:%bu,set delay:%u\r\n",sid,delay);
-	EXIT_CRITICAL();
-}
 
 
 #endif
+
+
 /******************* (C) COPYRIGHT 2016 *****END OF FILE****/
 

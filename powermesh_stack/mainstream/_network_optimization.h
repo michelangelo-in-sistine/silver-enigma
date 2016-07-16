@@ -33,7 +33,7 @@ STATUS optimize_path_link(u8 phase, ARRAY_HANDLE script_buffer, u8 script_length
 STATUS flooding_search(u8 phase, ARRAY_HANDLE target_xid, u8 is_target_mid, u8 rate, u8 max_jumps, u8 max_window_index, u8 acps_constrained, ARRAY_HANDLE script_buffer, u8 * script_length);
 
 STATUS get_path_script_from_dst_search_result(ARRAY_HANDLE nsdu, BASE_LEN_TYPE nsdu_len,ARRAY_HANDLE script_buffer, u8 * script_length);
-STATUS rebuild_pipe(u16 pipe_id, u8 config);
+STATUS rebuild_pipe_by_dst(u16 pipe_id, u8 config);
 u16 dst_find(u8 phase, u8 * target_xid, u8 find_mid);
 void powermesh_optimizing_proc(void);
 void powermesh_optimizing_disconnect_proc(u16 disconnect_usage);

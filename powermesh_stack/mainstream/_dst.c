@@ -12,7 +12,7 @@
 * CONTENT OF SUCH FIRMWARE AND/OR THE USE MADE BY CUSTOMERS OF THE CODING
 * INFORMATION CONTAINED HEREIN IN CONNECTION WITH THEIR PRODUCTS.
 *******************************************************************************/
-
+#ifdef USE_DST
 /* Includes ------------------------------------------------------------------*/
 #include "powermesh_include.h"
 #include "stdlib.h"
@@ -732,4 +732,5 @@ STATUS config_dst_flooding(COMM_MODE_TYPE comm_mode, u8 max_jumps, u8 max_window
 	return OKAY;
 
 }
+#endif
 

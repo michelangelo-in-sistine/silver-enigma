@@ -292,6 +292,7 @@
 #define LEN_DST_NPCI				(6)
 
 
+
 #define BIT_DST_CONF_INDEX			0x03
 #define BIT_DST_CONF_UPLINK			0x04
 #define BIT_DST_CONF_SEARCH			0x08
@@ -304,6 +305,20 @@
 #define BIT_DST_FORW_CONFIG_LOCK	0x40		//2014-11-17 调用CONFIG_DST_FLOODING后将此标志位抬起,app_send后将此位撤销,当此标志位有效时,接收不改变dst config
 
 
+
+/***************************************************************************************************
+*                                     DST Definition
+* 2016-07-16 PTP协议, 最简单的点对点直接发送, 节省DST的代码开销, 以及传输开销
+****************************************************************************************************/
+#define CST_PTP_PROTOCOL			0xF0		//Peer To Peer 协议
+#define LEN_PTP_NPCI				(1)			
+
+#define SEC_PTP_NSDU				SEC_LSDU+LEN_PTP_NPCI
+#define SEC_PTP_APDU				SEC_LSDU+LEN_PTP_NPCI+LEN_MPCI
+
+
+#define SEC_LPDU_PTP_NSDU			SEC_PTP_NSDU - SEC_LPDU
+#define SEC_LPDU_PTP_APDU			SEC_PTP_APDU - SEC_LPDU
 
 /***************************************************************************************************
 *                                     Mgnt Definition

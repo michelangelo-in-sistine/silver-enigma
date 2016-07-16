@@ -85,8 +85,6 @@
 #define EXCEPTION_VID_MISMATCH	0x84
 
 
-extern DST_CONFIG_STRUCT xdata dst_config_obj;
-
 /* private variables ---------------------------------------------------------*/
 u16 xdata _self_domain; 
 u16 xdata _self_vid;
@@ -101,7 +99,6 @@ u8 _comm_mode = CHNL_CH3;
 
 /* Private Functions Prototype ---------------------------------------*/
 u8 wsp_cmd_proc(ARRAY_HANDLE body, u8 body_len, ARRAY_HANDLE return_buffer);
-SEND_ID_TYPE app_direct_send(APP_SEND_HANDLE ass);
 STATUS app_call(UID_HANDLE target_uid, ARRAY_HANDLE apdu, u8 apdu_len, ARRAY_HANDLE return_buffer, u8 return_len);
 u8 get_acp_index(u8 phase);
 STATUS acp_call_by_uid(UID_HANDLE target_uid, ARRAY_HANDLE cmd_body, u8 cmd_body_len, u8* return_buffer, u8 return_cmd_body_len);
@@ -167,7 +164,7 @@ u32 calc_mc_response_pending_sticks(APP_RCV_HANDLE pt_app_rcv, u16 app_len, u16 
 		if(mc_index)
 		{
 			ppdu_len = app_len + LEN_PPCI + LEN_LPCI + LEN_DST_NPCI + LEN_MPCI + 10 + 1; //IPTP MC App overhead is 11 bytes (including CS).
-			sticks = phy_trans_sticks(ppdu_len,dst_config_obj.comm_mode & 0x03,dst_config_obj.comm_mode & CHNL_SCAN);
+			sticks = phy_trans_sticks(ppdu_len,get_ptp_comm_mode() & 0x03,get_ptp_comm_mode() & CHNL_SCAN);
 			sticks += APP_MC_MARGIN_STICKS;
 			sticks = sticks * mc_index;
 			sticks += APP_MC_MARGIN_STICKS + APP_MC_INITIAL_STICKS;	//for mc_index >0, plus an aditional delay to cancel out packet preparation timing expense
@@ -754,7 +751,7 @@ SEND_ID_TYPE acp_send(ACP_SEND_HANDLE ptr_acp)
 		ass.phase = 0;
 		ass.apdu = apdu;
 		ass.apdu_len = apdu_len;
-		ass.protocol = PROTOCOL_DST;
+		ass.protocol = PROTOCOL_PTP;
 		if(ptr_acp->target_uid)
 		{
 			mem_cpy(ass.target_uid, ptr_acp->target_uid, 6);
@@ -764,8 +761,7 @@ SEND_ID_TYPE acp_send(ACP_SEND_HANDLE ptr_acp)
 			mem_clr(ass.target_uid, sizeof(ass.target_uid), 1);	//if in acp_send_struct, uid is NULL, it is an broadcast frame
 		}
 		
-		config_dst_flooding(_comm_mode,0,0,0,0);
-		sid = app_direct_send(&ass);
+		sid = app_send(&ass);
 		OSMemPut(SUPERIOR,apdu);
 	}
 
@@ -850,7 +846,7 @@ STATUS acp_transaction(ACP_SEND_HANDLE acp)
 		if(apdu_rcv)
 		{
 			app_rcv_obj.apdu = apdu_rcv;
-			time_out = dst_flooding_sticks(apdu_rcv_len);
+			time_out = ptp_transmission_sticks(apdu_rcv_len);
 			tran_id = (_acp_index[0] - 1) & BIT_ACP_ACPR_TRAN;
 			wsp_command = acp->acp_body[0];
 			acp->actual_wsp_res_bytes = 0;
@@ -1128,13 +1124,12 @@ STATUS app_call(UID_HANDLE target_uid, ARRAY_HANDLE apdu, u8 apdu_len, ARRAY_HAN
 
 
 	ass.phase = 0;
-	ass.protocol = PROTOCOL_DST;
+	ass.protocol = PROTOCOL_PTP;
 	mem_cpy(ass.target_uid, target_uid, 6);
 	ass.apdu = apdu;
 	ass.apdu_len = apdu_len;
 
-	config_dst_flooding(_comm_mode,0,0,0,0);
-	sid = app_direct_send(&ass);
+	sid = app_send(&ass);
 
 	if(sid==INVALID_RESOURCE_ID)
 	{
@@ -1151,7 +1146,7 @@ STATUS app_call(UID_HANDLE target_uid, ARRAY_HANDLE apdu, u8 apdu_len, ARRAY_HAN
 		else
 		{
 			wait_until_send_over(sid);
-			time_out = dst_transaction_sticks(apdu_len, return_len, 1000);
+			time_out = atp_transaction_sticks(apdu_len, return_len, 1000);
 			set_timer(tid,time_out);
 
 			ars.apdu = return_buffer;
@@ -1162,7 +1157,7 @@ STATUS app_call(UID_HANDLE target_uid, ARRAY_HANDLE apdu, u8 apdu_len, ARRAY_HAN
 				apdu_len = app_rcv(&ars);
 				if(apdu_len)
 				{
-					if(ars.protocol == PROTOCOL_DST)
+					if(ars.protocol == PROTOCOL_PTP)
 					{
 						if(check_cs(return_buffer, apdu_len) && (check_uid(0,target_uid) || mem_cmp(target_uid,ars.src_uid,6)))
 						{
@@ -1184,54 +1179,54 @@ my_printf("\r\n");
 }
 
 
-/*******************************************************************************
-* Function Name  : app_direct_send()
-* Description    : 借用dst协议的形式, 实现点对点通信, 
-					dll层给具体的uid作为目的地址, dst禁止洪泛转发和acps等
-					调用之前需要调用方指定使用DST协议, 并正常调用config_dst_flooding
-* Input          : None
-* Output         : None
-* Return         : None
-*******************************************************************************/
-SEND_ID_TYPE app_direct_send(APP_SEND_HANDLE ass)
-{
-	DLL_SEND_STRUCT dss;
-	SEND_ID_TYPE sid = INVALID_RESOURCE_ID;
-	ARRAY_HANDLE lsdu = NULL;
+///*******************************************************************************
+//* Function Name  : app_direct_send()
+//* Description    : 借用dst协议的形式, 实现点对点通信, 
+//					dll层给具体的uid作为目的地址, dst禁止洪泛转发和acps等
+//					调用之前需要调用方指定使用DST协议, 并正常调用config_dst_flooding
+//* Input          : None
+//* Output         : None
+//* Return         : None
+//*******************************************************************************/
+//SEND_ID_TYPE app_direct_send(APP_SEND_HANDLE ass)
+//{
+//	DLL_SEND_STRUCT dss;
+//	SEND_ID_TYPE sid = INVALID_RESOURCE_ID;
+//	ARRAY_HANDLE lsdu = NULL;
 
-	if(ass->protocol == PROTOCOL_DST)
-	{
-		lsdu = OSMemGet(SUPERIOR);
-		if(!lsdu)
-		{
-			return INVALID_RESOURCE_ID;
-		}
+//	if(ass->protocol == PROTOCOL_DST)
+//	{
+//		lsdu = OSMemGet(SUPERIOR);
+//		if(!lsdu)
+//		{
+//			return INVALID_RESOURCE_ID;
+//		}
 
-		mem_clr((u8*)(&dss),sizeof(DLL_SEND_STRUCT),1);
+//		mem_clr((u8*)(&dss),sizeof(DLL_SEND_STRUCT),1);
 
-		dss.phase = ass->phase;
-		dss.target_uid_handle = ass->target_uid;
+//		dss.phase = ass->phase;
+//		dss.target_uid_handle = ass->target_uid;
 
-		mem_cpy(lsdu+LEN_DST_NPCI+LEN_MPCI, ass->apdu, ass->apdu_len);	//直接在原apdu上操作有风险
+//		mem_cpy(lsdu+LEN_DST_NPCI+LEN_MPCI, ass->apdu, ass->apdu_len);	//直接在原apdu上操作有风险
 
-		dss.lsdu = lsdu;
-		dss.lsdu_len = ass->apdu_len + LEN_DST_NPCI+LEN_MPCI;
-		
-		dss.lsdu[0] = CST_DST_PROTOCOL | get_dst_index(dss.phase);		//dst head[0]: conf
-		dss.lsdu[1] = 0;												//dst head[1]: jump
-		dss.lsdu[2] = 0;												//dst head[2]: forward
-		dss.lsdu[3] = 0;												//dst head[3]: acps
-		dss.lsdu[4] = 0;												//dst head[4]: build_id
-		dss.lsdu[5] = 0;												//dst head[5]: timing_stamp
-		dss.lsdu[6] = 0;												//mpdu head
-		dss.prop |= (dst_config_obj.comm_mode & CHNL_SCAN)?BIT_DLL_SEND_PROP_SCAN:0;
-		dss.xmode = dst_config_obj.comm_mode & 0xF3;
-		dss.delay = 0;
-		sid = dll_send(&dss);
+//		dss.lsdu = lsdu;
+//		dss.lsdu_len = ass->apdu_len + LEN_DST_NPCI+LEN_MPCI;
+//		
+//		dss.lsdu[0] = CST_DST_PROTOCOL | get_dst_index(dss.phase);		//dst head[0]: conf
+//		dss.lsdu[1] = 0;												//dst head[1]: jump
+//		dss.lsdu[2] = 0;												//dst head[2]: forward
+//		dss.lsdu[3] = 0;												//dst head[3]: acps
+//		dss.lsdu[4] = 0;												//dst head[4]: build_id
+//		dss.lsdu[5] = 0;												//dst head[5]: timing_stamp
+//		dss.lsdu[6] = 0;												//mpdu head
+//		dss.prop |= (dst_config_obj.comm_mode & CHNL_SCAN)?BIT_DLL_SEND_PROP_SCAN:0;
+//		dss.xmode = dst_config_obj.comm_mode & 0xF3;
+//		dss.delay = 0;
+//		sid = dll_send(&dss);
 
-		OSMemPut(SUPERIOR,lsdu);
-	}
-	return sid;
-}
+//		OSMemPut(SUPERIOR,lsdu);
+//	}
+//	return sid;
+//}
 
 #endif

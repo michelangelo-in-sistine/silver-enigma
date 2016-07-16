@@ -96,10 +96,10 @@ void timer_int_svr(void)
 	if((u8)(_global_clock)==0)
 	{
 //		led_running_flash();
-#if PLC_CONTROL_MODE == SPI_MODE
-		if(spi_read((_global_clock%CFG_PHASE_CNT),0xFF)!=0xFF)		// 2013-10-30 check if 6810 resetted, 尽管低8位总是0, 但16位取余的结果还是以0,1,2往返重复的
+#if PLC_CONTROL_MODE == DEVICE_MODE
+		if(read_spi(0xFF)!=0xFF)		// 2013-10-30 check if 6810 resetted, 尽管低8位总是0, 但16位取余的结果还是以0,1,2往返重复的
 		{
-			my_printf("phase %bu 6810 reset: %bu\n",(_global_clock%CFG_PHASE_CNT),(spi_read((_global_clock%CFG_PHASE_CNT),0xFF)));
+			my_printf("6810 reset: %bu\n", read_spi(0xFF));
 			init_bl6810_plc();
 		}
 #endif

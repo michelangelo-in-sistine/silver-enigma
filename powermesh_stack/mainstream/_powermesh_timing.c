@@ -21,8 +21,6 @@
 //#include "general.h"
 //#include "hardware.h"
 
-extern DST_CONFIG_STRUCT xdata dst_config_obj;
-
 /* Private define ------------------------------------------------------------*/
 /* Private typedef -----------------------------------------------------------*/
 /* Private macro -------------------------------------------------------------*/
@@ -474,6 +472,7 @@ u32 psr_patrol_sticks(PIPE_REF pipe_ref)
 	return (timing + PSR_MARGIN_STICKS);
 }
 
+#ifdef USE_DST
 /*******************************************************************************
 * Function Name  : u32 dst_flooding_sticks(BASE_LEN_TYPE apdu_len)
 * Description    : dst 洪泛广播下行转发的时间, 从启动发送开始计算
@@ -595,9 +594,57 @@ u32 app_dst_expiring_sticks(BASE_LEN_TYPE asdu_downlink_len, BASE_LEN_TYPE asdu_
 
 	return total_sticks;
 }
+#endif
 
+#ifdef USE_PTP
+/*******************************************************************************
+* Function Name  : u32 ptp_transmission_sticks(BASE_LEN_TYPE apdu_len)
+* Description    : ptp 广播的时间
+* Input          : None
+* Output         : None
+* Return         : None
+*******************************************************************************/
+u32 ptp_transmission_sticks(BASE_LEN_TYPE apdu_len)
+{
+	BASE_LEN_TYPE ppdu_len;
+	u32 sticks;
 
+	ppdu_len = apdu_len + LEN_TOTAL_OVERHEAD_BEYOND_LSDU + LEN_PTP_NPCI + LEN_MPCI;
+	
+	/* 发送时间 */
+	sticks = phy_trans_sticks(ppdu_len, get_ptp_comm_mode() & 0x03, get_ptp_comm_mode()& CHNL_SCAN);
+	sticks += PSR_MARGIN_STICKS;
 
+	return sticks;
+}
+
+/*******************************************************************************
+* Function Name  : u32 atp_transaction_sticks
+* Description    : 
+* Input          : None
+* Output         : None
+* Return         : None
+*******************************************************************************/
+u32 atp_transaction_sticks(BASE_LEN_TYPE asdu_downlink_len, BASE_LEN_TYPE asdu_uplink_len, u16 resp_delay)
+{
+	u32 sticks,total_sticks;
+	BASE_LEN_TYPE down_ppdu_len, up_ppdu_len;
+
+	total_sticks = 0;
+	down_ppdu_len = LEN_TOTAL_OVERHEAD_BEYOND_LSDU + LEN_PTP_NPCI + LEN_MPCI + asdu_downlink_len;
+	up_ppdu_len = LEN_TOTAL_OVERHEAD_BEYOND_LSDU + LEN_PTP_NPCI + LEN_MPCI + asdu_uplink_len;
+
+	/* 发送时间 */
+	sticks = phy_trans_sticks(down_ppdu_len, get_ptp_comm_mode()& 0x03, get_ptp_comm_mode() & CHNL_SCAN);
+	total_sticks += sticks;
+
+	/* 回复时间 */
+	sticks = phy_trans_sticks(up_ppdu_len, get_ptp_comm_mode() & 0x03, get_ptp_comm_mode() & CHNL_SCAN);
+	total_sticks += sticks;
+
+	return total_sticks + PSR_MARGIN_STICKS + resp_delay;
+}
+#endif
 
 #endif
 

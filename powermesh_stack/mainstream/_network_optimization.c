@@ -33,7 +33,6 @@
 /* Extern variables ---------------------------------------------------------*/
 extern NODE_HANDLE network_tree[];
 extern LINK_STRUCT new_nodes_info_buffer[];
-extern DST_CONFIG_STRUCT dst_config_obj;
 extern u8 psr_explore_new_node_uid_buffer[];
 
 
@@ -716,6 +715,187 @@ STATUS optimize_path_link(u8 phase, ARRAY_HANDLE script_buffer, u8 script_length
 //	return status;
 //}
 
+
+
+
+
+/*******************************************************************************
+* Function Name  : test_pipe_connectivity
+* Description    : pipe测试连通性, 以连续ping 2次成功为准
+* Input          : 
+* Output         : 
+* Return         : 
+*******************************************************************************/
+STATUS test_pipe_connectivity(u16 pipe_id)
+{
+	u8 i;
+	u8 return_buffer[64];
+	STATUS status;
+
+	for(i=0;i<2;i++)
+	{
+		status = mgnt_ping(pipe_id, return_buffer);
+		if(!status)
+		{
+			break;
+		}
+		SET_BREAK_THROUGH("quit test_pipe_connectivity()\r\n");
+	}
+
+	return status;
+}
+
+#ifdef USE_DST
+/*******************************************************************************
+* Function Name  : rebuild_path
+* Description    : 当确定原有路径已失效时, 重新搜索新路径, 解决第III类问题
+*					策略是首先在原相位以BPSK模式重新搜索
+*					窗口以当前相位上节点数定, 速率BPSK & 窗口数32 & 不约束相位 & 深度与PIPE一致
+*					第一次搜索失败则深度+1重新搜索;
+*					第二次搜索失败则深度+1重新搜索;
+*					第三次搜索失败则换相位重新搜索;
+*					第四次搜索失败则再换相位重新搜索;
+*					一旦搜索成功, 首先确定相位, 如果级别为1级则直接点对点判定. 如果级别大于1用该PIPE广播获得节点, 根据节点的相位判断该节点相位
+*					如果该节点相位不对, 则换
+* Author		 : Lv Haifeng
+* Date			 : 2014-10-13
+* Input          : 
+* Output         : 
+* Return         : 
+*******************************************************************************/
+STATUS rebuild_pipe_by_dst(u16 pipe_id, u8 config)
+{
+	PIPE_REF pipe_ref;
+	u8 target_uid[6];
+	u8 script_buffer[CFG_PIPE_STAGE_CNT * 8];
+	u8 script_length;
+	u8 phase;
+	u8 jumps;
+	u8 rate;
+	u8 window;
+	STATUS status;
+
+#ifdef DEBUG_INDICATOR
+	my_printf("rebuild pipe %x\r\n",pipe_id);
+#endif
+
+	pipe_ref = inquire_pipe_mnpl_db(pipe_id);
+	if(!pipe_ref)
+	{
+#ifdef DEBUG_INDICATOR
+		my_printf("Try to rebuild a pipe (%x) not existed.\r\n",pipe_id);
+#endif
+		return FAIL;
+	}
+
+	phase = get_pipe_phase(pipe_id);
+	acquire_target_uid_of_pipe(pipe_id, target_uid);
+
+
+
+	/* 最大重建级别可以与原pipe级别相同, 也可以加1 */
+	if(config & REBUILD_PATH_CONFIG_LONGER_JUMPS)
+	{
+		jumps = inquire_pipe_stages(pipe_id) + 1;
+	}
+	else
+	{
+		jumps = inquire_pipe_stages(pipe_id);
+	}
+#ifdef DEBUG_INDICATOR
+	my_printf("dst jump:%bu",jumps);
+#endif
+
+	/* 使用的搜索速率由路径上的最慢路径速率决定 */
+	{
+		u8 i;
+		u8 max_rate = 0;
+		for(i=0;i<pipe_ref->pipe_stages;i++)
+		{
+			u8 xmode;
+			u8 rmode;
+			u8 temp;
+
+			temp = pipe_ref->xmode_rmode[i];
+			xmode = decode_xmode(temp>>4);
+			rmode = decode_xmode(temp&0x0F);
+			if(max_rate<(xmode&0x0F))
+			{
+				max_rate = (xmode&0x0F);
+			}
+
+			if(max_rate<(rmode&0x0F))
+			{
+				max_rate = (rmode&0x0F);
+			}
+			
+		}
+
+		rate = max_rate;
+		if((config & REBUILD_PATH_CONFIG_SLOWER_RATE) && (max_rate<RATE_DS63))
+		{
+			rate = max_rate + 1;
+		}
+	}
+#ifdef DEBUG_INDICATOR
+		my_printf("dst rate:%bu\r\n",rate);
+#endif
+
+	window = dst_config_obj.forward_prop & BIT_DST_FORW_WINDOW;
+#ifdef DEBUG_INDICATOR
+	my_printf("dst window:%bu\r\n",window);
+#endif	
+	status = flooding_search(phase, target_uid, 0, rate, jumps, window, 1, script_buffer, &script_length);
+
+	/* if search failed, seach the node in other phase */
+#if CFG_PHASE_CNT>1
+	if(!status && (config & REBUILD_PATH_CONFIG_TRY_OTHER_PHASE))
+	{
+		u8 i;
+		
+		if(CFG_PHASE_CNT>1)
+		{
+			for(i=0;i<CFG_PHASE_CNT-1;i++)
+			{
+				if(phase>=(CFG_PHASE_CNT-1))
+				{
+					phase = 0;
+				}
+				else
+				{
+					phase++;
+				}
+	#ifdef DEBUG_INDICATOR
+				my_printf("try phase %bd\r\n",phase);
+	#endif
+				status = flooding_search(phase, target_uid, 0, rate, jumps, dst_config_obj.forward_prop & BIT_DST_FORW_WINDOW, 0, script_buffer, &script_length);
+				if(status)
+				{
+					break;
+				}
+			}
+		}
+	}
+#endif
+	/*  */
+	if(status)
+	{
+		status = optimize_path_link(phase, script_buffer, script_length);
+	}
+
+	if(status)
+	{
+		status = psr_setup(phase, pipe_id, script_buffer, script_length);
+	}
+
+	if(status && (config & REBUILD_PATH_CONFIG_SYNC_TOPOLOGY))
+	{
+		status = sync_path_script_to_topology(phase, script_buffer, script_length);
+	}
+
+	return status;
+}
+
 /*******************************************************************************
 * Function Name  : dst_find_xid
 * Description    : 用dst flooding search方式搜索节点, 支持表号搜索,
@@ -905,185 +1085,6 @@ u16 dst_find_xid(ARRAY_HANDLE target_xid, BOOL is_meter_id)
 #endif
 	}
 	return pipe_id;
-}
-
-
-/*******************************************************************************
-* Function Name  : rebuild_path
-* Description    : 当确定原有路径已失效时, 重新搜索新路径, 解决第III类问题
-*					策略是首先在原相位以BPSK模式重新搜索
-*					窗口以当前相位上节点数定, 速率BPSK & 窗口数32 & 不约束相位 & 深度与PIPE一致
-*					第一次搜索失败则深度+1重新搜索;
-*					第二次搜索失败则深度+1重新搜索;
-*					第三次搜索失败则换相位重新搜索;
-*					第四次搜索失败则再换相位重新搜索;
-*					一旦搜索成功, 首先确定相位, 如果级别为1级则直接点对点判定. 如果级别大于1用该PIPE广播获得节点, 根据节点的相位判断该节点相位
-*					如果该节点相位不对, 则换
-* Author		 : Lv Haifeng
-* Date			 : 2014-10-13
-* Input          : 
-* Output         : 
-* Return         : 
-*******************************************************************************/
-STATUS rebuild_pipe(u16 pipe_id, u8 config)
-{
-	PIPE_REF pipe_ref;
-	u8 target_uid[6];
-	u8 script_buffer[CFG_PIPE_STAGE_CNT * 8];
-	u8 script_length;
-	u8 phase;
-	u8 jumps;
-	u8 rate;
-	u8 window;
-	STATUS status;
-
-#ifdef DEBUG_INDICATOR
-	my_printf("rebuild pipe %x\r\n",pipe_id);
-#endif
-
-	pipe_ref = inquire_pipe_mnpl_db(pipe_id);
-	if(!pipe_ref)
-	{
-#ifdef DEBUG_INDICATOR
-		my_printf("Try to rebuild a pipe (%x) not existed.\r\n",pipe_id);
-#endif
-		return FAIL;
-	}
-
-	phase = get_pipe_phase(pipe_id);
-	acquire_target_uid_of_pipe(pipe_id, target_uid);
-
-
-
-	/* 最大重建级别可以与原pipe级别相同, 也可以加1 */
-	if(config & REBUILD_PATH_CONFIG_LONGER_JUMPS)
-	{
-		jumps = inquire_pipe_stages(pipe_id) + 1;
-	}
-	else
-	{
-		jumps = inquire_pipe_stages(pipe_id);
-	}
-#ifdef DEBUG_INDICATOR
-	my_printf("dst jump:%bu",jumps);
-#endif
-
-	/* 使用的搜索速率由路径上的最慢路径速率决定 */
-	{
-		u8 i;
-		u8 max_rate = 0;
-		for(i=0;i<pipe_ref->pipe_stages;i++)
-		{
-			u8 xmode;
-			u8 rmode;
-			u8 temp;
-
-			temp = pipe_ref->xmode_rmode[i];
-			xmode = decode_xmode(temp>>4);
-			rmode = decode_xmode(temp&0x0F);
-			if(max_rate<(xmode&0x0F))
-			{
-				max_rate = (xmode&0x0F);
-			}
-
-			if(max_rate<(rmode&0x0F))
-			{
-				max_rate = (rmode&0x0F);
-			}
-			
-		}
-
-		rate = max_rate;
-		if((config & REBUILD_PATH_CONFIG_SLOWER_RATE) && (max_rate<RATE_DS63))
-		{
-			rate = max_rate + 1;
-		}
-	}
-#ifdef DEBUG_INDICATOR
-		my_printf("dst rate:%bu\r\n",rate);
-#endif
-
-
-	window = dst_config_obj.forward_prop & BIT_DST_FORW_WINDOW;
-#ifdef DEBUG_INDICATOR
-	my_printf("dst window:%bu\r\n",window);
-#endif	
-	status = flooding_search(phase, target_uid, 0, rate, jumps, window, 1, script_buffer, &script_length);
-
-	/* if search failed, seach the node in other phase */
-#if CFG_PHASE_CNT>1
-	if(!status && (config & REBUILD_PATH_CONFIG_TRY_OTHER_PHASE))
-	{
-		u8 i;
-		
-		if(CFG_PHASE_CNT>1)
-		{
-			for(i=0;i<CFG_PHASE_CNT-1;i++)
-			{
-				if(phase>=(CFG_PHASE_CNT-1))
-				{
-					phase = 0;
-				}
-				else
-				{
-					phase++;
-				}
-	#ifdef DEBUG_INDICATOR
-				my_printf("try phase %bd\r\n",phase);
-	#endif
-				status = flooding_search(phase, target_uid, 0, rate, jumps, dst_config_obj.forward_prop & BIT_DST_FORW_WINDOW, 0, script_buffer, &script_length);
-				if(status)
-				{
-					break;
-				}
-			}
-		}
-	}
-#endif
-	/*  */
-	if(status)
-	{
-		status = optimize_path_link(phase, script_buffer, script_length);
-	}
-
-	if(status)
-	{
-		status = psr_setup(phase, pipe_id, script_buffer, script_length);
-	}
-
-	if(status && (config & REBUILD_PATH_CONFIG_SYNC_TOPOLOGY))
-	{
-		status = sync_path_script_to_topology(phase, script_buffer, script_length);
-	}
-
-	return status;
-}
-
-
-/*******************************************************************************
-* Function Name  : test_pipe_connectivity
-* Description    : pipe测试连通性, 以连续ping 2次成功为准
-* Input          : 
-* Output         : 
-* Return         : 
-*******************************************************************************/
-STATUS test_pipe_connectivity(u16 pipe_id)
-{
-	u8 i;
-	u8 return_buffer[64];
-	STATUS status;
-
-	for(i=0;i<2;i++)
-	{
-		status = mgnt_ping(pipe_id, return_buffer);
-		if(!status)
-		{
-			break;
-		}
-		SET_BREAK_THROUGH("quit test_pipe_connectivity()\r\n");
-	}
-
-	return status;
 }
 
 /*******************************************************************************
@@ -1307,6 +1308,7 @@ u16 dst_find(u8 phase, u8 * target_xid, u8 find_mid)
 		return 0;
 	}
 }
+#endif
 
 /*******************************************************************************
 * Function Name  : get_path_script_from_dst_search_result

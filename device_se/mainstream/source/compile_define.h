@@ -74,8 +74,11 @@
 #define USE_ADDR_DB
 #define USE_DIAG
 #define USE_EBC
+//#define USE_MAC
+
 #define USE_PSR
-#define USE_MAC
+//#define USE_DST
+#define USE_PTP
 
 /*========================== Debug/Release Switch  ================*/
 /* Release Define ----------------------------------------*/

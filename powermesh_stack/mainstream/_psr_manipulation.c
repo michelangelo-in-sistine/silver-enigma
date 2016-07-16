@@ -1095,7 +1095,6 @@ void psr_transaction_clear_irrelevant()
 	for(i=0;i<CFG_PHASE_CNT;i++)
 	{
 		APP_STACK_RCV_HANDLE papp;
-		DST_STACK_RCV_HANDLE pdst;
 	
 		papp = &_app_rcv_obj[i];				//用指针取代数组取址,可减小代码体积
 		if(papp->app_rcv_indication)
@@ -1103,11 +1102,31 @@ void psr_transaction_clear_irrelevant()
 			app_rcv_resume(papp);
 		}
 
-		pdst = &_dst_rcv_obj[i];
-		if(pdst->dst_rcv_indication)
+#ifdef USE_DST
 		{
-			dst_rcv_resume(pdst);
+			DST_STACK_RCV_HANDLE pdst;
+			
+			pdst = &_dst_rcv_obj[i];
+			if(pdst->dst_rcv_indication)
+			{
+				dst_rcv_resume(pdst);
+			}
 		}
+#endif
+
+#ifdef USE_PTP
+		{
+			PTP_STACK_RCV_HANDLE pptp;
+			
+			pptp = &_ptp_rcv_obj[i];
+			if(pptp->ptp_rcv_indication)
+			{
+				ptp_rcv_resume(pptp);
+			}
+		}
+#endif
+
+
 	}	
 
 	/* 清除dll层的无用接收包, 释放接收机 */
@@ -1210,6 +1229,7 @@ STATUS psr_transaction(u16 pipe_id, ARRAY_HANDLE nsdu, BASE_LEN_TYPE nsdu_len, u
 	}
 
 	/*AUTOHEAL_LEVEL2 above: repair pipe.*/
+#ifdef USE_DST	
 	if(!status && (psr_err.err_code == PSR_TIMEOUT))
 	{
 		if(autoheal_level>=AUTOHEAL_LEVEL3)
@@ -1217,13 +1237,14 @@ STATUS psr_transaction(u16 pipe_id, ARRAY_HANDLE nsdu, BASE_LEN_TYPE nsdu_len, u
 #ifdef DEBUG_MANIPULATION
 			my_printf("psr_transaction(autoheal level 3+):rebuild\r\n");
 #endif
-			if(rebuild_pipe(pipe_id, 0))			//以相同跳数, 相同速率在原相位重建
+			if(rebuild_pipe_by_dst(pipe_id, 0))			//以相同跳数, 相同速率在原相位重建
 			{
 				mem_cpy(nsdu_duplicate,nsdu,nsdu_len);
 				status = psr_transaction_core(pipe_id, nsdu_duplicate, nsdu_len, expiring_sticks, return_buffer, &psr_err);
 			}
 		}
 	}
+#endif
 	
 	if(!status && psr_err.err_code != PSR_TIMEOUT)
 	{
