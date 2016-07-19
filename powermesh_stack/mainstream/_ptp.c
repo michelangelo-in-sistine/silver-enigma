@@ -81,7 +81,7 @@ u8 get_ptp_comm_mode(void)
 *******************************************************************************/
 void ptp_rcv_proc(DLL_RCV_HANDLE pd)
 {
-	if(pd->dll_rcv_indication)
+	if(pd->dll_rcv_valid)
 	{
 		PTP_STACK_RCV_HANDLE pptp;
 		PHY_RCV_HANDLE pp;
@@ -91,7 +91,7 @@ void ptp_rcv_proc(DLL_RCV_HANDLE pd)
 
 		
 		pptp->phase = pd->phase;
-		pptp->comm_mode = (pp->phy_rcv_supposed_ch) | (pp->phy_rcv_valid & 0x0D);
+		pptp->comm_mode = (pp->phy_rcv_supposed_ch) | (pp->phy_rcv_valid & 0x0B);
 
 		mem_cpy(pptp->src_uid,&pd->lpdu[SEC_LPDU_SRC],6);
 
@@ -103,6 +103,11 @@ void ptp_rcv_proc(DLL_RCV_HANDLE pd)
 
 #if NODE_TYPE == NODE_SLAVE
 		set_ptp_comm_mode(pptp->comm_mode);
+#else
+		if(!(pptp->apdu[1] & 0x10))		//FOR DEBUG!!!
+		{
+			set_ptp_comm_mode(pptp->comm_mode);
+		}
 #endif
 	}
 }

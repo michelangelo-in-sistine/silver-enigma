@@ -12,10 +12,11 @@
 * CONTENT OF SUCH FIRMWARE AND/OR THE USE MADE BY CUSTOMERS OF THE CODING
 * INFORMATION CONTAINED HEREIN IN CONNECTION WITH THEIR PRODUCTS.
 *******************************************************************************/
-#ifdef USE_DST
 /* Includes ------------------------------------------------------------------*/
 #include "powermesh_include.h"
 #include "stdlib.h"
+
+#ifdef USE_DST
 
 /* Private define ------------------------------------------------------------*/
 

@@ -121,9 +121,9 @@ void init_app(void)
 	}
 	else
 	{
-		_self_domain = 0xFFFF;
-		_self_vid = 0xFFFF;
-		_self_gid = 0xFFFF;
+		_self_domain = 0x0000;
+		_self_vid = 0x0000;
+		_self_gid = 0x0000;
 	}
 	my_printf("Domain:%X, VID:%X, GID:%X\r\n",_self_domain,_self_vid,_self_gid);
 }
@@ -174,6 +174,21 @@ u32 calc_mc_response_pending_sticks(APP_RCV_HANDLE pt_app_rcv, u16 app_len, u16 
 			sticks = APP_MC_INITIAL_STICKS;
 		}
 		
+	}
+	else if(pt_app_rcv->protocol == PROTOCOL_PTP)
+	{
+		if(mc_index)
+		{
+			ppdu_len = app_len + LEN_PPCI + LEN_LPCI + LEN_PTP_NPCI + LEN_MPCI + 10 + 1; //IPTP MC App overhead is 11 bytes (including CS).
+			sticks = phy_trans_sticks(ppdu_len,get_ptp_comm_mode() & 0x03,get_ptp_comm_mode() & CHNL_SCAN);
+			sticks += APP_MC_MARGIN_STICKS;
+			sticks = sticks * mc_index;
+			sticks += APP_MC_MARGIN_STICKS + APP_MC_INITIAL_STICKS;	//for mc_index >0, plus an aditional delay to cancel out packet preparation timing expense
+		}
+		else
+		{
+			sticks = APP_MC_INITIAL_STICKS;
+		}
 	}
 	
 	return sticks;
@@ -343,6 +358,10 @@ void acp_rcv_proc(APP_RCV_HANDLE pt_app_rcv)
 							ass.phase = pt_app_rcv->phase;
 							ass.protocol = pt_app_rcv->protocol;
 							ass.pipe_id = pt_app_rcv->pipe_id;
+							if(!ass.pipe_id)
+							{
+								mem_clr(ass.target_uid,6,1);
+							}
 							
 							ass.apdu = return_buffer;
 							ass.apdu_len = ret_len;

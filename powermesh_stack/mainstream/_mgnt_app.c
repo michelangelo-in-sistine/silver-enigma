@@ -201,7 +201,11 @@ SEND_ID_TYPE app_send(APP_SEND_HANDLE pas)
 			DLL_SEND_HANDLE dss;
 
 			dss = (DLL_SEND_HANDLE)(send_struct);
+
+			ptw--;
 			*ptw++ = CST_PTP_PROTOCOL;
+			*ptw++ = 0;
+			
 			mem_cpy(ptw,pas->apdu,pas->apdu_len);
 
 			dss->phase = pas->phase;

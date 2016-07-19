@@ -395,7 +395,7 @@ typedef struct
 	/* use in psr */
 	u16				pipe_id;
 
-	/* use in psr or dst */
+	/* use in ptp */
 	u8 				target_uid[6];	// in dst, uid is all 0xFF
 
 	/* use in all protocol */

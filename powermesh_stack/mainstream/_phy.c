@@ -500,22 +500,6 @@ void phy_rcv_proc(PHY_RCV_HANDLE pp)
 									pp->phy_rcv_info |= PHY_FLAG_SRF;					//2016-06-08 谐波有指示,主波无指示, 仅有srf信息, 会引发接收长度为0的bug. fixed
 								}
 
-		/* 测试SCAN被DS15打断的情况, 设置一个模块只要收到scan数据包就发送ds15干扰 */
-		
-		//if(i==1)
-		//{
-		//	APP_SEND_STRUCT ass;
-		//	u8 apdu[32];
-		////
-		//	ass.phase = 0;
-		//	ass.protocol = PROTOCOL_DST;
-		//	ass.apdu = apdu;
-		//	ass.apdu_len = sizeof(apdu);
-
-		//	config_dst_flooding(RATE_DS15,0,0,0,0);
-		//	app_send(&ass);
-		//}
-
 								if(i==3)												// ch3是最后一个扫描的频率, 收到即接收完成
 								{
 									pp->phy_rcv_valid = pp->phy_rcv_info | PLC_FLAG_SCAN;
@@ -580,10 +564,6 @@ void phy_rcv_proc(PHY_RCV_HANDLE pp)
 								set_timer(pp->phy_tid,non_scan_expiring_sticks(pp->plc_rcv_valid&0x03));
 							}
 						}
-
-my_printf("i:%bx,len:%bx,plc_valid:%bx,phy_info:%bx,phy_valid:%bx\r\n",i,pp->phy_rcv_len,pp->plc_rcv_valid,pp->phy_rcv_info,pp->phy_rcv_valid); 			
-
-						
 					}
 #ifdef USE_MAC
 					else

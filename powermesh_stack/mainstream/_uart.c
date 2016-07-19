@@ -1264,7 +1264,7 @@ void powermesh_debug_cmd_proc(u8 xdata * ptr, u16 total_rec_bytes)
 
 			else if(cmd==0x82 && rest_rec_bytes >= 1)
 			{
-				set_comm_mode(*ptr);
+				set_ptp_comm_mode(*ptr);
 				my_printf("new commmode %bX\r\n", *ptr);
 				ptr++;
 			}

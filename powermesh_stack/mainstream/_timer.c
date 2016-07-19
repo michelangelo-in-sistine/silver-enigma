@@ -90,20 +90,23 @@ void init_timer(void)
 void timer_int_svr(void)
 {
 	unsigned char i;
+
 	/* Global Clock */
 	_global_clock++;
+
 	/* Flash LED */
+#if PLC_CONTROL_MODE == DEVICE_MODE
 	if((u8)(_global_clock)==0)
 	{
 //		led_running_flash();
-#if PLC_CONTROL_MODE == DEVICE_MODE
 		if(read_spi(0xFF)!=0xFF)		// 2013-10-30 check if 6810 resetted, 尽管低8位总是0, 但16位取余的结果还是以0,1,2往返重复的
 		{
 			my_printf("6810 reset: %bu\n", read_spi(0xFF));
 			init_bl6810_plc();
 		}
-#endif
 	}
+#endif
+
 	/* Timer Control */
 	for(i=0;i<CFG_TIMER_CNT;i++)
 	{
