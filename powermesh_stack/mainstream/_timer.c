@@ -158,7 +158,6 @@ void timer_int_svr(void)
 * Output		 : None
 * Return		 : u16 clock value;
 *******************************************************************************/
-#ifdef DEBUG_MODE
 u16 get_global_clock16(void)
 {
 	u16 val;
@@ -169,7 +168,7 @@ u16 get_global_clock16(void)
 	
 	return val;
 }
-#endif 
+
 /*******************************************************************************
 * Function Name  : req_timer()
 * Description    : 
@@ -243,7 +242,7 @@ void reset_timer(TIMER_ID_TYPE tid)
 * Output         : None
 * Return         : 
 *******************************************************************************/
-#if DEVICE_TYPE == DEVICE_CC || DEVICE_TYPE == DEVICE_CV
+#if NODE_TYPE == NODE_MASTER
 u32 get_timer_val(TIMER_ID_TYPE tid)
 {
 	if(_timer_control[tid] == IDLE)

@@ -15,7 +15,6 @@
 
 /* Includes ------------------------------------------------------------------*/
 #include "powermesh_include.h"
-#include "_userflash.h"
 
 
 /* Private Datatype-----------------------------------------------------------*/
@@ -37,13 +36,13 @@ typedef struct
 }APP_DATA_STRUCT;
 
 /* private variables ---------------------------------------------------------*/
-APP_DATA_STRUCT _app_nvr_data;
+APP_DATA_STRUCT xdata _app_nvr_data;
 
 
 /* private functions ---------------------------------------------------------*/
 /*******************************************************************************
 * Function Name  : set_app_nvr_data_u, get_app_nvr_data_u_k, get_app_nvr_data_u_b
-* Description    : 
+* Description    : 电压校正参数的设置, 读取
 * Input          : 
 * Output         : 
 * Return         : 
@@ -66,7 +65,7 @@ float get_app_nvr_data_u_b(void)
 
 /*******************************************************************************
 * Function Name  : set_app_nvr_data_i, get_app_nvr_data_i_k, get_app_nvr_data_i_b
-* Description    : 
+* Description    : 电流校正参数的设置, 读取
 * Input          : 
 * Output         : 
 * Return         : 

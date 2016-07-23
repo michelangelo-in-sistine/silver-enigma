@@ -461,9 +461,9 @@ void mgnt_proc_psr_send_struct_common_fill(PSR_SEND_HANDLE pt_psr_send, PSR_RCV_
 *******************************************************************************/
 void mgnt_proc(MGNT_RCV_HANDLE pm)
 {
-	ARRAY_HANDLE mpdu;
-	ARRAY_HANDLE mpdu_send;
-	PSR_RCV_HANDLE pn;
+	ARRAY_HANDLE xdata mpdu;
+	ARRAY_HANDLE xdata mpdu_send;
+	PSR_RCV_HANDLE xdata pn;
 
 	u8 xdata mpdu_cmd;
 	PSR_SEND_STRUCT xdata pss;

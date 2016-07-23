@@ -38,110 +38,13 @@ typedef struct
 	float t0;
 }EXP_CALIB_STRUCT;
 
-LINEAR_CALIB_STRUCT xdata calib_v, calib_i;
+LINEAR_CALIB_STRUCT xdata calib_v;
+LINEAR_CALIB_STRUCT xdata calib_i;
 EXP_CALIB_STRUCT xdata calib_t;
 
 
-
 /*******************************************************************************
-* Function Name  : measure_com_send
-* Description    : 
-* Input          : 
-* Output         : 
-* Return         : 
-*******************************************************************************/
-void measure_com_send(u8 * head, u8 len)
-{
-	u8 i;
-	for(i=0;i<len;i++)
-	{
-		measure_com_send8(*head++);
-	}
-}
-
-/*******************************************************************************
-* Function Name  : write_bl6523
-* Description    : 
-* Input          : 
-* Output         : 
-* Return         : 
-*******************************************************************************/
-void write_measure_reg(u8 addr, u32 dword_value)
-{
-	u8 cs=0;
-	u8 buffer[6];
-	u8 i;
-	
-	buffer[0] = 0xCA;
-	buffer[1] = addr;
-	cs = addr;
-
-	for(i=2;i<5;i++)
-	{
-		buffer[i] = (u8)dword_value;
-		cs += buffer[i];
-		dword_value>>=8;
-	}
-	buffer[5] = ~cs;
-
-	measure_com_send(buffer,sizeof(buffer));
-}
-
-/*******************************************************************************
-* Function Name  : read_bl6523
-* Description    : 
-* Input          : 
-* Output         : 
-* Return         : 
-*******************************************************************************/
-u32 read_measure_reg(u8 addr)
-{
-	u8 rec_byte;
-	u8 i;
-	u8 buffer[4];
-	u32 value = 0;
-	
-	measure_com_send8(0x35);
-	measure_com_send8(addr);
-
-	for(i=0;i<4;i++)
-	{
-		if(measure_com_read8(&rec_byte))
-		{
-			buffer[i] = rec_byte;
-		}
-		else
-		{
-			my_printf("bl6532 return fail\n");
-			return 0;
-		}
-		
-	}
-
-	for(i=0;i<4;i++)
-	{
-		addr += buffer[i];
-	}
-
-	if(addr!=255)
-	{
-		my_printf("bl6532 return bytes checked fail\n");
-		uart_send_asc(buffer,4);
-		return 0;
-	}
-	else
-	{
-		for(i=2;i!=0xFF;i--)
-		{
-			value <<= 8;
-			value += buffer[i];
-		}
-		return value;
-	}
-}
-
-/*******************************************************************************
-* Function Name  : 
+* Function Name  : init_measure
 * Description    : 
 * Input          : 
 * Output         : 
@@ -151,9 +54,10 @@ void init_measure(void)
 {
 	u16 i;
 
+	init_measure_com_hardware();
 	reset_measure_device();
 
-	for(i=0;i<1000;i++)
+	for(i=0;i<100;i++)
 	{
 		MEASURE_UNPROTECT();
 		MEASURE_DISABLE_HPF();
@@ -166,13 +70,17 @@ void init_measure(void)
 		}
 		else
 		{
+#ifdef DEBUG_MODE		
 			my_printf("measure reg fail\r\n");
+#endif
 		}
 	}
 
 	if(is_app_nvr_data_valid())
 	{
+#ifdef DEBUG_MODE
 		my_printf("calib data valid\r\n");
+#endif
 		calib_v.k = get_app_nvr_data_u_k();
 		calib_v.b = get_app_nvr_data_u_b();
 		calib_i.k = get_app_nvr_data_i_k();
@@ -181,10 +89,19 @@ void init_measure(void)
 	}
 	else
 	{
+#ifdef DEBUG_MODE
 		my_printf("no valid calib data\r\n");
+#endif
 	}
 }
 
+/*******************************************************************************
+* Function Name  : convert_uint24_to_int24
+* Description    : 
+* Input          : 
+* Output         : 
+* Return         : 
+*******************************************************************************/
 s32 convert_uint24_to_int24(u32 value)
 {
 	if(value & 0xFF800000)
@@ -197,6 +114,13 @@ s32 convert_uint24_to_int24(u32 value)
 	}
 }
 
+/*******************************************************************************
+* Function Name  : read_mean_measure_reg
+* Description    : 
+* Input          : 
+* Output         : 
+* Return         : 
+*******************************************************************************/
 s32 read_mean_measure_reg(u8 measure_reg_addr)
 {
 	u8 i;
@@ -212,13 +136,22 @@ s32 read_mean_measure_reg(u8 measure_reg_addr)
 }
 
 
+/*******************************************************************************
+* Function Name  : set_linear_calib_point
+* Description    : 
+* Input          : 
+* Output         : 
+* Return         : 
+*******************************************************************************/
 void set_linear_calib_point(u8 index, LINEAR_CALIB_STRUCT xdata * calib, u8 measure_reg_addr, s16 real_value)
 {
 	s32 reg_value = 0;
 
 	if(index>=MEASURE_POINTS_CNT)
 	{
+#ifdef DEBUG_MODE
 		my_printf("calib point index error\n");
+#endif
 		return;
 	}
 
@@ -243,35 +176,65 @@ void set_linear_calib_point(u8 index, LINEAR_CALIB_STRUCT xdata * calib, u8 meas
 	}
 }
 
+/*******************************************************************************
+* Function Name  : measure_current_param
+* Description    : 
+* Input          : 
+* Output         : 
+* Return         : 
+*******************************************************************************/
 s16 measure_current_param(LINEAR_CALIB_STRUCT xdata * calib, u8 measure_reg_addr)
 {
 	s32 reg_value;
 
 	reg_value = read_mean_measure_reg(measure_reg_addr);
-//#ifdef DEBUG
+#ifdef DEBUG_MODE
 	my_printf("measure reg value%d\n",reg_value);
-//#endif
+#endif
 
 	return (s16)(calib->k * reg_value + calib->b);
 }
 
 
+/*******************************************************************************
+* Function Name  : set_v_calib_point
+* Description    : 
+* Input          : 
+* Output         : 
+* Return         : 
+*******************************************************************************/
 void set_v_calib_point(u8 index, s16 v_real_value)
 {
 	set_linear_calib_point(index, &calib_v, MEASURE_REG_V, v_real_value);
 }
 
+/*******************************************************************************
+* Function Name  : set_i_calib_point
+* Description    : 
+* Input          : 
+* Output         : 
+* Return         : 
+*******************************************************************************/
 void set_i_calib_point(u8 index, s16 i_real_value)
 {
 	set_linear_calib_point(index, &calib_i, MEASURE_REG_I, i_real_value);
 }
 
 
+/*******************************************************************************
+* Function Name  : measure_current_v
+* Description    : 
+* Input          : 
+* Output         : 
+* Return         : 
+*******************************************************************************/
 s16 measure_current_v(void)
 {
 	s16 current_v;
 
+#ifdef DEBUG_MODE
 	my_printf("calib_v, k:%d, b:%d\r\n", (u32)(calib_v.k*100000), (u32)(calib_v.b*100000));
+#endif
 	
 	current_v = measure_current_param(&calib_v, MEASURE_REG_V);
 	
@@ -285,12 +248,28 @@ s16 measure_current_v(void)
 	return current_v;
 }
 
+/*******************************************************************************
+* Function Name  : measure_current_i
+* Description    : 
+* Input          : 
+* Output         : 
+* Return         : 
+*******************************************************************************/
 s16 measure_current_i(void)
 {
+#ifdef DEBUG_MODE
 	my_printf("calib_i, k:%d, b:%d\r\n", (u32)(calib_i.k*100000), (u32)(calib_i.b*100000));
+#endif
 	return measure_current_param(&calib_i, MEASURE_REG_I);
 }
 
+/*******************************************************************************
+* Function Name  : save_calib_into_app_nvr
+* Description    : 
+* Input          : 
+* Output         : 
+* Return         : 
+*******************************************************************************/
 STATUS save_calib_into_app_nvr(void)
 {
 	set_app_nvr_data_u(calib_v.k, calib_v.b);
@@ -299,10 +278,17 @@ STATUS save_calib_into_app_nvr(void)
 	return save_app_nvr_data();
 }
 
-const float ADC_OFFSET =  -3.3; 
-const float ADC_MV_PER_STEP = 8.2244e-004;			//mv per step
-const float B = 3950;
+const float code ADC_OFFSET =  -3.3; 
+const float code ADC_MV_PER_STEP = 8.2244e-004;			//mv per step
+const float code CONST_B = 3950;
 
+/*******************************************************************************
+* Function Name  : calc_exp_index
+* Description    : 
+* Input          : 
+* Output         : 
+* Return         : 
+*******************************************************************************/
 float calc_exp_index(s32 reg_value)
 {
 	float v;
@@ -311,11 +297,19 @@ float calc_exp_index(s32 reg_value)
 
 	v = (reg_value - ADC_OFFSET) * ADC_MV_PER_STEP;			//voltage in theromal resistor, unit: mv
 	r = (5/v*1000 - 11);									//resistor value, unit: k ohm
-	index = log(r/10)/B;
+	//index = log(r/10)/CONST_B;
+	index = lg(r/10)/CONST_B;
 	
 	return index;
 }
 
+/*******************************************************************************
+* Function Name  : set_exp_calib_point
+* Description    : 
+* Input          : 
+* Output         : 
+* Return         : 
+*******************************************************************************/
 float set_exp_calib_point(s16 t_real_value, s32 reg_value)
 {
 	float index;
@@ -330,6 +324,13 @@ float set_exp_calib_point(s16 t_real_value, s32 reg_value)
 	return t;
 }
 
+/*******************************************************************************
+* Function Name  : set_t_calib_point
+* Description    : 
+* Input          : 
+* Output         : 
+* Return         : 
+*******************************************************************************/
 void set_t_calib_point(s16 t_real_value)
 {
 	s32 reg_value;
@@ -342,22 +343,38 @@ void set_t_calib_point(s16 t_real_value)
 	return;
 }
 
+/*******************************************************************************
+* Function Name  : calc_temperature
+* Description    : 
+* Input          : 
+* Output         : 
+* Return         : 
+*******************************************************************************/
 s16 calc_temperature(s32 reg_value)
 {
-	float index;
-	float t;
+	float xdata index;
+	float xdata t;
 
 	index = calc_exp_index(reg_value);
 	t = (calib_t.t0/(1+index*calib_t.t0) - 273.15)*100;
 	return (s16)t;
 }
 
+/*******************************************************************************
+* Function Name  : measure_current_t
+* Description    : 
+* Input          : 
+* Output         : 
+* Return         : 
+*******************************************************************************/
 s16 measure_current_t(void)
 {
-	s32 reg_value;
+	s32 xdata reg_value;
 	
 	reg_value = read_mean_measure_reg(MEASURE_REG_T);
+#ifdef DEBUG_MODE
 	my_printf("reg_value:%d,",reg_value);
+#endif
 	return calc_temperature(-reg_value);
 }
 

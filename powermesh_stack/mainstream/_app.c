@@ -15,7 +15,7 @@
 
 /* Includes ------------------------------------------------------------------*/
 #include "powermesh_include.h"
-#include "_userflash.h"
+
 /* Private Macro--------------------------------------------------------------*/
 #define PROTOCOL_ACP		0x18
 
@@ -91,11 +91,13 @@ u16 xdata _self_vid;
 u16 xdata _self_gid;
 
 SEND_ID_TYPE xdata ass_send_id;
-static u8 _acp_index[CFG_PHASE_CNT];
+static u8 xdata _acp_index[CFG_PHASE_CNT];
 
-#if DEVICE_TYPE==DEVICE_CV
-u8 _comm_mode = CHNL_CH3;
+#if NODE_TYPE == NODE_MASTER
+u8 xdata _comm_mode = CHNL_CH3;
 #endif
+
+const u8 code __passwd__[] = {0x95, 0x27};
 
 /* Private Functions Prototype ---------------------------------------*/
 u8 wsp_cmd_proc(ARRAY_HANDLE body, u8 body_len, ARRAY_HANDLE return_buffer);
@@ -125,7 +127,9 @@ void init_app(void)
 		_self_vid = 0x0000;
 		_self_gid = 0x0000;
 	}
+#ifdef DEBUG_MODE
 	my_printf("Domain:%X, VID:%X, GID:%X\r\n",_self_domain,_self_vid,_self_gid);
+#endif
 }
 
 
@@ -156,8 +160,8 @@ STATUS save_id_info_into_app_nvr(void)
 *******************************************************************************/
 u32 calc_mc_response_pending_sticks(APP_RCV_HANDLE pt_app_rcv, u16 app_len, u16 mc_index)
 {
-	u32 sticks = ACK_DELAY_STICKS;
-	u16 ppdu_len;
+	u32 xdata sticks = ACK_DELAY_STICKS;
+	u16 xdata ppdu_len;
 
 	if(pt_app_rcv->protocol == PROTOCOL_DST)
 	{
@@ -204,10 +208,9 @@ u32 calc_mc_response_pending_sticks(APP_RCV_HANDLE pt_app_rcv, u16 app_len, u16 
 *******************************************************************************/
 void acp_rcv_proc(APP_RCV_HANDLE pt_app_rcv)
 {
-
-	ARRAY_HANDLE apdu;
+	ARRAY_HANDLE xdata apdu;
 	u8 apdu_len;
-	ARRAY_HANDLE return_buffer;
+	ARRAY_HANDLE xdata return_buffer;
 	u8 ret_len;
 	u8 head_len;
 
@@ -229,16 +232,16 @@ void acp_rcv_proc(APP_RCV_HANDLE pt_app_rcv)
 
 		if(apdu[SEC_ACP_ACPH] == PROTOCOL_ACP)
 		{
-			u16 target_xid;
-			u16 caller_vid;
+			u16 xdata target_xid;
+			u16 xdata caller_vid;
 
 			target_xid = (apdu[SEC_ACP_VC_VIDH] << 8) + apdu[SEC_ACP_VC_VIDL];
 
 			if(((apdu[SEC_ACP_DOMH] == (u8)(_self_domain>>8)) && (apdu[SEC_ACP_DOML] == ((u8)_self_domain))) || ((apdu[SEC_ACP_DOMH] == 0) && (apdu[SEC_ACP_DOML] == 0)))
 			{
-				u8 idtp;
-				u8 req = 0;
-				BOOL id_match = FALSE;
+				u8 xdata idtp;
+				u8 xdata req = 0;
+				BOOL xdata id_match = FALSE;
 				ARRAY_HANDLE pt_body;
 				
 				idtp = (apdu[SEC_ACP_ACPR]) & BIT_ACP_ACPR_IDTP;
@@ -271,7 +274,7 @@ void acp_rcv_proc(APP_RCV_HANDLE pt_app_rcv)
 					   if only its vid is in the calling range */
 					case(EXP_ACP_ACPR_IPTP_MC):								//multiple nodes
 					{
-						u16 end_vid;
+						u16 xdata end_vid;
 
 						end_vid = (u16)(apdu[SEC_ACP_MC_ENDH] << 8) + apdu[SEC_ACP_MC_ENDL];
 						caller_vid = (u16)(apdu[SEC_ACP_MC_SELH] << 8) + apdu[SEC_ACP_MC_SELL];
@@ -307,8 +310,8 @@ void acp_rcv_proc(APP_RCV_HANDLE pt_app_rcv)
 				if(id_match)
 				{
 					APP_SEND_STRUCT xdata ass;
-					u32 mc_pending_sticks;
-					u16 mc_response_window_index;
+					u32 xdata mc_pending_sticks;
+					u16 xdata mc_response_window_index;
 
 					ret_len = wsp_cmd_proc(pt_body, apdu_len - head_len, &return_buffer[head_len]);		// 包括了cs, 无所谓了
 
@@ -328,12 +331,16 @@ void acp_rcv_proc(APP_RCV_HANDLE pt_app_rcv)
 								}
 								else
 								{
+#ifdef DEBUG_MODE
 									my_printf("error! caller_vid:%x, _self_vid:%x!\r\n",_self_vid,caller_vid);
+#endif
 								}
 							}
 						
 							mc_pending_sticks = calc_mc_response_pending_sticks(pt_app_rcv, ret_len, mc_response_window_index);
+#ifdef DEBUG_MODE
 							my_printf("mc response was adjusted into index %u, pending %u\r\n", mc_response_window_index, mc_pending_sticks);
+#endif
 						}
 
 						/* if ass_send_id is in pending status, it means mc response has been pushed in the queue, all need to do is just its */
@@ -387,8 +394,6 @@ void acp_rcv_proc(APP_RCV_HANDLE pt_app_rcv)
 * Output         : 
 * Return         : 
 *******************************************************************************/
-const u8 __passwd__[] = {0x95, 0x27};
-
 BOOL check_passwd(ARRAY_HANDLE passwd)
 {
 	const u8 * ptr = __passwd__;
@@ -413,12 +418,12 @@ BOOL check_passwd(ARRAY_HANDLE passwd)
 *******************************************************************************/
 u8 wsp_cmd_proc(ARRAY_HANDLE body, u8 body_len, ARRAY_HANDLE return_buffer)
 {
-	u8 cmd;
-	u8 ret_len = 0;
-	u8 mask;
+	u8 xdata cmd;
+	u8 xdata ret_len = 0;
+	u8 xdata mask;
 	ARRAY_HANDLE ptw;
-	s16 para;
-	u16 temp;
+	s16 xdata para;
+	u16 xdata temp;
 	BOOL update_nvr = FALSE;
 	ARRAY_HANDLE body_bkp = body;
 
@@ -547,7 +552,7 @@ u8 wsp_cmd_proc(ARRAY_HANDLE body, u8 body_len, ARRAY_HANDLE return_buffer)
 	return ret_len;
 }
 
-#if DEVICE_TYPE==DEVICE_CV
+#if NODE_TYPE == NODE_MASTER
 
 /*******************************************************************************
 * Function Name  : set_comm_mode()
@@ -571,14 +576,14 @@ void set_comm_mode(u8 comm_mode)
 *******************************************************************************/
 STATUS call_vid_for_current_parameter(UID_HANDLE target_uid, u8 mask, s16* return_parameter)
 {
-	u8 cmd_body[2];
-	u8 cmd_body_len;
+	u8 xdata cmd_body[2];
+	u8 xdata cmd_body_len;
 
-	u8 return_body[6];
+	u8 xdata return_body[6];
 	u8 i;
 	u8 cnt;
 
-	u16 parameter;
+	u16 xdata parameter;
 
 	
 	ARRAY_HANDLE ptw, ptr;
@@ -645,8 +650,8 @@ const char * exception_meaning(u8 exception_id)
 *******************************************************************************/
 STATUS acp_call_by_uid(UID_HANDLE target_uid, ARRAY_HANDLE cmd_body, u8 cmd_body_len, u8* return_buffer, u8 return_cmd_body_len)
 {
-	u8 send_apdu[100];
-	u8 rec_apdu[100];
+	u8 xdata send_apdu[100];
+	u8 xdata rec_apdu[100];
 	ARRAY_HANDLE ptw;
 	u8 send_apdu_len;
 	STATUS status;
@@ -669,7 +674,9 @@ STATUS acp_call_by_uid(UID_HANDLE target_uid, ARRAY_HANDLE cmd_body, u8 cmd_body
 	{
 		if(rec_apdu[SEC_ACP_VC_BODY] & BIT_ACP_ACMD_EXCEPT)
 		{
+#ifdef DEBUG_MODE
 			my_printf("Exception occured! ID:%bd(%s)\r\n",rec_apdu[SEC_ACP_VC_BODY]&BIT_ACP_ACMD_CMD,exception_meaning(rec_apdu[SEC_ACP_VC_BODY]&BIT_ACP_ACMD_CMD));
+#endif
 			status = FAIL;
 		}
 		else
@@ -703,7 +710,7 @@ u8 get_acp_index(u8 phase)
 *******************************************************************************/
 SEND_ID_TYPE acp_send(ACP_SEND_HANDLE ptr_acp)
 {
-	APP_SEND_STRUCT ass;
+	APP_SEND_STRUCT xdata ass;
 	ARRAY_HANDLE apdu;
 	u8 apdu_len;
 	SEND_ID_TYPE sid;
@@ -876,7 +883,9 @@ STATUS acp_transaction(ACP_SEND_HANDLE acp)
 			if(tid != INVALID_RESOURCE_ID)
 			{
 				set_timer(tid,time_out);
+#ifdef DEBUG_MODE
 				my_printf("set timeout:%d ms\r\n", time_out);
+#endif
 				while(!is_timer_over(tid))
 				{
 					/******************************************
@@ -894,7 +903,9 @@ STATUS acp_transaction(ACP_SEND_HANDLE acp)
 								u8 res_wsp_len;
 								if(apdu_rcv[wsp_command_index] & BIT_ACP_ACMD_EXCEPT)
 								{
+#ifdef DEBUG_MODE
 									my_printf("exception occurred\r\n");
+#endif
 									res_wsp_len = app_rcv_obj.apdu_len - wsp_command_index - 1;
 									acp->actual_wsp_res_bytes = res_wsp_len;
 									if(acp->resp_buffer)
@@ -921,15 +932,19 @@ STATUS acp_transaction(ACP_SEND_HANDLE acp)
 										}
 										else
 										{
+#ifdef DEBUG_MODE
 											my_printf("acp rcv is correct, but rec buffer is not enough\r\n");
+#endif
 										}
 									}
 									break;
 								}
 								else
 								{
+#ifdef DEBUG_MODE
 									my_printf("irrelative apdu was abandoned\r\n");
 									uart_send_asc(app_rcv_obj.apdu,app_rcv_obj.apdu_len);
+#endif
 								}
 							}
 						}
@@ -937,7 +952,9 @@ STATUS acp_transaction(ACP_SEND_HANDLE acp)
 				}
 				if(!status && !acp->actual_wsp_res_bytes)
 				{
+#ifdef DEBUG_MODE
 					my_printf("req time out\r\n");
+#endif
 				}
 				delete_timer(tid);
 			}
@@ -1063,7 +1080,9 @@ STATUS acp_req_mc(u16 domain_id, u16 start_vid, u16 end_vid, ARRAY_HANDLE wsp_co
 
 	if(end_vid<=start_vid)
 	{
+#ifdef DEBUG_MODE
 		my_printf("start_vid(%x) must smaller than end_vid(%x)\r\n",start_vid,end_vid);
+#endif
 		return FAIL;
 	}
 
@@ -1135,8 +1154,8 @@ STATUS set_se_node_id_by_uid(ARRAY_HANDLE target_uid, u16 domain_id, u16 vid, u1
 *******************************************************************************/
 STATUS app_call(UID_HANDLE target_uid, ARRAY_HANDLE apdu, u8 apdu_len, ARRAY_HANDLE return_buffer, u8 return_len)
 {
-	APP_SEND_STRUCT ass;
-	APP_RCV_STRUCT ars;
+	APP_SEND_STRUCT xdata ass;
+	APP_RCV_STRUCT xdata ars;
 	SEND_ID_TYPE sid = INVALID_RESOURCE_ID;
 	u32 time_out;
 	STATUS status = FAIL;
@@ -1180,9 +1199,9 @@ STATUS app_call(UID_HANDLE target_uid, ARRAY_HANDLE apdu, u8 apdu_len, ARRAY_HAN
 					{
 						if(check_cs(return_buffer, apdu_len) && (check_uid(0,target_uid) || mem_cmp(target_uid,ars.src_uid,6)))
 						{
-my_printf("got apdu: ");
-uart_send_asc(ars.apdu,apdu_len);
-my_printf("\r\n");
+//my_printf("got apdu: ");
+//uart_send_asc(ars.apdu,apdu_len);
+//my_printf("\r\n");
 
 							status = OKAY;
 							break;

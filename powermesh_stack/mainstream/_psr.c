@@ -245,7 +245,7 @@ void psr_rcv_resume(PSR_RCV_HANDLE pn) reentrant
 *******************************************************************************/
 PSR_PIPE_RECORD_HANDLE update_pipe_record_db(DLL_RCV_HANDLE pd)
 {
-	u16 pipe_id;
+	u16 xdata pipe_id;
 	u16 i;
 	PSR_PIPE_RECORD_HANDLE ppr;
 	ADDR_REF_TYPE addr_ref_uplink;
@@ -616,12 +616,12 @@ SEND_ID_TYPE psr_send(PSR_SEND_HANDLE ppss) reentrant
 *******************************************************************************/
 void psr_rcv_proc(PSR_RCV_HANDLE pn)
 {
-	u16 pipe_id;
+	u16 xdata pipe_id;
 	u8  conf;
 	PSR_PIPE_RECORD_HANDLE pipe_ref;
-	ARRAY_HANDLE nsdu;
-	PSR_SEND_HANDLE pps;
-	DLL_RCV_HANDLE pd;
+	ARRAY_HANDLE xdata nsdu;
+	PSR_SEND_HANDLE xdata pps;
+	DLL_RCV_HANDLE xdata pd;
 
 
 	/*** Req Resources ***/

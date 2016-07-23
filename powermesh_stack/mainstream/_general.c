@@ -301,10 +301,10 @@ void powermesh_main_thread_useless_resp_clear(void)
 * Return         : 
 *******************************************************************************/
 #define C10 3.321928		// log(2)(10)
-float lg(unsigned int x)
+float lg(unsigned int x) reentrant
 {	
-	float xdata y = x;	
-	unsigned char xdata pwr = 0;
+	float y = x;	
+	unsigned char pwr = 0;
 
 	while(x > 1)
 	{				
@@ -578,7 +578,7 @@ RESULT check_ack_src(ARRAY_HANDLE pt_ack_src, ARRAY_HANDLE pt_dest)
 * Output         : 
 * Return         : CORRECT/WRONG;
 *******************************************************************************/
-RESULT check_crc(ARRAY_HANDLE pt, BASE_LEN_TYPE len)
+RESULT check_crc(ARRAY_HANDLE pt, BASE_LEN_TYPE len) reentrant
 {
 	unsigned int crc;
 
@@ -871,7 +871,7 @@ BOOL is_zx_valid(u8 phase)
 }
 #endif
 
-
+#ifdef DEBUG_MODE
 /*******************************************************************************
 * Function Name  : get_timing_version()
 * Description    : 得到4字节的版本号信息, 分别代表编译的年月日时, 均为16进制BCD码
@@ -886,34 +886,35 @@ void get_timing_version(TIMING_VERSION_HANDLE ver_handle)
 	ver_handle->day = VER_DAY;
 	ver_handle->hour = VER_HOUR;
 }
+#endif
 
-/*******************************************************************************
-* Function Name  : set_meter_id()
-* Description    : 应用层调用设置表号(METER ID), 用于设置  //mt only
-* Input          : 
-* Output         : 
-* Return         : 
-*******************************************************************************/
-void set_meter_id(METER_ID_HANDLE meter_id_handle)
-{
-	u8 cs;
-	u8 i;
-	ARRAY_HANDLE ptr;
+///*******************************************************************************
+//* Function Name  : set_meter_id()
+//* Description    : 应用层调用设置表号(METER ID), 用于设置  //mt only
+//* Input          : 
+//* Output         : 
+//* Return         : 
+//*******************************************************************************/
+//void set_meter_id(METER_ID_HANDLE meter_id_handle)
+//{
+//	u8 cs;
+//	u8 i;
+//	ARRAY_HANDLE ptr;
 
-	if(meter_id_handle)
-	{
-		mem_cpy(_meter_id,meter_id_handle,6);
-		cs = 0;
-		ptr = meter_id_handle;
-		for(i=0;i<6;i++)
-		{
-			cs = cs + *(ptr++);
-		}
-		cs = ~cs;
-		
-		_meter_id[6] = cs;
-	}
-}
+//	if(meter_id_handle)
+//	{
+//		mem_cpy(_meter_id,meter_id_handle,6);
+//		cs = 0;
+//		ptr = meter_id_handle;
+//		for(i=0;i<6;i++)
+//		{
+//			cs = cs + *(ptr++);
+//		}
+//		cs = ~cs;
+//		
+//		_meter_id[6] = cs;
+//	}
+//}
 
 #if BRING_USER_DATA == 1
 /*******************************************************************************
@@ -937,40 +938,40 @@ STATUS set_user_data(ARRAY_HANDLE user_data, u8 user_data_len)
 }
 #endif
 
-/*******************************************************************************
-* Function Name  : check_meter_id()
-* Description    : 检查表号是否有效
-* Input          : 
-* Output         : 
-* Return         : 
-*******************************************************************************/
-RESULT is_meter_id_valid()
-{
-	u8 cs;
-	u8 i;
-	ARRAY_HANDLE ptr;
+///*******************************************************************************
+//* Function Name  : check_meter_id()
+//* Description    : 检查表号是否有效
+//* Input          : 
+//* Output         : 
+//* Return         : 
+//*******************************************************************************/
+//RESULT is_meter_id_valid()
+//{
+//	u8 cs;
+//	u8 i;
+//	ARRAY_HANDLE ptr;
 
-	cs = 0;
-	ptr = _meter_id;
-	for(i=0;i<6;i++)
-	{
-		cs += *(ptr++);
-	}
-	
-	return (RESULT)((~cs)==(*ptr));
-}
+//	cs = 0;
+//	ptr = _meter_id;
+//	for(i=0;i<6;i++)
+//	{
+//		cs += *(ptr++);
+//	}
+//	
+//	return (RESULT)((~cs)==(*ptr));
+//}
 
-/*******************************************************************************
-* Function Name  : check_meter_id()
-* Description    : 检查表号是否匹配
-* Input          : 
-* Output         : 
-* Return         : 
-*******************************************************************************/
-RESULT check_meter_id(METER_ID_HANDLE meter_id_handle)
-{
-	return (RESULT)(mem_cmp(_meter_id,meter_id_handle,6));
-}
+///*******************************************************************************
+//* Function Name  : check_meter_id()
+//* Description    : 检查表号是否匹配
+//* Input          : 
+//* Output         : 
+//* Return         : 
+//*******************************************************************************/
+//RESULT check_meter_id(METER_ID_HANDLE meter_id_handle)
+//{
+//	return (RESULT)(mem_cmp(_meter_id,meter_id_handle,6));
+//}
 
 #if NODE_TYPE==NODE_MASTER
 /*******************************************************************************

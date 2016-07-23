@@ -35,8 +35,8 @@ BOOL is_xmode_dsss(u8 xmode);
 RESULT check_ack_src(ARRAY_HANDLE pt_ack_src, ARRAY_HANDLE pt_dest);
 
 /* CRC, CS Calculation */
-RESULT check_crc(ARRAY_HANDLE pt, BASE_LEN_TYPE len);
-u16 calc_crc(ARRAY_HANDLE pt, BASE_LEN_TYPE len); //calc_crc in MT use Hardware, in CC use software
+RESULT check_crc(ARRAY_HANDLE pt, BASE_LEN_TYPE len) reentrant;
+u16 calc_crc(ARRAY_HANDLE pt, BASE_LEN_TYPE len) reentrant; //calc_crc in MT use Hardware, in CC use software
 u8 calc_cs(ARRAY_HANDLE pt, BASE_LEN_TYPE len) reentrant;
 RESULT check_cs(ARRAY_HANDLE pt, BASE_LEN_TYPE len);
 RESULT check_srf(ARRAY_HANDLE pt);
@@ -45,6 +45,7 @@ RESULT check_srf(ARRAY_HANDLE pt);
 /* SNR Calculation */
 s8 dbuv(u16 pos, u8 agc_value);
 s8 ebn0(u16 pos, u16 pon);
+float lg(unsigned int x) reentrant;
 
 /* Timing Related */
 u32 packet_chips(BASE_LEN_TYPE ppdu_len, u8 rate, u8 srf) reentrant;

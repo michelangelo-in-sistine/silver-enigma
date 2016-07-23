@@ -53,7 +53,7 @@ DST_CONFIG_STRUCT xdata dst_config_obj;
 u8 xdata dst_sent_conf[CFG_PHASE_CNT];					// 发出的dst帧
 u8 xdata dst_proceeded_conf[CFG_PHASE_CNT];				// 转发过的dst帧
 
-#if (DEVICE_TYPE==DEVICE_CC) || (defined DEVICE_READING_CONTROLLER) || ((DEVICE_TYPE==DEVICE_CV))
+#if (DEVICE_TYPE==DEVICE_CC) || (defined DEVICE_READING_CONTROLLER) || ((DEVICE_TYPE==DEVICE_CV) || (DEVICE_TYPE==DEVICE_SE))
 //u8 xdata dst_index[CFG_PHASE_CNT];
 u8 xdata dst_index;
 #else
@@ -281,7 +281,7 @@ void dst_rcv_proc(DLL_RCV_HANDLE pd)
 			dst_sent_conf[pd->phase] = 0;					//标志这一包开始不是自己发送的, 否则发送一次后可能同index的包将接不到
 
 			/* 如无锁定DST全局变量将根据每一次接收到的洪泛设置而改变, 目前仅对MT有效 */
-#if DEVICE_TYPE==DEVICE_MT || DEVICE_TYPE==DEVICE_SE || DEVICE_TYPE==DEVICE_CV
+#if NODE_TYPE==NODE_SLAVE
 			if(!(dst_config_obj.forward_prop & BIT_DST_FORW_CONFIG_LOCK))
 			{
 				PHY_RCV_HANDLE pp;
@@ -366,7 +366,7 @@ void dst_rcv_proc(DLL_RCV_HANDLE pd)
 				{
 					pdst->phase = pd->phase;
 					mem_cpy(pdst->src_uid,&pd->lpdu[SEC_LPDU_SRC],6);
-#if DEVICE_TYPE == DEVICE_CC || DEVICE_TYPE == DEVICE_CV
+#if NODE_TYPE == NODE_MASTER
 					/* CC 不受dst影响, 单独设置一次, MT为了节省代码空间, 直接从dst_config_obj读取 */
 					{
 						PHY_RCV_HANDLE pp;
@@ -623,7 +623,8 @@ void dst_forward(DLL_RCV_HANDLE pd, u8 search)
 	OSMemPut(SUPERIOR,send_buffer);
 }
 
-#if (DEVICE_TYPE==DEVICE_CC) || (defined DEVICE_READING_CONTROLLER) || (DEVICE_TYPE==DEVICE_CV)
+
+#if (NODE_TYPE == NODE_MASTER) || (defined DEVICE_READING_CONTROLLER)
 /*******************************************************************************
 * Function Name  : get_dst_index()
 * Description    : 

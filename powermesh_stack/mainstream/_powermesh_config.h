@@ -197,6 +197,7 @@
 	#define CFG_PSR_PIPE_MNPL_CNT					CFG_PSR_PIPE_RECORD_CNT		// 最大管理PIPE记录
 #elif DEVICE_TYPE==DEVICE_SE
 	#define CFG_PSR_PIPE_RECORD_CNT 				16
+	#define CFG_PSR_PIPE_MNPL_CNT					CFG_PSR_PIPE_RECORD_CNT		// 最大管理PIPE记录
 #elif DEVICE_TYPE==DEVICE_SS
 	#define CFG_PSR_PIPE_RECORD_CNT 				16
 #endif
@@ -222,6 +223,8 @@
 	//#define CFG_MGNT_MAX_NODES_CNT					16
 #elif DEVICE_TYPE==DEVICE_CV
 	#define CFG_MGNT_MAX_NODES_CNT					16						// CV管理全网最大管理节点数, 调试阶段先少一点
+#elif DEVICE_TYPE==DEVICE_SE
+	#define CFG_MGNT_MAX_NODES_CNT					16						// SE管理全网最大管理节点数, 调试阶段先少一点
 #endif
 
 #if NODE_TYPE==NODE_MASTER

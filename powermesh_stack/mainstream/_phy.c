@@ -145,13 +145,9 @@ void phy_rcv_int_svr(PHY_RCV_HANDLE pp)
 	u8 xdata * pt_plc_rcv_buffer;
 	u8 xdata * pt_plc_rcv_parity_err;
 
-#ifdef DEBUG
-#if DEVICE_TYPE == DEVICE_CC
+#if DEVICE_TYPE == DEVICE_CC || DEVICE_TYPE == DEVICE_SS || DEVICE_TYPE == DEVICE_SE
 	led_r_on();
-#elif DEVICE_TYPE == DEVICE_SE
-	led_phy_int_on();
 #endif
-#endif 
 	
 	phase = pp->phase;
 	rcv_info = read_reg(phase,ADR_RCV_INFO);
@@ -398,13 +394,9 @@ void phy_rcv_int_svr(PHY_RCV_HANDLE pp)
 			}
 		}
 	}
-#ifdef DEBUG
-#if DEVICE_TYPE == DEVICE_CC
-		led_r_on();
-#elif DEVICE_TYPE == DEVICE_SE
-		led_phy_int_on();
+#if DEVICE_TYPE == DEVICE_CC || DEVICE_TYPE == DEVICE_SS || DEVICE_TYPE == DEVICE_SE
+	led_r_off();
 #endif
-#endif 
 }
 
 /*******************************************************************************

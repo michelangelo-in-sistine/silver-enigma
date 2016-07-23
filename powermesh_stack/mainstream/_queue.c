@@ -678,7 +678,7 @@ void set_queue_delay(SEND_ID_TYPE sid, u32 delay)
 {
 	ENTER_CRITICAL();
 	_phy_send_queue[sid].delay = delay;
-my_printf("queue:%bu,set delay:%u\r\n",sid,delay);
+//my_printf("queue:%bu,set delay:%u\r\n",sid,delay);
 	EXIT_CRITICAL();
 }
 

@@ -1,9 +1,9 @@
 #include "compile_define.h"
 #include "powermesh_include.h"
 #include "stdarg.h"
-#include "_userflash.h"
 #include "stdlib.h"
 
+#ifdef DEBUG_MODE
 #define UART_BUFFER_DEPTH			320
 #define UART_RCV_EXPIRE_TIMING		2		//uart expire timing: 2 timer sticks
 
@@ -39,7 +39,6 @@ void init_uart(void)
 	_uart_rcv_timer_stamp = 0;
 
 	/* Æô¶¯Ó²¼þ */
-	init_measure_com_hardware();
 	init_debug_uart_hardware();
 }
 
@@ -771,7 +770,7 @@ void print_pipe(u16 pipe_id)
 void powermesh_debug_cmd_proc(u8 xdata * ptr, u16 total_rec_bytes)
 {
 	u8 phase;
-	u8 out_buffer[256];
+	u8 xdata out_buffer[256];
 
 	u8 xdata out_buffer_len;
 	ARRAY_HANDLE ptw;
@@ -1334,9 +1333,7 @@ void powermesh_debug_cmd_proc(u8 xdata * ptr, u16 total_rec_bytes)
 			}
 		}
 		uart_send_asc(out_buffer, out_buffer_len);
-#if DEVICE_TYPE == DEVICE_MT	
-		OSMemPut(SUPERIOR, out_buffer);
-#endif
 	}
 }
+#endif
 

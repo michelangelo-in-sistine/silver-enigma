@@ -1086,17 +1086,17 @@ void ext_diag_protocol_response(PHY_RCV_HANDLE pp)
 						cond += 6;
 					}
 
-					if(mask & BIT_NBF_MASK_METERID)
-					{
-						if(check_meter_id((METER_ID_HANDLE)cond)!=CORRECT)
-						{
-							pass2 &= 0;
-#ifdef DEBUG_EBC
-							my_printf("MID DIFF\r\n");
-#endif
-						}
-						cond += 6;
-					}
+//					if(mask & BIT_NBF_MASK_METERID)
+//					{
+//						if(check_meter_id((METER_ID_HANDLE)cond)!=CORRECT)
+//						{
+//							pass2 &= 0;
+//#ifdef DEBUG_EBC
+//							my_printf("MID DIFF\r\n");
+//#endif
+//						}
+//						cond += 6;
+//					}
 
 					if(mask & BIT_NBF_MASK_BUILDID)
 					{
@@ -1240,9 +1240,9 @@ u8 get_acps_relation(u8 mode, u8 local_ph, u8 remote_ph)
 	// 分支判断
 	// 分界算法: round([0:200/6:200]-200/12)
 	// [0,17]:A; [18,50]:B^; [51,83]:C; [84,117]:A^; [118,150]B; [151:183]:C^; [184:200]:A
-//#ifdef DEBUG_EBC
+#ifdef DEBUG_EBC
 	my_printf("acps delta:%bu\r\n",delta);
-//#endif	
+#endif	
 	if(delta<=17)
 	{
 		return 0x00;

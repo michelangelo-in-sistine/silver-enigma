@@ -94,6 +94,9 @@ TIMING_CALCULATION_TYPE srf_trans_sticks(u8 rate,u8 scan);
 void init_measure_com_hardware(void);
 void measure_com_send8(u8 byte_data);
 u8 measure_com_read8(u8 * rec_byte);
+void write_measure_reg(u8 addr, u32 dword_value);
+u32 read_measure_reg(u8 addr);
+
 
 /* Dma */
 void init_dma(void);
@@ -102,6 +105,11 @@ void dma_buffer_append(u8 byte);
 void dma_buffer_fill(u8 * send_content_head, u16 len);
 void dma_uart_start(void);
 void enable_usart_dma(u8 enable);
+
+/* storage */
+void erase_user_storage(void);
+u16 read_user_storage(u8 * read_buffer, u16 read_len);
+u16 write_user_storage(u8 * write_buffer, u16 write_len);
 
 /* Debug */
 __asm u32 get_sp_val(void);

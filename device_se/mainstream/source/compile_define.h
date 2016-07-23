@@ -47,10 +47,10 @@
 
 /*========================== Individual Define ====================*/
 /* Hardware Define ------------------------------------------------*/
-#define DEVICE_TYPE 		DEVICE_CV
+#define DEVICE_TYPE 		DEVICE_SE
 #define CPU_TYPE 			CPU_STM32F030C8
 
-#if DEVICE_TYPE==DEVICE_CC || DEVICE_TYPE==DEVICE_CV
+#if DEVICE_TYPE==DEVICE_CC || DEVICE_TYPE==DEVICE_CV || DEVICE_TYPE==DEVICE_SE
 #define NODE_TYPE 			NODE_MASTER
 #else
 #define NODE_TYPE			NODE_SLAVE
