@@ -57,7 +57,7 @@ void init_measure(void)
 	init_measure_com_hardware();
 	reset_measure_device();
 
-	for(i=0;i<100;i++)
+	for(i=0;i<10;i++)
 	{
 		MEASURE_UNPROTECT();
 		MEASURE_DISABLE_HPF();
@@ -76,23 +76,23 @@ void init_measure(void)
 		}
 	}
 
-	if(is_app_nvr_data_valid())
-	{
-#ifdef DEBUG_MODE
-		my_printf("calib data valid\r\n");
-#endif
-		calib_v.k = get_app_nvr_data_u_k();
-		calib_v.b = get_app_nvr_data_u_b();
-		calib_i.k = get_app_nvr_data_i_k();
-		calib_i.b = get_app_nvr_data_i_b();
-		calib_t.t0 = get_app_nvr_data_t0();
-	}
-	else
-	{
-#ifdef DEBUG_MODE
-		my_printf("no valid calib data\r\n");
-#endif
-	}
+//	if(is_app_nvr_data_valid())
+//	{
+//#ifdef DEBUG_MODE
+//		my_printf("calib data valid\r\n");
+//#endif
+//		calib_v.k = get_app_nvr_data_u_k();
+//		calib_v.b = get_app_nvr_data_u_b();
+//		calib_i.k = get_app_nvr_data_i_k();
+//		calib_i.b = get_app_nvr_data_i_b();
+//		calib_t.t0 = get_app_nvr_data_t0();
+//	}
+//	else
+//	{
+//#ifdef DEBUG_MODE
+//		my_printf("no valid calib data\r\n");
+//#endif
+//	}
 }
 
 /*******************************************************************************
@@ -278,9 +278,9 @@ STATUS save_calib_into_app_nvr(void)
 	return save_app_nvr_data();
 }
 
-const float code ADC_OFFSET =  -3.3; 
-const float code ADC_MV_PER_STEP = 8.2244e-004;			//mv per step
-const float code CONST_B = 3950;
+#define ADC_OFFSET		(-3.3)
+#define ADC_MV_PER_STEP (8.2244e-004)			//mv per step
+#define CONST_B 			(3950)
 
 /*******************************************************************************
 * Function Name  : calc_exp_index
@@ -298,7 +298,8 @@ float calc_exp_index(s32 reg_value)
 	v = (reg_value - ADC_OFFSET) * ADC_MV_PER_STEP;			//voltage in theromal resistor, unit: mv
 	r = (5/v*1000 - 11);									//resistor value, unit: k ohm
 	//index = log(r/10)/CONST_B;
-	index = lg(r/10)/CONST_B;
+	//index = lg(r/10)*(2.3026)/CONST_B;						//lgÎª10Îªµ×
+	index = lg(r/10)/(1715.5);							// const_b/log(10) = 1715.5
 	
 	return index;
 }
