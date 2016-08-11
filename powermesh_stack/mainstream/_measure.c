@@ -76,23 +76,23 @@ void init_measure(void)
 		}
 	}
 
-//	if(is_app_nvr_data_valid())
-//	{
-//#ifdef DEBUG_MODE
-//		my_printf("calib data valid\r\n");
-//#endif
-//		calib_v.k = get_app_nvr_data_u_k();
-//		calib_v.b = get_app_nvr_data_u_b();
-//		calib_i.k = get_app_nvr_data_i_k();
-//		calib_i.b = get_app_nvr_data_i_b();
-//		calib_t.t0 = get_app_nvr_data_t0();
-//	}
-//	else
-//	{
-//#ifdef DEBUG_MODE
-//		my_printf("no valid calib data\r\n");
-//#endif
-//	}
+	if(is_app_nvr_data_valid())
+	{
+#ifdef DEBUG_MODE
+		my_printf("calib data valid\r\n");
+#endif
+		calib_v.k = get_app_nvr_data_u_k();
+		calib_v.b = get_app_nvr_data_u_b();
+		calib_i.k = get_app_nvr_data_i_k();
+		calib_i.b = get_app_nvr_data_i_b();
+		calib_t.t0 = get_app_nvr_data_t0();
+	}
+	else
+	{
+#ifdef DEBUG_MODE
+		my_printf("no valid calib data\r\n");
+#endif
+	}
 }
 
 /*******************************************************************************

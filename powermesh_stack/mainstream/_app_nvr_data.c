@@ -154,7 +154,7 @@ STATUS save_app_nvr_data(void)
 	crc = calc_crc((u8*)(&_app_nvr_data), sizeof(_app_nvr_data)-2);
 	_app_nvr_data.crc_high = (u8)(crc>>8);
 	_app_nvr_data.crc_low = (u8)(crc);
-//	erase_user_storage();
+	erase_user_storage();
 	return (STATUS)write_user_storage((u8*)(&_app_nvr_data), sizeof(_app_nvr_data));
 }
 

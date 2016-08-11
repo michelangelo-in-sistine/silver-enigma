@@ -1118,7 +1118,7 @@ void powermesh_debug_cmd_proc(u8 xdata * ptr, u16 total_rec_bytes)
 				}
 				break;
 			}
-			else if(cmd == 0x4A && rest_rec_bytes>= 7) //acp_req_by_uid: 0x4A + UID + wspbody
+			else if(cmd == 0x4A && rest_rec_bytes>= 7) //acp_req_by_uid: 0x4A + UID + acpbody
 			{
 				UID_HANDLE uid;
 				u8 return_len;
@@ -1126,11 +1126,11 @@ void powermesh_debug_cmd_proc(u8 xdata * ptr, u16 total_rec_bytes)
 				uid = ptr;
 				ptr += 6;
 				
-				return_len = acp_req_by_uid(uid, ptr, rest_rec_bytes-6, ptw, 20);
+				return_len = acp_req_by_uid(uid, ptr, rest_rec_bytes-6, ptw, 40);
 				out_buffer_len += return_len;
 				break;
 			}
-			else if(cmd == 0x4B && rest_rec_bytes>= 8) //0x4B + domain id + vid + wsp_body
+			else if(cmd == 0x4B && rest_rec_bytes>= 8) //0x4B + domain id + vid + acp_body
 			{
 				u16 domain_id;
 				u16 vid;
@@ -1333,6 +1333,7 @@ void powermesh_debug_cmd_proc(u8 xdata * ptr, u16 total_rec_bytes)
 			}
 		}
 		uart_send_asc(out_buffer, out_buffer_len);
+		my_printf("\n");
 	}
 }
 #endif

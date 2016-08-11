@@ -69,20 +69,17 @@
 #define CMD_ACP_CALI_T			0x0B					//校正T
 #define CMD_ACP_CALI_UI			0x0C					//校正电压电流
 
-#define CMD_ACP_ERAZ_NVR		0x0D					//擦除NVR
-#define CMD_ACP_READ_NVR		0x0E					//读取NVR
-#define CMD_ACP_WRIT_NVR		0x0F					//写入NVR
-
-#define BIT_ACP_CMD_MASK_T		0x04
-#define BIT_ACP_CMD_MASK_U		0x02
-#define BIT_ACP_CMD_MASK_I		0x01
+#define CMD_ACP_NVR				0x0E					//NVR系列功能
+#define CMD_ACP_NVR_ERAZ		'E'						//擦除NVR 0x45
+#define CMD_ACP_NVR_READ		'R'						//读取NVR 0x52
+#define CMD_ACP_NVR_WRIT		'W'						//写入NVR 0x57
 
 
 
-#define EXCEPTION_HARDFAULT		0x81
-#define EXCEPTION_ERRORFORMAT	0x82
-#define EXCEPTION_ERRORCMD		0x83
-#define EXCEPTION_VID_MISMATCH	0x84
+
+#define EXCEPTION_HARDFAULT		0x81		//硬件错误, 如NVR存储
+#define EXCEPTION_FORMAT_ERROR	0x82		//命令格式错误, 如非法命令字
+#define EXCEPTION_EXEC_ERROR	0x83		//执行错误, 如没有指定的冻结数据
 
 
 /* private variables ---------------------------------------------------------*/
@@ -100,7 +97,7 @@ u8 xdata _comm_mode = CHNL_CH3;
 const u8 code __passwd__[] = {0x95, 0x27};
 
 /* Private Functions Prototype ---------------------------------------*/
-u8 wsp_cmd_proc(ARRAY_HANDLE body, u8 body_len, ARRAY_HANDLE return_buffer);
+u8 acp_cmd_proc(ARRAY_HANDLE body, u8 body_len, ARRAY_HANDLE return_buffer);
 STATUS app_call(UID_HANDLE target_uid, ARRAY_HANDLE apdu, u8 apdu_len, ARRAY_HANDLE return_buffer, u8 return_len);
 u8 get_acp_index(u8 phase);
 STATUS acp_call_by_uid(UID_HANDLE target_uid, ARRAY_HANDLE cmd_body, u8 cmd_body_len, u8* return_buffer, u8 return_cmd_body_len);
@@ -313,7 +310,7 @@ void acp_rcv_proc(APP_RCV_HANDLE pt_app_rcv)
 					u32 xdata mc_pending_sticks;
 					u16 xdata mc_response_window_index;
 
-					ret_len = wsp_cmd_proc(pt_body, apdu_len - head_len, &return_buffer[head_len]);		// 包括了cs, 无所谓了
+					ret_len = acp_cmd_proc(pt_body, apdu_len - head_len, &return_buffer[head_len]);		// 包括了cs, 无所谓了
 
 					if(req)
 					{
@@ -410,13 +407,13 @@ BOOL check_passwd(ARRAY_HANDLE passwd)
 
 
 /*******************************************************************************
-* Function Name  : wsp_cmd_proc()
-* Description    : 
+* Function Name  : acp_cmd_proc()
+* Description    : 传入acp协议数据体,首字节为命令字和需回复,以及回复报文的标志
 * Input          : 
 * Output         : 
-* Return         : 
+* Return         : 需返回的字节数
 *******************************************************************************/
-u8 wsp_cmd_proc(ARRAY_HANDLE body, u8 body_len, ARRAY_HANDLE return_buffer)
+u8 acp_cmd_proc(ARRAY_HANDLE body, u8 body_len, ARRAY_HANDLE return_buffer)
 {
 	u8 xdata cmd;
 	u8 xdata ret_len = 0;
@@ -424,7 +421,6 @@ u8 wsp_cmd_proc(ARRAY_HANDLE body, u8 body_len, ARRAY_HANDLE return_buffer)
 	ARRAY_HANDLE ptw;
 	s16 xdata para;
 	u16 xdata temp;
-	BOOL update_nvr = FALSE;
 	ARRAY_HANDLE body_bkp = body;
 
 	cmd = *body++;
@@ -437,6 +433,8 @@ u8 wsp_cmd_proc(ARRAY_HANDLE body, u8 body_len, ARRAY_HANDLE return_buffer)
 	{
 		case(CMD_ACP_SET_ADDR):
 		{
+			BOOL update_nvr = FALSE;
+
 			if(!(cmd & BIT_ACP_ACMD_RES))					//avoid set address by MC res frame, that would be big error!
 			{
 				if(body_len>= 9 && check_passwd(&body_bkp[body_len-3]))		//format: 0x01 domain_id vid group_id passwd cs
@@ -485,13 +483,13 @@ u8 wsp_cmd_proc(ARRAY_HANDLE body, u8 body_len, ARRAY_HANDLE return_buffer)
 		case(CMD_ACP_READ_CURR_PARA):
 		{
 			mask = *body++;
-			//if(mask & BIT_ACP_CMD_MASK_T)			//measure current temperature
-			//{
-			//	para = measure_current_t();
-			//	*ptw++ = (u8)(para>>8);
-			//	*ptw++ = (u8)(para);
-			//	ret_len += 2;
-			//}
+			if(mask & BIT_ACP_CMD_MASK_T)			//measure current temperature
+			{
+				para = measure_current_t();
+				*ptw++ = (u8)(para>>8);
+				*ptw++ = (u8)(para);
+				ret_len += 2;
+			}
 			if(mask & BIT_ACP_CMD_MASK_U)			//measure current voltage
 			{
 				para = measure_current_v();
@@ -508,43 +506,52 @@ u8 wsp_cmd_proc(ARRAY_HANDLE body, u8 body_len, ARRAY_HANDLE return_buffer)
 			}
 			break;
 		}
-
-		case(CMD_ACP_SAVE_CALI):
+		case(CMD_ACP_FRAZ_PARA):
 		{
 			
 			break;
 		}
 		
-		case(CMD_ACP_ERAZ_NVR):
+		case(CMD_ACP_NVR):
 		{
-			erase_user_storage();
-			break;
-		}
-		case(CMD_ACP_READ_NVR):
-		{
-			read_user_storage(ptw,*body);		//body now is read length
-			ret_len = *body;
-			break;
-		}
-		case(CMD_ACP_WRIT_NVR):
-		{
-			write_user_storage(body, body_len-1);
-			ret_len = 0;
-			
-			//if(compare_user_storage(body, body_len-1))
-			//{
-			//	ret_len = 0;
-			//}
-			//else
-			//{
-			//	*ptw = EXCEPTION_ERRORCMD;
-			//	ret_len = 1;
-			//}
+			u8 sub_command;
+
+			sub_command = *body++;
+			switch(sub_command)
+			{
+				case(CMD_ACP_NVR_ERAZ):
+				{
+					if(check_passwd(&body_bkp[body_len-3]))
+					{
+						erase_user_storage();
+					}
+					break;
+				}
+				case(CMD_ACP_NVR_WRIT):
+				{
+					if(check_passwd(&body_bkp[body_len-3]))
+					{
+						write_user_storage(body, body_len-5);		//命令字2B, PASSWD2B, CS1B 
+					}
+					break;
+				}
+				case(CMD_ACP_NVR_READ):
+				{
+					read_user_storage(ptw,*body);					//body now is read length
+					ret_len += *body;
+					break;
+				}
+				default:
+				{
+					return_buffer[0] = EXCEPTION_FORMAT_ERROR;
+					ret_len = 1;
+				}
+			}
 			break;
 		}
 		default:
 		{
-			return_buffer[0] = EXCEPTION_ERRORCMD;
+			return_buffer[0] = EXCEPTION_FORMAT_ERROR;
 			ret_len = 1;
 			break;
 		}
@@ -553,7 +560,6 @@ u8 wsp_cmd_proc(ARRAY_HANDLE body, u8 body_len, ARRAY_HANDLE return_buffer)
 }
 
 #if NODE_TYPE == NODE_MASTER
-
 /*******************************************************************************
 * Function Name  : set_comm_mode()
 * Description    : 
@@ -799,15 +805,15 @@ SEND_ID_TYPE acp_send(ACP_SEND_HANDLE ptr_acp)
 * Function Name  : acp_transaction
 * Description    : send a acp apdu, 
 
-					1. if resp_buffer is not NULL and expected_wsp_res_bytes is not 0,
+					1. if resp_buffer is not NULL and expected_acp_res_bytes is not 0,
 						wait for just one response (not for mc) , copy return into return buffer
 						indicate return bytes in acp struct;
 
-					2. if expected_wsp_res_bytes is not 0, and resp_buffer is NULL
+					2. if expected_acp_res_bytes is not 0, and resp_buffer is NULL
 						wait for just one response, not copy return bytes.
 						indicate return bytes in acp struct;
 
-					3. if expected_wsp_res_bytes is 0
+					3. if expected_acp_res_bytes is 0
 						just send frame and return, that means this frame is a inform or broadcast no need to response;
 
 * Input          : None
@@ -824,38 +830,38 @@ STATUS acp_transaction(ACP_SEND_HANDLE acp)
 	STATUS status = FAIL;
 	TIMER_ID_TYPE tid;
 	u8 tran_id;
-	u8 wsp_command;
-	u8 wsp_command_index;
+	u8 acp_command;
+	u8 acp_command_index;
 
 	switch(acp->acp_idtp)
 	{
 		case(ACP_IDTP_DB):
 		{
-			apdu_rcv_len = acp->expected_wsp_res_bytes + SEC_ACP_DB_BODY + 1;
-			wsp_command_index = SEC_ACP_DB_BODY;
+			apdu_rcv_len = acp->expected_acp_res_bytes + SEC_ACP_DB_BODY + 1;
+			acp_command_index = SEC_ACP_DB_BODY;
 			break;
 		}
 		case(ACP_IDTP_VC):
 		{
-			apdu_rcv_len = acp->expected_wsp_res_bytes + SEC_ACP_VC_BODY + 1;
-			wsp_command_index = SEC_ACP_VC_BODY;
+			apdu_rcv_len = acp->expected_acp_res_bytes + SEC_ACP_VC_BODY + 1;
+			acp_command_index = SEC_ACP_VC_BODY;
 			break;
 		}
 		case(ACP_IDTP_MC):
 		{
-			apdu_rcv_len = acp->expected_wsp_res_bytes + SEC_ACP_MC_BODY + 1;
-			wsp_command_index = SEC_ACP_MC_BODY;
+			apdu_rcv_len = acp->expected_acp_res_bytes + SEC_ACP_MC_BODY + 1;
+			acp_command_index = SEC_ACP_MC_BODY;
 			break;
 		}
 		default:
 		{
-			apdu_rcv_len = acp->expected_wsp_res_bytes + SEC_ACP_GB_BODY + 1;
-			wsp_command_index = SEC_ACP_GB_BODY;
+			apdu_rcv_len = acp->expected_acp_res_bytes + SEC_ACP_GB_BODY + 1;
+			acp_command_index = SEC_ACP_GB_BODY;
 			break;
 		}
 	}
 
-	if(acp->acp_body_len && acp->expected_wsp_res_bytes)
+	if(acp->acp_body_len && acp->expected_acp_res_bytes)
 	{
 		acp->acp_body[0] |= BIT_ACP_ACMD_REQ;
 	}
@@ -863,7 +869,7 @@ STATUS acp_transaction(ACP_SEND_HANDLE acp)
 	sid = acp_send(acp);
 	if(sid != INVALID_RESOURCE_ID)
 	{
-		if(acp->expected_wsp_res_bytes == 0)		//if wait bytes is zero, it's an inform action (no resp)
+		if(acp->expected_acp_res_bytes == 0)		//if wait bytes is zero, it's an inform action (no resp)
 		{
 			return OKAY;
 		}
@@ -874,8 +880,8 @@ STATUS acp_transaction(ACP_SEND_HANDLE acp)
 			app_rcv_obj.apdu = apdu_rcv;
 			time_out = ptp_transmission_sticks(apdu_rcv_len);
 			tran_id = (_acp_index[0] - 1) & BIT_ACP_ACPR_TRAN;
-			wsp_command = acp->acp_body[0];
-			acp->actual_wsp_res_bytes = 0;
+			acp_command = acp->acp_body[0];
+			acp->actual_acp_res_bytes = 0;
 			
 			wait_until_send_over(sid);
 
@@ -892,7 +898,7 @@ STATUS acp_transaction(ACP_SEND_HANDLE acp)
 					* response match condition:
 					* 1. idtp match
 					* 2. tran id match
-					* 3. wsp command match
+					* 3. acp command match
 					******************************************/
 					if(app_rcv(&app_rcv_obj))
 					{
@@ -900,34 +906,34 @@ STATUS acp_transaction(ACP_SEND_HANDLE acp)
 						{
 							if((apdu_rcv[SEC_ACP_ACPR]&BIT_ACP_ACPR_TRAN) == tran_id)	
 							{
-								u8 res_wsp_len;
-								if(apdu_rcv[wsp_command_index] & BIT_ACP_ACMD_EXCEPT)
+								u8 res_acp_len;
+								if(apdu_rcv[acp_command_index] & BIT_ACP_ACMD_EXCEPT)
 								{
 #ifdef DEBUG_MODE
-									my_printf("exception occurred\r\n");
+									my_printf("exception occurred, code:0x%bx\r\n",apdu_rcv[acp_command_index]);
 #endif
-									res_wsp_len = app_rcv_obj.apdu_len - wsp_command_index - 1;
-									acp->actual_wsp_res_bytes = res_wsp_len;
+									res_acp_len = app_rcv_obj.apdu_len - acp_command_index - 1;
+									acp->actual_acp_res_bytes = res_acp_len;
 									if(acp->resp_buffer)
 									{
-										if(acp->expected_wsp_res_bytes>=res_wsp_len)
+										if(acp->expected_acp_res_bytes>=res_acp_len)
 										{
-											mem_cpy(acp->resp_buffer, &apdu_rcv[wsp_command_index], res_wsp_len);
+											mem_cpy(acp->resp_buffer, &apdu_rcv[acp_command_index], res_acp_len);
 											status = FAIL;
 										}
 									}
 									break;
 								}
-								else if((wsp_command & BIT_ACP_ACMD_CMD) == (apdu_rcv[wsp_command_index] & BIT_ACP_ACMD_CMD) &&
-									(apdu_rcv[wsp_command_index] & BIT_ACP_ACMD_RES))
+								else if((acp_command & BIT_ACP_ACMD_CMD) == (apdu_rcv[acp_command_index] & BIT_ACP_ACMD_CMD) &&
+									(apdu_rcv[acp_command_index] & BIT_ACP_ACMD_RES))
 								{
-									res_wsp_len = app_rcv_obj.apdu_len - wsp_command_index - 1;
-									acp->actual_wsp_res_bytes = res_wsp_len;
+									res_acp_len = app_rcv_obj.apdu_len - acp_command_index - 1;
+									acp->actual_acp_res_bytes = res_acp_len;
 									if(acp->resp_buffer)
 									{
-										if(acp->expected_wsp_res_bytes>=res_wsp_len)
+										if(acp->expected_acp_res_bytes>=res_acp_len)
 										{
-											mem_cpy(acp->resp_buffer, &apdu_rcv[wsp_command_index], res_wsp_len);
+											mem_cpy(acp->resp_buffer, &apdu_rcv[acp_command_index], res_acp_len);
 											status = OKAY;
 										}
 										else
@@ -950,7 +956,7 @@ STATUS acp_transaction(ACP_SEND_HANDLE acp)
 						}
 					}
 				}
-				if(!status && !acp->actual_wsp_res_bytes)
+				if(!status && !acp->actual_acp_res_bytes)
 				{
 #ifdef DEBUG_MODE
 					my_printf("req time out\r\n");
@@ -974,7 +980,7 @@ STATUS acp_transaction(ACP_SEND_HANDLE acp)
 * Output         : None
 * Return         : None
 *******************************************************************************/
-u8 acp_req_by_uid(UID_HANDLE target_uid, ARRAY_HANDLE wsp_command, u8 wsp_len, u8 * resp_buffer, u8 expected_res_bytes)
+u8 acp_req_by_uid(UID_HANDLE target_uid, ARRAY_HANDLE acp_command, u8 acp_len, u8 * resp_buffer, u8 expected_res_bytes)
 {
 	ACP_SEND_STRUCT acp;
 
@@ -982,14 +988,14 @@ u8 acp_req_by_uid(UID_HANDLE target_uid, ARRAY_HANDLE wsp_command, u8 wsp_len, u
 	acp.acp_idtp = ACP_IDTP_DB;
 	acp.domain_id = 0;
 	acp.follow = FALSE;
-	acp.acp_body = wsp_command;
-	acp.acp_body_len = wsp_len;
+	acp.acp_body = acp_command;
+	acp.acp_body_len = acp_len;
 	acp.resp_buffer = resp_buffer;
-	acp.expected_wsp_res_bytes = expected_res_bytes;
+	acp.expected_acp_res_bytes = expected_res_bytes;
 
 	acp_transaction(&acp);
 
-	return acp.actual_wsp_res_bytes;		//if fail, return 0
+	return acp.actual_acp_res_bytes;		//if fail, return 0
 }
 
 /*******************************************************************************
@@ -1001,7 +1007,7 @@ u8 acp_req_by_uid(UID_HANDLE target_uid, ARRAY_HANDLE wsp_command, u8 wsp_len, u
 * Output         : None
 * Return         : None
 *******************************************************************************/
-u8 acp_req_by_vid(UID_HANDLE target_uid, u16 domain_id, u16 vid, ARRAY_HANDLE wsp_command, u8 wsp_len, u8 * resp_buffer, u8 expected_res_bytes)
+u8 acp_req_by_vid(UID_HANDLE target_uid, u16 domain_id, u16 vid, ARRAY_HANDLE acp_command, u8 acp_len, u8 * resp_buffer, u8 expected_res_bytes)
 {
 	ACP_SEND_STRUCT acp;
 
@@ -1010,14 +1016,14 @@ u8 acp_req_by_vid(UID_HANDLE target_uid, u16 domain_id, u16 vid, ARRAY_HANDLE ws
 	acp.domain_id = domain_id;
 	acp.vid = vid;
 	acp.follow = FALSE;
-	acp.acp_body = wsp_command;
-	acp.acp_body_len = wsp_len;
+	acp.acp_body = acp_command;
+	acp.acp_body_len = acp_len;
 	acp.resp_buffer = resp_buffer;
-	acp.expected_wsp_res_bytes = expected_res_bytes;
+	acp.expected_acp_res_bytes = expected_res_bytes;
 
 	acp_transaction(&acp);
 
-	return acp.actual_wsp_res_bytes;
+	return acp.actual_acp_res_bytes;
 }
 
 /*******************************************************************************
@@ -1027,7 +1033,7 @@ u8 acp_req_by_vid(UID_HANDLE target_uid, u16 domain_id, u16 vid, ARRAY_HANDLE ws
 * Output         : None
 * Return         : None
 *******************************************************************************/
-STATUS acp_domain_broadcast(u16 domain_id, ARRAY_HANDLE wsp_command, u8 wsp_len)
+STATUS acp_domain_broadcast(u16 domain_id, ARRAY_HANDLE acp_command, u8 acp_len)
 {
 	ACP_SEND_STRUCT acp;
 
@@ -1035,10 +1041,10 @@ STATUS acp_domain_broadcast(u16 domain_id, ARRAY_HANDLE wsp_command, u8 wsp_len)
 	acp.acp_idtp = ACP_IDTP_DB;
 	acp.domain_id = domain_id;
 	acp.follow = FALSE;
-	acp.acp_body = wsp_command;
-	acp.acp_body_len = wsp_len;
+	acp.acp_body = acp_command;
+	acp.acp_body_len = acp_len;
 	acp.resp_buffer = NULL;
-	acp.expected_wsp_res_bytes = 0;
+	acp.expected_acp_res_bytes = 0;
 
 	return acp_transaction(&acp);
 }
@@ -1050,7 +1056,7 @@ STATUS acp_domain_broadcast(u16 domain_id, ARRAY_HANDLE wsp_command, u8 wsp_len)
 * Output         : None
 * Return         : None
 *******************************************************************************/
-STATUS acp_inform_by_vid(u16 domain_id, u16 vid, ARRAY_HANDLE wsp_command, u8 wsp_len)
+STATUS acp_inform_by_vid(u16 domain_id, u16 vid, ARRAY_HANDLE acp_command, u8 acp_len)
 {
 	ACP_SEND_STRUCT acp;
 
@@ -1059,10 +1065,10 @@ STATUS acp_inform_by_vid(u16 domain_id, u16 vid, ARRAY_HANDLE wsp_command, u8 ws
 	acp.domain_id = domain_id;
 	acp.vid = vid;
 	acp.follow = FALSE;
-	acp.acp_body = wsp_command;
-	acp.acp_body_len = wsp_len;
+	acp.acp_body = acp_command;
+	acp.acp_body_len = acp_len;
 	acp.resp_buffer = NULL;
-	acp.expected_wsp_res_bytes = 0;
+	acp.expected_acp_res_bytes = 0;
 
 	return acp_transaction(&acp);
 }
@@ -1074,7 +1080,7 @@ STATUS acp_inform_by_vid(u16 domain_id, u16 vid, ARRAY_HANDLE wsp_command, u8 ws
 * Output         : None
 * Return         : None
 *******************************************************************************/
-STATUS acp_req_mc(u16 domain_id, u16 start_vid, u16 end_vid, ARRAY_HANDLE wsp_command, u8 wsp_len, ARRAY_HANDLE resp_buffer, u8 expected_res_bytes)
+STATUS acp_req_mc(u16 domain_id, u16 start_vid, u16 end_vid, ARRAY_HANDLE acp_command, u8 acp_len, ARRAY_HANDLE resp_buffer, u8 expected_res_bytes)
 {
 	ACP_SEND_STRUCT acp;
 
@@ -1094,10 +1100,10 @@ STATUS acp_req_mc(u16 domain_id, u16 start_vid, u16 end_vid, ARRAY_HANDLE wsp_co
 	acp.self_vid = _self_vid;
 	
 	acp.follow = FALSE;
-	acp.acp_body = wsp_command;
-	acp.acp_body_len = wsp_len;
+	acp.acp_body = acp_command;
+	acp.acp_body_len = acp_len;
 	acp.resp_buffer = resp_buffer;
-	acp.expected_wsp_res_bytes = expected_res_bytes;
+	acp.expected_acp_res_bytes = expected_res_bytes;
 
 	return acp_transaction(&acp);
 }

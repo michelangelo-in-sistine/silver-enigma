@@ -82,6 +82,11 @@ void led_timer_int_on(void);
 void led_timer_int_off(void);
 void led_main_loop_flash(void);
 
+void led_r_on(void);
+void led_r_off(void);
+
+
+
 /* Common Check Operation */
 RESULT check_parity(u8 byte, u8 parity);
 

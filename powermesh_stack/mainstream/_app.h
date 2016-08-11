@@ -17,6 +17,12 @@
 #ifndef _APP_H
 #define _APP_H
 
+/* Exported defines ------------------------------------------------------------*/
+#define BIT_ACP_CMD_MASK_T		0x04
+#define BIT_ACP_CMD_MASK_U		0x02
+#define BIT_ACP_CMD_MASK_I		0x01
+
+
 /* Exported types ------------------------------------------------------------*/
 typedef enum
 {
@@ -45,8 +51,8 @@ typedef struct
 	u8			acp_body_len;
 
 	ARRAY_HANDLE resp_buffer;
-	u8			expected_wsp_res_bytes;
-	u8			actual_wsp_res_bytes;
+	u8			expected_acp_res_bytes;
+	u8			actual_acp_res_bytes;
 }ACP_SEND_STRUCT, *ACP_SEND_HANDLE;
 
 
@@ -59,10 +65,10 @@ STATUS call_vid_for_current_parameter(UID_HANDLE target_uid, u8 mask, s16* retur
 void acp_rcv_proc(APP_RCV_HANDLE pt_app_rcv);
 
 
-u8 acp_req_by_uid(UID_HANDLE target_uid, ARRAY_HANDLE wsp_command, u8 wsp_len, u8 * resp_buffer, u8 expected_res_bytes);
-u8 acp_req_by_vid(UID_HANDLE target_uid, u16 domain_id, u16 vid, ARRAY_HANDLE wsp_command, u8 wsp_len, u8 * resp_buffer, u8 expected_res_bytes);
-STATUS acp_domain_broadcast(u16 domain_id, ARRAY_HANDLE wsp_command, u8 wsp_len);
-STATUS acp_req_mc(u16 domain_id, u16 start_vid, u16 end_vid, ARRAY_HANDLE wsp_command, u8 wsp_len, ARRAY_HANDLE resp_buffer, u8 expected_res_bytes);
+u8 acp_req_by_uid(UID_HANDLE target_uid, ARRAY_HANDLE acp_command, u8 acp_len, u8 * resp_buffer, u8 expected_res_bytes);
+u8 acp_req_by_vid(UID_HANDLE target_uid, u16 domain_id, u16 vid, ARRAY_HANDLE acp_command, u8 acp_len, u8 * resp_buffer, u8 expected_res_bytes);
+STATUS acp_domain_broadcast(u16 domain_id, ARRAY_HANDLE acp_command, u8 acp_len);
+STATUS acp_req_mc(u16 domain_id, u16 start_vid, u16 end_vid, ARRAY_HANDLE acp_command, u8 acp_len, ARRAY_HANDLE resp_buffer, u8 expected_res_bytes);
 
 
 STATUS set_se_node_id_by_uid(ARRAY_HANDLE target_uid, u16 domain_id, u16 vid, u16 gid);
