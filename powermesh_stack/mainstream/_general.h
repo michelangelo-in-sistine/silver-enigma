@@ -18,7 +18,6 @@ void get_timing_version(TIMING_VERSION_HANDLE ver_handle);
 
 /* System */
 extern void reset_system(void);				//implemented in hardware();
-u8 read_reg(u8 phase, u8 addr);
 
 /* Mem Operation */
 void mem_cpy(ARRAY_HANDLE pt_dest, ARRAY_HANDLE pt_src, BASE_LEN_TYPE len) reentrant;
