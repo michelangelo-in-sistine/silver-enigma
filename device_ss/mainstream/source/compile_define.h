@@ -51,7 +51,7 @@
 /* Hardware Define ------------------------------------------------*/
 #define DEVICE_TYPE 		DEVICE_SS
 #define CPU_TYPE 			CPU_BL6810
-#define MEASURE_DEVICE		BL6523GX
+#define MEASURE_DEVICE		BL6523B
 
 #if DEVICE_TYPE==DEVICE_CC || DEVICE_TYPE==DEVICE_CV
 	#define NODE_TYPE 			NODE_MASTER
@@ -74,10 +74,10 @@
 /* Firmware Feature Define ----------------------------------------*/
 #define BRING_USER_DATA		0	// if defined, bring back user custom data while buiding network
 //#define USE_RSCODEC
-#define USE_ADDR_DB
+//#define USE_ADDR_DB
 #define USE_DIAG
-#define USE_EBC
-#define USE_PSR
+//#define USE_EBC
+//#define USE_PSR
 //#define USE_MAC
 #define USE_PTP
 //#define USE_DST

@@ -780,7 +780,7 @@ void powermesh_debug_cmd_proc(u8 xdata * ptr, u16 total_rec_bytes)
 	
 	phase = phase;
 	out_buffer_len = 0;
-	if(out_buffer)
+//	if(out_buffer)
 	{
 		ptw = out_buffer;
 		proc_rec_bytes = 0;
@@ -797,7 +797,7 @@ void powermesh_debug_cmd_proc(u8 xdata * ptr, u16 total_rec_bytes)
 			}
 			else if(cmd=='R' && rest_rec_bytes>=1)		//0x52: read a byte from current phase
 			{
-				*ptw++ = read_spi(*ptr++);
+				*ptw++ = read_reg(phase,*ptr++);
 				proc_rec_bytes++;
 				out_buffer_len++;
 			}
@@ -809,7 +809,7 @@ void powermesh_debug_cmd_proc(u8 xdata * ptr, u16 total_rec_bytes)
 				addr = *ptr++;
 				value = *ptr++;
 				
-				write_spi(addr,value);
+				write_reg(phase,addr,value);
 				proc_rec_bytes++;
 			}
 			//else if(cmd=='r' && rest_rec_bytes>=1)	//0x72 ¶Á6532
@@ -958,8 +958,7 @@ void powermesh_debug_cmd_proc(u8 xdata * ptr, u16 total_rec_bytes)
 				break;
 			}
 
-			
-			
+#if DEVICE_TYPE == DEVICE_SE			
 			else if(cmd=='S' && rest_rec_bytes>=9)		//0x53: 53 + X_MODE + SCAN + SRF + AC_UPDATE + 4B Delay + PACKAGE
 			{
 				PHY_SEND_STRUCT xdata pss;
@@ -1325,7 +1324,7 @@ void powermesh_debug_cmd_proc(u8 xdata * ptr, u16 total_rec_bytes)
 				}
 				break;
 			}
-
+#endif
 			else
 			{
 				uart_rcv_resume();
@@ -1333,7 +1332,6 @@ void powermesh_debug_cmd_proc(u8 xdata * ptr, u16 total_rec_bytes)
 			}
 		}
 		uart_send_asc(out_buffer, out_buffer_len);
-		my_printf("\n");
 	}
 }
 #endif

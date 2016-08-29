@@ -54,7 +54,7 @@ void init_measure(void)
 {
 	u16 i;
 
-	init_measure_com_hardware();
+	init_measure_hardware();
 	reset_measure_device();
 
 	for(i=0;i<10;i++)
@@ -94,6 +94,8 @@ void init_measure(void)
 #endif
 	}
 }
+
+
 
 /*******************************************************************************
 * Function Name  : convert_uint24_to_int24

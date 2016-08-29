@@ -326,7 +326,7 @@ void delete_timer(TIMER_ID_TYPE timer_id)
 	}
 }
 
-#ifdef USE_EBC
+#if (defined USE_EBC) || (defined USE_DIAG)
 /*******************************************************************************
 * Function Name  : pause_timer()
 * Description    : pause a timer

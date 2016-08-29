@@ -31,7 +31,15 @@
 #define IS_TX_ON()			!P37
 #endif
 
-#define MEASURE_RST_PIN		P32
+#if MEASURE_DEVICE == BL6523GX
+	#define MEASURE_RST_PIN		P32
+#elif MEASURE_DEVICE == BL6523B
+	#define SCK					P32
+	#define SCS					P33
+	#define SDI					P34
+	#define	SDO					P35
+	#define MEASURE_RST_PIN		P36
+#endif
 
 /* Private variables ---------------------------------------------------------*/
 
@@ -156,7 +164,7 @@ void init_phy_hardware(void)
 * Return         : 
 *******************************************************************************/
 #ifdef USE_UART
-void init_uart_hardware(void)
+void init_debug_uart_hardware(void)
 {
 	TMOD &= 0x0F;    				//Timer1 工作在方式2
 	TMOD |= 0x20;
@@ -193,7 +201,6 @@ void uart_send8(u8 byte_data)
 }
 #endif
 
-
 /*******************************************************************************
 * Function Name  : uart_hardware_int_svr()
 * Description    : 
@@ -201,12 +208,13 @@ void uart_send8(u8 byte_data)
 * Output         : None
 * Return         : 
 *******************************************************************************/
-#ifdef USE_UART
 void uart_hardware_int_svr(void) interrupt 4
 {
 	if(RI)
 	{
-		uart_rcv_int_svr(SBUF);
+#ifdef USE_UART
+		debug_uart_rcv_int_svr(SBUF);
+#endif
 		RI = 0;
 	}
 	if(TI)
@@ -214,7 +222,7 @@ void uart_hardware_int_svr(void) interrupt 4
 		TI = 0;
 	}
 }
-#endif
+
 
 /*******************************************************************************
 * Function Name  : phy_rcv_hardware_int_svr()
@@ -343,30 +351,6 @@ void get_uid_entity(u8 xdata * pt)
 	EXIT_CRITICAL();
 }
 
-
-/*******************************************************************************
-* Function Name  : init_measure_com_hardware
-* Description    : 
-* Input          : 
-* Output         : 
-* Return         : 
-*******************************************************************************/
-void init_measure_com_hardware(void)
-{
-#if MEASURE_DEVICE == BL6523GX
-	TMOD &= 0x0F;    				//Timer1 工作在方式2
-	TMOD |= 0x20;
-
-	SCON = 0x50;
-//	SCON = 0xD0;					// EVEN PARITY
-	PCON = 0x88;					//SMOD = 1, X12 = 1
-	TH1 = CNT_BAUD_4800;	
-	TR1 = 1;
-	TI = 0;
-//	ES = 1;
-#endif
-}
-
 /*******************************************************************************
 * Function Name  : reset_measure_device
 * Description    : 
@@ -389,6 +373,32 @@ void reset_measure_device(void)
 		FEED_DOG();
 	}
 }
+
+#if MEASURE_DEVICE == BL6523GX
+/*******************************************************************************
+* Function Name  : init_measure_hardware
+* Description    : 
+* Input          : 
+* Output         : 
+* Return         : 
+*******************************************************************************/
+void init_measure_hardware(void)
+{
+#if MEASURE_DEVICE == BL6523GX
+	TMOD &= 0x0F;    				//Timer1 工作在方式2
+	TMOD |= 0x20;
+
+	SCON = 0x50;
+//	SCON = 0xD0;					// EVEN PARITY
+	PCON = 0x88;					//SMOD = 1, X12 = 1
+	TH1 = CNT_BAUD_4800;	
+	TR1 = 1;
+	TI = 0;
+//	ES = 1;
+#endif
+
+}
+
 
 /*******************************************************************************
 * Function Name  : measure_com_send
@@ -491,7 +501,7 @@ u32 read_measure_reg(u8 addr)
 {
 	u8 rec_byte;
 	u8 i;
-	u8 buffer[4];
+	u8 xdata buffer[4];
 	u32 value = 0;
 	
 	measure_com_send8(0x35);
@@ -537,9 +547,86 @@ u32 read_measure_reg(u8 addr)
 	}
 }
 
+#elif MEASURE_DEVICE == BL6523B
+
+
+void spi_delay()
+{
+	u8 i;
+
+	for(i=0;i<200;i++);
+}
+
+void spi_write_byte(u8 byte)
+{
+	u8 i;
+
+	for(i=0;i<8;i++)
+	{
+		SDI = (byte&0x80)?1:0;
+		byte <<= 1;
+		SCK = 0;
+		spi_delay();
+		SCK = 1;
+		spi_delay();
+	}
+	SCK = 0;
+}
+
+u8 spi_read_byte(void)
+{
+	u8 i;
+	u8 byte = 0;
+	
+	for(i=0;i<8;i++)
+	{
+		SCK = 0;
+		spi_delay();
+		SCK = 1;
+		spi_delay();
+		byte <<= 1;
+		byte |= SDO?1:0;
+	}
+	SCK = 0;
+	return byte;
+}
+
+void write_measure_reg(u8 addr, u32 value)
+{
+	addr |= 0x40;
+	SCS = 0;
+	spi_write_byte(addr);
+	spi_write_byte(value>>16);
+	spi_write_byte(value>>8);
+	spi_write_byte(value);
+	SCS = 1;
+}
+
+
+u32 read_measure_reg(u8 addr)
+{
+	u32 value;
+	
+	addr &= 0x3F;					//BL6523B读操作最高两bit为'00'
+	SCS = 0;
+	spi_write_byte(addr);
+	value = spi_read_byte();
+	value <<= 8;
+	value += spi_read_byte();
+	value <<= 8;
+	value += spi_read_byte();
+	SCS = 1;
+
+	return value;
+}
+
+
+
+#endif
+
 
 /*******************************************************************************
-* Function Name  : init_measure_com_hardware
+* Function Name  : init_measure_hardware
 * Description    : 避免进入中断
 * Input          : 
 * Output         : 
@@ -554,25 +641,12 @@ void hardware_int_svr_1(void) interrupt 1
 {
 }
 
-//void hardware_int_svr_2(void) interrupt 2		//phy int
-//{
-//}
-
 void hardware_int_svr_3(void) interrupt 3
 {
 }
 
-void uart_hardware_int_svr(void) interrupt 4	//uart int
-{
-	if(RI)
-	{
-		RI = 0;
-	}
-	if(TI)
-	{
-		TI = 0;
-	}
-}
+
+
 
 void hardware_int_svr_5(void) interrupt 5
 {

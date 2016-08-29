@@ -61,8 +61,8 @@ void reset_measure_device(void);
 
 /* Hardware Initialize */
 void init_timer_hardware(void);
-void init_uart_hardware(void);
 void init_phy_hardware(void);
+void init_debug_uart_hardware(void);
 
 /* UART Send8*/
 #ifdef USE_UART
@@ -103,7 +103,11 @@ void get_uid_entity(u8 xdata * pt);
 #define get_uid(phase,pt) get_uid_entity(pt)
 
 /* Measurement */
-void init_measure_com_hardware(void);
+#if MEASURE_DEVICE == BL6523GX
+void init_measure_hardware(void);
+#elif MEASURE_DEVICE == BL6523B
+#define init_measure_hardware(void)
+#endif
 
 /* storage */
 STATUS erase_nvr(void);
