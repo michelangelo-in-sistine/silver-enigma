@@ -22,7 +22,6 @@
 
 /* Private define ------------------------------------------------------------*/
 #define MAX_FREZ_DATA_POINTS	4
-
 /* Private typedef -----------------------------------------------------------*/
 typedef struct
 {
@@ -32,7 +31,6 @@ typedef struct
 	s16 fraz_i;
 	s16 fraz_t;
 }FRAZ_RECORD_STRUCT;
-
 typedef signed char FRAZ_ID_TYPE;
 
 /* Private variables ---------------------------------------------------------*/
@@ -53,14 +51,14 @@ void init_fraz(void)
 
 
 /*******************************************************************************
-* Function Name  : get_fraz_ref
+* Function Name  : inquire_fraz_record
 * Description    : lookup fraz database and return storage index by feature code.
 					if not found, return -1
 * Input          : 
 * Output         : 
 * Return         : 
 *******************************************************************************/
-FRAZ_ID_TYPE get_fraz_ref(u8 feature_code)
+FRAZ_ID_TYPE inquire_fraz_record(u8 feature_code)
 {
 	s8 i;
 
@@ -79,19 +77,19 @@ FRAZ_ID_TYPE get_fraz_ref(u8 feature_code)
 
 
 /*******************************************************************************
-* Function Name  : req_fraz_storage
+* Function Name  : req_fraz_record
 * Description    : 将旧的数据向内存高地址移, 总是将地址0送去写新的数据
 * Input          : 
 * Output         : 
 * Return         : 
 *******************************************************************************/
-FRAZ_ID_TYPE req_fraz_storage(u8 feature_code)
+STATUS req_fraz_record(u8 feature_code)
 {
 	FRAZ_ID_TYPE fid;
 	u8 i;
 
 	
-	fid = get_fraz_ref(feature_code);
+	fid = inquire_fraz_record(feature_code);
 
 	if(fid == INVALID_RESOURCE_ID)
 	{
@@ -102,66 +100,100 @@ FRAZ_ID_TYPE req_fraz_storage(u8 feature_code)
 
 	for(i=fid;i>0;i--)
 	{
-		mem_cpy((ARRAY_HANDLE)&fraz_data_db[i-1], (ARRAY_HANDLE)&fraz_data_db[i], sizeof(FRAZ_RECORD_STRUCT));
+		mem_cpy((ARRAY_HANDLE)&fraz_data_db[i],(ARRAY_HANDLE)&fraz_data_db[i-1], sizeof(FRAZ_RECORD_STRUCT));
 	}
 
 	mem_clr(&fraz_data_db[0],sizeof(FRAZ_RECORD_STRUCT),1);
 	fraz_data_db[0].feature_code = feature_code;
 
-	return 0;
+	return OKAY;
 }
 
 /*******************************************************************************
-* Function Name  : save_fraz_record
+* Function Name  : write_fraz_record
 * Description    : 存储一条冻结数据, mask指定存储的数据类型
 * Input          : 
 * Output         : 
 * Return         : 
 *******************************************************************************/
-void save_fraz_record(FRAZ_ID_TYPE fid, u8 mask, u16 data)
+STATUS write_fraz_record(u8 feature_code, u8 mask, u16 data)
 {
-	if(fid < MAX_FREZ_DATA_POINTS)
+	FRAZ_ID_TYPE fid;
+
+	fid = inquire_fraz_record(feature_code);
+
+	if(fid != INVALID_RESOURCE_ID)
 	{
-		fraz_data_db[fid].mask |= mask;
-		switch(mask)
+		if(!(fraz_data_db[fid].mask & mask))			//必须从申请后没有被写过
 		{
-			case(BIT_ACP_CMD_MASK_U):
+			fraz_data_db[fid].mask |= mask;
+			switch(mask)
 			{
-				fraz_data_db[fid].fraz_u = data;
-				break;
-			}
-			case(BIT_ACP_CMD_MASK_I):
-			{
-				fraz_data_db[fid].fraz_i = data;
-				break;
-			}
-			case(BIT_ACP_CMD_MASK_T):
-			{
-				fraz_data_db[fid].fraz_t = data;
-				break;
-			}
-			default:
-			{
-				fraz_data_db[fid].mask = 0;
-				my_printf("error mask\r\n");
-				break;
+				case(BIT_ACP_CMD_MASK_U):
+				{
+					fraz_data_db[fid].fraz_u = data;
+					return OKAY;
+				}
+				case(BIT_ACP_CMD_MASK_I):
+				{
+					fraz_data_db[fid].fraz_i = data;
+					return OKAY;
+				}
+				case(BIT_ACP_CMD_MASK_T):
+				{
+					fraz_data_db[fid].fraz_t = data;
+					return OKAY;
+				}
+				default:
+				{
+				}
 			}
 		}
 	}
+	return FAIL;
 }
 
-void save_fraz_record_i(FRAZ_ID_TYPE fid, u8 feature_code, u16 i)
+/*******************************************************************************
+* Function Name  : read_fraz_record
+* Description    : 读取一条冻结数据, mask指定存储的数据类型, 如读取错误, 返回0xFFFF
+* Input          : 
+* Output         : 
+* Return         : 
+*******************************************************************************/
+STATUS read_fraz_record(u8 feature_code, u8 mask, s16 * pt_data)
 {
-	fraz_data_db[fid].feature_code = feature_code;
-	fraz_data_db[fid].mask |= BIT_ACP_CMD_MASK_I;
-	fraz_data_db[fid].fraz_i = i;
-}
+	FRAZ_ID_TYPE fid;
+	
+	fid = inquire_fraz_record(feature_code);
 
-void save_fraz_record_t(FRAZ_ID_TYPE fid, u8 feature_code, u16 t)
-{
-	fraz_data_db[fid].feature_code = feature_code;
-	fraz_data_db[fid].mask |= BIT_ACP_CMD_MASK_T;
-	fraz_data_db[fid].fraz_t = t;
+	if(fid != INVALID_RESOURCE_ID)
+	{
+		if(fraz_data_db[fid].mask & mask)
+		{
+			switch(mask)
+			{
+				case(BIT_ACP_CMD_MASK_U):
+				{
+					*pt_data = fraz_data_db[fid].fraz_u;
+					return OKAY;
+				}
+				case(BIT_ACP_CMD_MASK_I):
+				{
+					*pt_data = fraz_data_db[fid].fraz_i;
+					return OKAY;
+				}
+				case(BIT_ACP_CMD_MASK_T):
+				{
+					*pt_data = fraz_data_db[fid].fraz_t;
+					return OKAY;
+				}
+				default:
+				{
+				}
+			}
+		}
+	}
+	return FAIL;
 }
 
 

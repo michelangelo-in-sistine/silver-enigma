@@ -13,15 +13,9 @@
 * INFORMATION CONTAINED HEREIN IN CONNECTION WITH THEIR PRODUCTS.
 *******************************************************************************/
 
-typedef struct
-{
-	u8 feature_code;
-	u8 mask;
-	s16 fraz_u;
-	s16 fraz_i;
-	s16 fraz_t;
-}FRAZ_DATA_STRUCT;
-
-
 void init_fraz(void);
+STATUS req_fraz_record(u8 feature_code);
+STATUS write_fraz_record(u8 feature_code, u8 mask, u16 data);
+STATUS read_fraz_record(u8 feature_code, u8 mask, s16 * pt_data);
+
 
