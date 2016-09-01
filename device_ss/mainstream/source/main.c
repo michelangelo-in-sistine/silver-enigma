@@ -8,7 +8,7 @@ int main(void)
 {
 	APP_RCV_STRUCT ars;
 	TIMER_ID_TYPE xdata tid;
-	
+
 	init_powermesh();
 
 	init_app_nvr_data();

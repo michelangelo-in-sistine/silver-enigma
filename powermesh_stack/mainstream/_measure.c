@@ -13,7 +13,7 @@
 #define MEASURE_PGA2()		write_measure_reg(0x15, 0x00000101)
 #define MEASURE_PGA4()		write_measure_reg(0x15, 0x00000202)
 #define MEASURE_PGA8()		write_measure_reg(0x15, 0x00000303)
-#define MEASURE_PGA16()		write_measure_reg(0x15, 0x00000404)
+#define MEASURE_PGA16()		write_measure_reg(0x15, 0x00000304)		//2016-08-31 V通道使用8倍放大倍数, 避免40V超过输入ADC量程
 #define MEASURE_PGA24()		write_measure_reg(0x15, 0x00000505)
 #define MEASURE_PGA32()		write_measure_reg(0x15, 0x00000606)
 
@@ -22,8 +22,16 @@
 #define MEASURE_REG_V		0x03		//电压测量通道V
 
 #define MEASURE_POINTS_CNT	2
-#define CALIB_MEAN_TIME		4
+#define CALIB_MEAN_TIME		64
+#define CALIB_MEAN_SHIFT	6			//log2(CALIB_MEAN_TIME), 用于四舍五入快速计算
+
 #define MEASURE_MEAN_TIME	4
+
+#define integer_round_shift(value, shift_bits)	 ((value & (0x01<<(shift_bits-1))) ? ((value >> shift_bits) + 1) : (value >> shift_bits))
+//#define integer_round_shift(value, shift_bits)	 (value >> shift_bits)
+
+//#define float_to_round_int(f)	((s16)((f>=0) ? (f+0.5) : (f-0.5)))
+#define float_to_round_int(f)	((s16)(f))			
 
 typedef struct
 {
@@ -106,19 +114,27 @@ void init_measure(void)
 *******************************************************************************/
 s32 convert_uint24_to_int24(u32 value)
 {
+#if MEASURE_DEVICE == BL6523GX
 	if(value & 0xFF800000)
 	{
 		return (s32)((value&0x00FFFFFF) - 0x01000000);
 	}
+#elif MEASURE_DEVICE == BL6523B					//6523B有效数字22位,高2位都是符号位,所以可以看成是21位
+	if(value & 0x200000)
+	{
+		return (s32)((value&0x003FFFFF) - 0x00400000);
+	}
+#endif
 	else
 	{
 		return (s32)value;
 	}
 }
 
+
 /*******************************************************************************
 * Function Name  : read_mean_measure_reg
-* Description    : 
+* Description    : 6810+BL6523B 一次电压电流SPI测量时间为400us
 * Input          : 
 * Output         : 
 * Return         : 
@@ -131,9 +147,11 @@ s32 read_mean_measure_reg(u8 measure_reg_addr)
 	for(i=0;i<CALIB_MEAN_TIME;i++)
 	{
 		reg_value += convert_uint24_to_int24(read_measure_reg(measure_reg_addr));	//串口读一次时间很长,远低于刷新率
+		FEED_DOG();
 	}
-	reg_value /= CALIB_MEAN_TIME;
-	
+
+	reg_value = integer_round_shift(reg_value,CALIB_MEAN_SHIFT);
+
 	return reg_value;
 }
 
@@ -191,10 +209,10 @@ s16 measure_current_param(LINEAR_CALIB_STRUCT xdata * calib, u8 measure_reg_addr
 
 	reg_value = read_mean_measure_reg(measure_reg_addr);
 #ifdef DEBUG_MODE
-	my_printf("measure reg value%d\n",reg_value);
+	my_printf("measure reg value %ld\n",reg_value);
 #endif
 
-	return (s16)(calib->k * reg_value + calib->b);
+	return float_to_round_int(calib->k * reg_value + calib->b);
 }
 
 
@@ -235,7 +253,7 @@ s16 measure_current_v(void)
 	s16 current_v;
 
 #ifdef DEBUG_MODE
-	my_printf("calib_v, k:%d, b:%d\r\n", (u32)(calib_v.k*100000), (u32)(calib_v.b*100000));
+	my_printf("calib_v, k:%ld, b:%ld\r\n", (s32)(calib_v.k*100000), (s32)(calib_v.b*100000));
 #endif
 	
 	current_v = measure_current_param(&calib_v, MEASURE_REG_V);
@@ -260,7 +278,7 @@ s16 measure_current_v(void)
 s16 measure_current_i(void)
 {
 #ifdef DEBUG_MODE
-	my_printf("calib_i, k:%d, b:%d\r\n", (u32)(calib_i.k*100000), (u32)(calib_i.b*100000));
+	my_printf("calib_i, k:%ld, b:%ld\r\n", (s32)(calib_i.k*100000), (s32)(calib_i.b*100000));
 #endif
 	return measure_current_param(&calib_i, MEASURE_REG_I);
 }

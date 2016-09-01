@@ -554,7 +554,7 @@ void spi_delay()
 {
 	u8 i;
 
-	for(i=0;i<200;i++);
+	for(i=0;i<4;i++);		//一次SPI读取时间为400us
 }
 
 void spi_write_byte(u8 byte)

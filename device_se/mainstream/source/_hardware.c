@@ -915,7 +915,7 @@ void get_uid(u8 phase, ARRAY_HANDLE pt)
   * @note   
   * @retval None
   */
-void init_measure_com_hardware(void)
+void init_measure_hardware(void)
 {
 	GPIO_InitTypeDef GPIO_InitStructure;
 	USART_InitTypeDef USART_InitStructure;

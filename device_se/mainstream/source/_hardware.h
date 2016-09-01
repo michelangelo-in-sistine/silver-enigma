@@ -96,7 +96,7 @@ TIMING_CALCULATION_TYPE srf_trans_sticks(u8 rate,u8 scan);
 
 
 /* Measure Calculation */
-void init_measure_com_hardware(void);
+void init_measure_hardware(void);
 void measure_com_send8(u8 byte_data);
 u8 measure_com_read8(u8 * rec_byte);
 void write_measure_reg(u8 addr, u32 dword_value);

@@ -36,6 +36,10 @@
 #define CPU_STM32F103RC			3
 #define CPU_STM32F030C8			4
 
+/* MEASURE Device Devine -------------------------------------*/
+#define BL6523GX				1
+#define BL6523B					2
+
 /* POWER LINE Define -----------------------------------------*/
 #define PL_AC					1				//220 AV Power
 #define PL_DC					2				//DC Power
@@ -49,6 +53,8 @@
 /* Hardware Define ------------------------------------------------*/
 #define DEVICE_TYPE 		DEVICE_SE
 #define CPU_TYPE 			CPU_STM32F030C8
+#define MEASURE_DEVICE		BL6523GX
+
 
 #if DEVICE_TYPE==DEVICE_CC || DEVICE_TYPE==DEVICE_CV || DEVICE_TYPE==DEVICE_SE
 #define NODE_TYPE 			NODE_MASTER

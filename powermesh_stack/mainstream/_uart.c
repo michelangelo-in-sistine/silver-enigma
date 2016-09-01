@@ -844,7 +844,7 @@ void powermesh_debug_cmd_proc(u8 xdata * ptr, u16 total_rec_bytes)
 				
 				index = *ptr++;
 				value = read_int(ptr,rest_rec_bytes-1);
-				my_printf("calib v, point:%d, value:%d\r\n",index,value);
+				my_printf("calib v, point:%bu, value:%u\r\n",index,value);
 				set_v_calib_point(index,value);
 				break;
 			}
@@ -855,7 +855,7 @@ void powermesh_debug_cmd_proc(u8 xdata * ptr, u16 total_rec_bytes)
 				
 				index = *ptr++;
 				value = read_int(ptr,rest_rec_bytes-1);
-				my_printf("calib i, point:%d, value:%d\r\n",index,value);
+				my_printf("calib i, point:%bu, value:%u\r\n",index,value);
 				set_i_calib_point(index,value);
 
 				break;
@@ -868,7 +868,7 @@ void powermesh_debug_cmd_proc(u8 xdata * ptr, u16 total_rec_bytes)
 				
 				v = measure_current_v();
 				i = measure_current_i();
-				my_printf("v:%d,i:%d\n",v,i);
+				my_printf("v:%ld,i:%ld\n",v,i);
 				break;
 			}
 			else if(cmd==0x73)					//73
