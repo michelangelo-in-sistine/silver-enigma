@@ -60,14 +60,19 @@
 #define CMD_ACP_READ_CURR_PARA	0x02					//读当前参数
 #define CMD_ACP_FRAZ_PARA		0x03					//保存冻结参数
 #define CMD_ACP_READ_FRAZ_PARA	0x04					//读冻结参数
-#define CMD_ACP_SET_COMM 		0x05					//设置通信参数
 
-#define CMD_ACP_READ_CALI		0x08					//读取校正参数
-#define CMD_ACP_SET_CALI		0x09					//设置校正参数
-#define CMD_ACP_SAVE_CALI		0x0A					//保存校正参数
+//#define CMD_ACP_SET_COMM 		0x05					//设置通信参数	TBD
+//#define CMD_ACP_READ_CALI		0x08					//读取校正参数	
+//#define CMD_ACP_SET_CALI		0x09					//设置校正参数
+//#define CMD_ACP_SAVE_CALI		0x0A					//保存校正参数
 
-#define CMD_ACP_CALI_T			0x0B					//校正T
-#define CMD_ACP_CALI_UI			0x0C					//校正电压电流
+#define CMD_ACP_CALI			0x0C					//校正
+#define CMD_ACP_CALI_T			'T'						//校正温度
+#define CMD_ACP_CALI_I			'I'						//校正电流
+#define CMD_ACP_CALI_U			'U'						//校正电压
+#define CMD_ACP_CALI_SAVE		'S'						//保存参数
+#define CMD_ACP_CALI_RESET		'R'						//复位
+
 
 #define CMD_ACP_NVR				0x0E					//NVR系列功能
 #define CMD_ACP_NVR_ERAZ		'E'						//擦除NVR 0x45
@@ -77,9 +82,11 @@
 
 
 
-#define EXCEPTION_HARDFAULT		0x81		//硬件错误, 如NVR存储
-#define EXCEPTION_FORMAT_ERROR	0x82		//命令格式错误, 如非法命令字
-#define EXCEPTION_EXEC_ERROR	0x83		//执行错误, 如没有指定的冻结数据
+#define EXCEPTION_HARDFAULT			0x81		//硬件错误, 如NVR存储
+#define EXCEPTION_FORMAT_ERROR		0x82		//命令格式错误, 如非法命令字
+#define EXCEPTION_EXEC_ERROR		0x83		//执行错误, 如没有指定的冻结数据
+#define EXCEPTION_AUTHORITY_ERROR	0x84		//执行错误, 如没有指定的冻结数据
+
 
 
 /* private variables ---------------------------------------------------------*/
@@ -405,6 +412,58 @@ BOOL check_passwd(ARRAY_HANDLE passwd)
 	return TRUE;
 }
 
+/*******************************************************************************
+* Function Name  : measure_current_item()
+* Description    : 传入要测量的项目
+* Input          : 
+* Output         : 
+* Return         : 测量值, 上一层保证mask绝对不会出错
+*******************************************************************************/
+s16 measure_current_item(u8 mask)
+{
+	switch(mask)
+	{
+		case(BIT_ACP_CMD_MASK_T):
+		{
+			return measure_current_t();
+		}
+		case(BIT_ACP_CMD_MASK_I):
+		{
+			return measure_current_i();
+		}
+		case(BIT_ACP_CMD_MASK_U):
+		{
+			return measure_current_v();
+		}
+	}
+	my_printf("error mask %bu\r\n",mask);
+	return 0;
+}
+
+/*******************************************************************************
+* Function Name  : set_calib_point()
+* Description    : 电压电流校正包装
+* Input          : 
+* Output         : 
+* Return         : 测量值, 上一层保证mask绝对不会出错
+*******************************************************************************/
+s32 set_calib_point(u8 index, s16 real_value, u8 item)
+{
+	switch(item)
+	{
+		case(CMD_ACP_CALI_I):
+		{
+			return set_i_calib_point(index, real_value);
+		}
+		case(CMD_ACP_CALI_U):
+		{
+			return set_v_calib_point(index, real_value);
+		}
+	}
+	my_printf("error item %bu\r\n",item);
+	return 0;
+}
+
 
 /*******************************************************************************
 * Function Name  : acp_cmd_proc()
@@ -422,6 +481,8 @@ u8 acp_cmd_proc(ARRAY_HANDLE body, u8 body_len, ARRAY_HANDLE return_buffer)
 	s16 xdata para;
 	u16 xdata temp;
 	ARRAY_HANDLE body_bkp = body;
+	
+	u8 i;
 
 	cmd = *body++;
 	ptw = return_buffer;
@@ -483,35 +544,128 @@ u8 acp_cmd_proc(ARRAY_HANDLE body, u8 body_len, ARRAY_HANDLE return_buffer)
 		case(CMD_ACP_READ_CURR_PARA):
 		{
 			mask = *body++;
-			if(mask & BIT_ACP_CMD_MASK_T)			//measure current temperature
+			for(i=BIT_ACP_CMD_MASK_BOUND;i>0;i>>=1)
 			{
-				para = measure_current_t();
-				*ptw++ = (u8)(para>>8);
-				*ptw++ = (u8)(para);
-				ret_len += 2;
-			}
-			if(mask & BIT_ACP_CMD_MASK_U)			//measure current voltage
-			{
-				para = measure_current_v();
-				*ptw++ = (u8)(para>>8);
-				*ptw++ = (u8)(para);
-				ret_len += 2;
-			}
-			if(mask & BIT_ACP_CMD_MASK_I)			//measure current i
-			{
-				para = measure_current_i();
-				*ptw++ = (u8)(para>>8);
-				*ptw++ = (u8)(para);
-				ret_len += 2;
+				if(mask & i)
+				{
+					para = measure_current_item(i);
+					*ptw++ = (u8)(para>>8);
+					*ptw++ = (u8)(para);
+					ret_len += 2;
+				}
 			}
 			break;
 		}
 		case(CMD_ACP_FRAZ_PARA):
 		{
+			u8 feature_code;
+
+			feature_code = *body++;
+			mask = *body++;
 			
+			req_fraz_record(feature_code);
+			for(i=BIT_ACP_CMD_MASK_BOUND;i>0;i>>=1)
+			{
+				if(mask & i)
+				{
+					para = measure_current_item(i);
+					write_fraz_record(feature_code, i, para);
+				}
+			}
+			
+			*ptw++ = feature_code;
+			ret_len += 1;
 			break;
 		}
-		
+		case(CMD_ACP_READ_FRAZ_PARA):
+		{
+			u8 feature_code;
+			
+			feature_code = *body++;
+			mask = *body++;
+
+			for(i=BIT_ACP_CMD_MASK_BOUND;i>0;i>>=1)
+			{
+				if(mask & i)
+				{
+					if(read_fraz_record(feature_code, i, &para))
+					{
+						*ptw++ = (u8)(para>>8);
+						*ptw++ = (u8)(para);
+						ret_len += 2;
+					}
+					else
+					{
+						return_buffer[0] = EXCEPTION_FORMAT_ERROR;
+						ret_len = 1;
+						break;
+					}
+				}
+			}
+			break;
+		}
+		case(CMD_ACP_CALI):
+		{
+			u8 sub_command;
+			u8 index;
+			u16 value;
+			s32 reg_value;
+			
+			sub_command = *body++;
+
+			if(check_passwd(&body_bkp[body_len-3]))
+			{
+				switch(sub_command)
+				{
+					case(CMD_ACP_CALI_T):
+					{
+						reg_value = 0;
+						break;
+					}
+					case(CMD_ACP_CALI_I):
+					case(CMD_ACP_CALI_U):
+					{
+						index = *body++;
+						value = *body++;
+						value <<= 8;
+						value += *body++;
+						reg_value = set_calib_point(index,(s16)(value),sub_command);
+
+						*ptw++ = (u8)(reg_value>>24);
+						*ptw++ = (u8)(reg_value>>16);
+						*ptw++ = (u8)(reg_value>>8);
+						*ptw++ = (u8)(reg_value);
+						ret_len += 4;
+						
+						break;
+					}
+					case(CMD_ACP_CALI_SAVE):
+					{
+						save_calib_into_app_nvr();
+						break;
+					}
+					case(CMD_ACP_CALI_RESET):
+					{
+						break;
+					}
+					default:
+					{
+						return_buffer[0] = EXCEPTION_FORMAT_ERROR;
+						ret_len = 1;
+					}
+				}
+
+				if(return_buffer[0] != EXCEPTION_FORMAT_ERROR)
+				{
+				}
+			}
+			else
+			{
+				return_buffer[0] = EXCEPTION_AUTHORITY_ERROR;
+				ret_len = 1;
+			}
+			break;
+		}		
 		case(CMD_ACP_NVR):
 		{
 			u8 sub_command;

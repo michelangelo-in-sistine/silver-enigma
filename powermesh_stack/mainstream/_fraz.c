@@ -8,6 +8,14 @@
 *						采集器会使用此特征码做后续的数据采集任务
 *						保存冻结数据时, 会寻找同一特征码的存储位置并将其覆盖, 如无, 则优选尚未使用过的存储位置; 
 *						当所有位置都使用过后, 选择最陈旧数据的存储位置
+* Usage:
+* 1.写入前先用特征码申请存储,调用req_fraz_record()
+* 2.写入数据, 用STATUS write_fraz_record(u8 feature_code, u8 mask, u16 data)
+* 3.不能对一个数据重复写入
+* 4.调用已存储的数据,用STATUS read_fraz_record(u8 feature_code, u8 mask, s16 * pt_data)
+* 5.req时使用数据库里已有的特征码,将覆盖原纪录
+* 6.req是使用数据库里没有的特征码,最旧的一条记录被冲掉
+* 7.单元测试文件见 \unit_test\fraz\
 ********************************************************************************
 * THE PRESENT FIRMWARE WHICH IS FOR GUIDANCE ONLY AIMS AT PROVIDING CUSTOMERS
 * WITH CODING INFORMATION REGARDING THEIR PRODECTS IN ORDER FOR THEM TO SAVE TIME.
@@ -116,7 +124,7 @@ STATUS req_fraz_record(u8 feature_code)
 * Output         : 
 * Return         : 
 *******************************************************************************/
-STATUS write_fraz_record(u8 feature_code, u8 mask, u16 data)
+STATUS write_fraz_record(u8 feature_code, u8 mask, s16 data)
 {
 	FRAZ_ID_TYPE fid;
 

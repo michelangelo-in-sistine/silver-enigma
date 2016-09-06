@@ -161,9 +161,9 @@ s32 read_mean_measure_reg(u8 measure_reg_addr)
 * Description    : 
 * Input          : 
 * Output         : 
-* Return         : 
+* Return         : reg_value
 *******************************************************************************/
-void set_linear_calib_point(u8 index, LINEAR_CALIB_STRUCT xdata * calib, u8 measure_reg_addr, s16 real_value)
+s32 set_linear_calib_point(u8 index, LINEAR_CALIB_STRUCT xdata * calib, u8 measure_reg_addr, s16 real_value)
 {
 	s32 reg_value = 0;
 
@@ -172,7 +172,7 @@ void set_linear_calib_point(u8 index, LINEAR_CALIB_STRUCT xdata * calib, u8 meas
 #ifdef DEBUG_MODE
 		my_printf("calib point index error\n");
 #endif
-		return;
+		return 0;
 	}
 
 	reg_value = read_mean_measure_reg(measure_reg_addr);
@@ -194,6 +194,8 @@ void set_linear_calib_point(u8 index, LINEAR_CALIB_STRUCT xdata * calib, u8 meas
 			calib->b = calib->y[1] - calib->k * calib->x[1];
 		}
 	}
+
+	return reg_value;
 }
 
 /*******************************************************************************
@@ -223,9 +225,9 @@ s16 measure_current_param(LINEAR_CALIB_STRUCT xdata * calib, u8 measure_reg_addr
 * Output         : 
 * Return         : 
 *******************************************************************************/
-void set_v_calib_point(u8 index, s16 v_real_value)
+s32 set_v_calib_point(u8 index, s16 v_real_value)
 {
-	set_linear_calib_point(index, &calib_v, MEASURE_REG_V, v_real_value);
+	return set_linear_calib_point(index, &calib_v, MEASURE_REG_V, v_real_value);
 }
 
 /*******************************************************************************
@@ -235,9 +237,9 @@ void set_v_calib_point(u8 index, s16 v_real_value)
 * Output         : 
 * Return         : 
 *******************************************************************************/
-void set_i_calib_point(u8 index, s16 i_real_value)
+s32 set_i_calib_point(u8 index, s16 i_real_value)
 {
-	set_linear_calib_point(index, &calib_i, MEASURE_REG_I, i_real_value);
+	return set_linear_calib_point(index, &calib_i, MEASURE_REG_I, i_real_value);
 }
 
 

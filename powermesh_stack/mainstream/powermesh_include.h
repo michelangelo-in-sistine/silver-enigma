@@ -21,6 +21,7 @@
 #include "_uart.h"
 #include "_app.h"
 #include "_app_nvr_data.h"
+#include "_fraz.h"
 
 
 #if NODE_TYPE==NODE_MASTER

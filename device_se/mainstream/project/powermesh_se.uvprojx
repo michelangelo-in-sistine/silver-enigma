@@ -572,6 +572,11 @@
               <FileType>1</FileType>
               <FilePath>..\..\..\powermesh_stack\mainstream\_ptp.c</FilePath>
             </File>
+            <File>
+              <FileName>_fraz.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\powermesh_stack\mainstream\_fraz.c</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
