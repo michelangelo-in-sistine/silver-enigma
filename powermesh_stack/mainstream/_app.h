@@ -20,8 +20,8 @@
 /* Exported defines ------------------------------------------------------------*/
 #define BIT_ACP_CMD_MASK_BOUND	0x04		//max mask valid bit, for loop usage
 #define BIT_ACP_CMD_MASK_T		0x04
-#define BIT_ACP_CMD_MASK_U		0x02
-#define BIT_ACP_CMD_MASK_I		0x01
+#define BIT_ACP_CMD_MASK_I		0x02
+#define BIT_ACP_CMD_MASK_U		0x01
 
 
 /* Exported types ------------------------------------------------------------*/

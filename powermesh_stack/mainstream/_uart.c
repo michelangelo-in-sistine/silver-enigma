@@ -812,29 +812,34 @@ void powermesh_debug_cmd_proc(u8 xdata * ptr, u16 total_rec_bytes)
 				write_reg(phase,addr,value);
 				proc_rec_bytes++;
 			}
-			//else if(cmd=='r' && rest_rec_bytes>=1)	//0x72 ¶Á6532
-			//{
-			//	extern s32 convert_uint24_to_int24(u32 value);
+			else if(cmd==0x70)
+			{
+				PIN_TX_ON = *ptr++;
+				break;
+			}
+			else if(cmd==0x12 && rest_rec_bytes>=1)	//0x12 ¶Á6523
+			{
+				extern s32 convert_uint24_to_int24(u32 value);
 
-			//	s32 value;
-			//	value = convert_uint24_to_int24(read_measure_reg(*ptr++));
-			//	my_printf("read:%d\n",value);
-			//}
-			//else if(cmd=='w' && rest_rec_bytes>=4)	//0x77 Ð´6532
-			//{
-			//	u8 addr;
-			//	u32 dword = 0;
+				s32 value;
+				value = convert_uint24_to_int24(read_measure_reg(*ptr++));
+				my_printf("read BL6523:%lX\n",value);
+			}
+			else if(cmd==0x17 && rest_rec_bytes>=4)	//0x17 Ð´6523
+			{
+				u8 addr;
+				u32 dword = 0;
 
-			//	addr = *ptr++;
-			//	dword += *ptr++;
-			//	dword <<= 8;
-			//	dword += *ptr++;
-			//	dword <<= 8;
-			//	dword += *ptr++;
-			//	
-			//	write_measure_reg(addr,dword);
-			//	my_printf("set:%lX\n",dword);
-			//}
+				addr = *ptr++;
+				dword += *ptr++;
+				dword <<= 8;
+				dword += *ptr++;
+				dword <<= 8;
+				dword += *ptr++;
+				
+				write_measure_reg(addr,dword);
+				my_printf("set BL6523:%lX\n",dword);
+			}
 			
 			else if(cmd==0x70 && rest_rec_bytes>=2)	//0x70		ÉèÖÃ²âÁ¿µãµçÑ¹
 			{
@@ -946,17 +951,28 @@ void powermesh_debug_cmd_proc(u8 xdata * ptr, u16 total_rec_bytes)
 				my_printf("reg_value:%d,t:%d\r\n",reg_value,t);
 				break;
 			}
-
-			
-
-			
-
 			else if(cmd==0x79)					//0x73
 			{
 				save_calib_into_app_nvr();
 				my_printf("save");
 				break;
 			}
+			else if(cmd==0x81)					// read 6523 reg
+			{
+				u8 addr;
+				u32 reg_value;
+
+				addr = *ptr++;
+				reg_value = read_measure_reg(addr);
+				my_printf("addr:%bx,reg_value:%lx\r\n",addr,reg_value);
+				break;
+			}
+			else if(cmd==0x83)					// init measure
+			{
+				init_measure();
+				my_printf("init measure\r\n");
+				break;
+			}			
 
 #if DEVICE_TYPE == DEVICE_SE			
 			else if(cmd=='S' && rest_rec_bytes>=9)		//0x53: 53 + X_MODE + SCAN + SRF + AC_UPDATE + 4B Delay + PACKAGE
@@ -1165,7 +1181,7 @@ void powermesh_debug_cmd_proc(u8 xdata * ptr, u16 total_rec_bytes)
 				acp_domain_broadcast(domain_id,ptr,rest_rec_bytes-1);
 				break;
 			}
-			else if(cmd==0x4D && rest_rec_bytes>= 7)
+			else if(cmd==0x4D && rest_rec_bytes>= 7)	//0x4D 
 			{
 				u16 temp;
 				u16 domain_id;

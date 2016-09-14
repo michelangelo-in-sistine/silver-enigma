@@ -85,7 +85,7 @@
 #define EXCEPTION_HARDFAULT			0x81		//硬件错误, 如NVR存储
 #define EXCEPTION_FORMAT_ERROR		0x82		//命令格式错误, 如非法命令字
 #define EXCEPTION_EXEC_ERROR		0x83		//执行错误, 如没有指定的冻结数据
-#define EXCEPTION_AUTHORITY_ERROR	0x84		//执行错误, 如没有指定的冻结数据
+#define EXCEPTION_AUTHORITY_ERROR	0x84		//安全错误, 如密码错误
 
 
 
@@ -630,6 +630,7 @@ u8 acp_cmd_proc(ARRAY_HANDLE body, u8 body_len, ARRAY_HANDLE return_buffer)
 						value <<= 8;
 						value += *body++;
 						reg_value = set_calib_point(index,(s16)(value),sub_command);
+						my_printf("set_calib_point %bx, value:%d\r\n",index,value);
 
 						*ptw++ = (u8)(reg_value>>24);
 						*ptw++ = (u8)(reg_value>>16);

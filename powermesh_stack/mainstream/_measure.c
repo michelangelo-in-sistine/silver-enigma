@@ -180,7 +180,7 @@ s32 set_linear_calib_point(u8 index, LINEAR_CALIB_STRUCT xdata * calib, u8 measu
 	calib->x[index] = reg_value;		//reg值作为x, 计算k时分母够大
 	calib->y[index] = real_value;
 
-//my_printf("index:%d,reg_value:%d,real_value:%d\n",index,reg_value,real_value);
+my_printf("index:%bu,reg_value:%ld,real_value:%d\n",index,reg_value,real_value);
 
 	if(index == MEASURE_POINTS_CNT - 1)
 	{

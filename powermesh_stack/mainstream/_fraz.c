@@ -124,7 +124,7 @@ STATUS req_fraz_record(u8 feature_code)
 * Output         : 
 * Return         : 
 *******************************************************************************/
-STATUS write_fraz_record(u8 feature_code, u8 mask, s16 data)
+STATUS write_fraz_record(u8 feature_code, u8 mask, s16 value)
 {
 	FRAZ_ID_TYPE fid;
 
@@ -139,17 +139,17 @@ STATUS write_fraz_record(u8 feature_code, u8 mask, s16 data)
 			{
 				case(BIT_ACP_CMD_MASK_U):
 				{
-					fraz_data_db[fid].fraz_u = data;
+					fraz_data_db[fid].fraz_u = value;
 					return OKAY;
 				}
 				case(BIT_ACP_CMD_MASK_I):
 				{
-					fraz_data_db[fid].fraz_i = data;
+					fraz_data_db[fid].fraz_i = value;
 					return OKAY;
 				}
 				case(BIT_ACP_CMD_MASK_T):
 				{
-					fraz_data_db[fid].fraz_t = data;
+					fraz_data_db[fid].fraz_t = value;
 					return OKAY;
 				}
 				default:

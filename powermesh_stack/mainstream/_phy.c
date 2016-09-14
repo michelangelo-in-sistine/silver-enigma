@@ -146,7 +146,7 @@ void phy_rcv_int_svr(PHY_RCV_HANDLE pp)
 	u8 xdata * pt_plc_rcv_parity_err;
 
 #if DEVICE_TYPE == DEVICE_CC || DEVICE_TYPE == DEVICE_SS || DEVICE_TYPE == DEVICE_SE
-	led_r_on();
+//	led_r_on();
 #endif
 	
 	phase = pp->phase;

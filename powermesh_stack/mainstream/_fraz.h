@@ -15,7 +15,7 @@
 
 void init_fraz(void);
 STATUS req_fraz_record(u8 feature_code);
-STATUS write_fraz_record(u8 feature_code, u8 mask, s16 data);
+STATUS write_fraz_record(u8 feature_code, u8 mask, s16 value);
 STATUS read_fraz_record(u8 feature_code, u8 mask, s16 * pt_data);
 
 
