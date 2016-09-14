@@ -812,11 +812,6 @@ void powermesh_debug_cmd_proc(u8 xdata * ptr, u16 total_rec_bytes)
 				write_reg(phase,addr,value);
 				proc_rec_bytes++;
 			}
-			else if(cmd==0x70)
-			{
-				PIN_TX_ON = *ptr++;
-				break;
-			}
 			else if(cmd==0x12 && rest_rec_bytes>=1)	//0x12 ¶Á6523
 			{
 				extern s32 convert_uint24_to_int24(u32 value);

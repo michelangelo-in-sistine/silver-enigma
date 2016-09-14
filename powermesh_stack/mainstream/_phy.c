@@ -737,7 +737,9 @@ STATUS wait_until_send_over(SEND_ID_TYPE sid)
 				FEED_DOG();
 		}
 	}
-	return OKAY;
+#if NODE_TYPE==NODE_MASTER
+	return OKAY;			//SET_BREAK_THROUGH °üº¬break;
+#endif
 }
 
 /*******************************************************************************

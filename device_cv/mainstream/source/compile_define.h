@@ -14,6 +14,8 @@
 *******************************************************************************/
 #ifndef _COMPILE_DEFINE_H
 #define _COMPILE_DEFINE_H
+/* Pragma ------------------------------------------------------------------------*/
+#pragma pack(1)						//1字节数据对齐
 
 /*========================== Common Define ===================================*/
 /* Device Type Define ----------------------------------------*/
@@ -50,38 +52,40 @@
 
 /*========================== Individual Define ====================*/
 /* Hardware Define ------------------------------------------------*/
-#define DEVICE_TYPE 		DEVICE_SS
-#define CPU_TYPE 			CPU_BL6810
-#define MEASURE_DEVICE		BL6523B
+#define DEVICE_TYPE 		DEVICE_CV
+#define CPU_TYPE 			CPU_STM32F030C8
 
-#if DEVICE_TYPE==DEVICE_CC || DEVICE_TYPE==DEVICE_CV
-	#define NODE_TYPE 			NODE_MASTER
+#if DEVICE_TYPE==DEVICE_CV
+#define NODE_TYPE			NODE_MODEM
+#elif DEVICE_TYPE==DEVICE_CC || DEVICE_TYPE==DEVICE_SE
+#define NODE_TYPE 			NODE_MASTER
 #else
-	#define NODE_TYPE			NODE_SLAVE
+#define NODE_TYPE			NODE_SLAVE
 #endif
 
 #if CPU_TYPE==CPU_STM32F103ZE || CPU_TYPE==CPU_STM32F103RC || CPU_TYPE==CPU_STM32F030C8
-	#define CPU_STM32
-	#define PLC_CONTROL_MODE	DEVICE_MODE
+#define CPU_STM32
+#define PLC_CONTROL_MODE	DEVICE_MODE
 #else
-	#define PLC_CONTROL_MODE	SOC_MODE
+#define PLC_CONTROL_MODE	SOC_MODE
 #endif
 
-#define USE_MEASURE
+//#define USE_MEASURE
 
 /* Application Environment Define ---------------------------------*/
 #define POWERLINE 			PL_DC
 
 /* Firmware Feature Define ----------------------------------------*/
-#define BRING_USER_DATA		0	// if defined, bring back user custom data while buiding network
+//#define BRING_USER_DATA		0	// if defined, bring back user custom data while buiding network
 //#define USE_RSCODEC
 //#define USE_ADDR_DB
 #define USE_DIAG
 //#define USE_EBC
-//#define USE_PSR
 //#define USE_MAC
-#define USE_PTP
+
+//#define USE_PSR
 //#define USE_DST
+//#define USE_PTP
 
 /*========================== Debug/Release Switch  ================*/
 /* Release Define ----------------------------------------*/
@@ -97,15 +101,10 @@
 #endif
 
 /* Debug Output Define ----------------------------------------*/
-#if MEASURE_DEVICE == BL6523B
-	#define DEBUG_MODE
-	#define DEBUG_UART_PROC 1
-#else
-	#define DEBUG_UART_PROC 0
-#endif
-
+#define DEBUG_MODE
+#define USE_DMA
+#define DEBUG_UART_PROC 0
 #ifdef DEBUG_MODE
-	//#define USE_DMA
 	#define DEBUG_LEVEL 3
 
 	#if DEBUG_LEVEL >= 1
@@ -137,5 +136,19 @@
 	#endif
 #endif
 
+#ifdef USE_UART 
+	#ifdef RELEASE
+		#define RELEASE_UART_DEBUG			//in realease version, use uart1 as the debug inout port.
+	#endif
+#endif
+
+#endif
+
+/*========================== Compatibility Define ============================*/
+#ifdef CPU_STM32
+	#define idata
+	#define xdata					// keep compatibility with 8051 code
+	#define code
+	#define reentrant
 #endif
 

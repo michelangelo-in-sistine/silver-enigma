@@ -137,11 +137,13 @@ void timer_int_svr(void)
 		phy_rcv_proc(&_phy_rcv_obj[i]);
 		_dll_rcv_obj[i].phase = i;
 		dll_rcv_proc(&_dll_rcv_obj[i]);
+#if NODE_TYPE != NODE_MODEM
 		_psr_rcv_obj[i].phase = i;
 		nw_rcv_proc(&_psr_rcv_obj[i]);
 #ifdef USE_PSR
 		_app_rcv_obj[i].phase = i;
 		mgnt_app_rcv_proc(&_app_rcv_obj[i]);
+#endif
 #endif
 	}
 }

@@ -138,8 +138,9 @@ void init_powermesh(void)
 #ifdef USE_PTP
 	init_ptp();
 #endif
+#if NODE_TYPE != NODE_MODEM
 	init_mgnt_app();
-
+#endif
 #if NODE_TYPE==NODE_MASTER
 #ifdef TEST_TRANSACTION
 	init_app_transaction();
