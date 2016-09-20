@@ -110,7 +110,7 @@ void my_putchar(u8 x)
 * Output         : None
 * Return         : None
 *******************************************************************************/
-void my_printf(const char code * fmt, ...) reentrant
+void _my_printf(const char code * fmt, ...) reentrant
 {
 	va_list args;
 	u8 buffer[10];
@@ -303,4 +303,37 @@ void my_printf(const char code * fmt, ...) reentrant
 void __aeabi_assert(const char * s, const char * f, int line)
 {
 	printf("%s,%s,%d",s,f,line);
+}
+
+void _uart_send(u8 * ptr, u16 len)
+{
+	u16 i;
+	
+	for(i=0;i<len;i++)
+	{
+		my_putchar(*ptr++);
+	}
+}
+
+void _uart_send_asc(ARRAY_HANDLE pt, u16 len) reentrant
+{
+	u16 i;
+	u8 temp;
+	
+	if(len>0)
+	{
+		for(i=0;i<len;i++)
+		{
+			temp = (*pt)>>4;
+			temp = temp + ((temp < 10) ? '0' : ('A'-10));
+			my_putchar(temp);
+
+			temp = (*pt++)&0x0F;
+			temp = temp + ((temp < 10) ? '0' : ('A'-10));
+
+			my_putchar(temp);
+		}
+		//uart_send8(' ');	
+	}
+	
 }

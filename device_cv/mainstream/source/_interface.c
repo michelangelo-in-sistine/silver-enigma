@@ -30,15 +30,23 @@
 #define MY_PRINTF_STR	0x10
 #endif
 
+/* Function Code Definition ---------------------------------------------------------*/
 #define INTERFACE_CMD_READ_UID			0x01
-#define INTERFACE_CMD_NOTIFY_ADDR		0x02
-#define INTERFACE_CMD_READ_PHY			0x03
-#define INTERFACE_CMD_SET_PHY			0x04
+#define INTERFACE_CMD_READ_PHY_REG		0x03
+#define INTERFACE_CMD_SET_PHY_REG		0x04
 #define INTERFACE_CMD_SET_INDICATION_LEVEL			0x05
 #define INTERFACE_CMD_PHY_SEND			0x10
 #define INTERFACE_CMD_DLL_SEND			0x11
-#define INTERFACE_CMD_DIAG_SEND			0x12
+#define INTERFACE_CMD_DIAG				0x12
 #define INTERFACE_CMD_PLC_INDICATION	0x20
+
+#define INTERFACE_CMD_EXCEPTION			0x80
+#define INTERFACE_CMD_UPLINK			0x40				//CV传给GW的标志
+#define INTERFACE_CMD_ERROR_UNKNOWN_CMD			0x01		//错误的命令字
+
+
+
+
 
 
 /* Private variables ---------------------------------------------------------*/
@@ -197,7 +205,7 @@ void uart_rcv_resume(void)
 * Output         : None
 * Return         : None
 *******************************************************************************/
-#if NODE_TYPE==NODE_MASTER
+#if NODE_TYPE==NODE_MASTER || NODE_TYPE==NODE_MODEM
 void uart_send(u8 * pt, u8 len)
 {
 	u8	i;
@@ -556,6 +564,106 @@ void print_phy_rcv(PHY_RCV_HANDLE pp) reentrant
 	print_packet(pp->phy_rcv_valid,pp->phy_rcv_data,pp->phy_rcv_len);
 }
 
+/*******************************************************************************
+* Function Name  : check_format(u8 xdata * ptr, u16 total_rec_bytes)
+* Description    : cv interactive frame should consist of all [0-9] or [A-Z] 
+					ascii characters and included by a pair of '<' and '>'
+* Input          : None
+* Output         : None
+* Return         : 
+*******************************************************************************/
+RESULT check_format(u8 xdata * ptr, u16 total_rec_bytes)
+{
+	u16 i;
+	u8 temp;
+
+	if(total_rec_bytes < 6)			//addr 2B, function code 1B, command 1B, body NB, crc 2B at least 6B
+	{
+		return WRONG;
+	}
+
+	if(total_rec_bytes & 0x01)		//total_rec_bytes should be even number
+	{
+		return WRONG;
+	}
+
+	if(*ptr++ == '<')
+	{
+		for(i=1;i<total_rec_bytes-1;i++)
+		{
+			temp = *ptr++;
+			if((temp>='0' && temp<='9') || (temp>='A' && temp<='F'))
+			{
+				continue;
+			}
+			else
+			{
+				return WRONG;
+			}
+		}
+	}
+
+	if(*ptr == '>')
+	{
+		return CORRECT;
+	}
+	
+	return WRONG;
+}
+
+/*******************************************************************************
+* Function Name  : hexstr2u8
+* Description    : cv frame consists of ASCII character, and should be converted to unsigned char
+					Here assume all characters has been checked by check_format() and guarantee all legal ascii numbers
+* Input          : None
+* Output         : None
+* Return         : 
+*******************************************************************************/
+u16 hexstr2u8(u8 xdata * ptr, u16 total_rec_bytes)
+{
+	u8 xdata * ptw;
+	u8 temp;
+	u16 i;
+
+	ptw = ptr++;
+
+	for(i=0;i<total_rec_bytes-1;i++)
+	{
+		temp = *ptr++;
+		*ptw = ((temp<='9')?(temp-'0'):(temp-'A'+10))<<4;
+		temp = *ptr++;
+		*ptw++ += ((temp<='9')?(temp-'0'):(temp-'A'+10));
+	}
+	return (total_rec_bytes>>1)-1;
+}
+
+/*******************************************************************************
+* Function Name  : check_dest_addr
+* Description    : 
+* Input          : None
+* Output         : None
+* Return         : 
+*******************************************************************************/
+RESULT check_dest_addr(u8 xdata * ptr)
+{
+	u8 uid[6];
+	u16 crc;
+	
+	if((ptr[0]==0) && (ptr[1]==0))
+	{
+		return CORRECT;
+	}
+	else
+	{
+		get_uid(0,uid);
+		crc = calc_crc(uid,6);
+		if((ptr[0] == (crc>>8)) && (ptr[1] == (crc)))
+		{
+			return CORRECT;
+		}
+	}
+	return WRONG;
+}
 
 /*******************************************************************************
 * Function Name  : interface_uart_cmd_proc()
@@ -566,56 +674,75 @@ void print_phy_rcv(PHY_RCV_HANDLE pp) reentrant
 *******************************************************************************/
 void interface_uart_cmd_proc(u8 xdata * ptr, u16 total_rec_bytes)
 {
-
 	u8 xdata out_buffer_len;
 	ARRAY_HANDLE ptw;
-	u8 xdata proc_rec_bytes;
 	u8 xdata cmd;
-	u16 xdata rest_rec_bytes;
 	
 	out_buffer_len = 0;
-//	if(_interface_uart_buffer)
 
-	if(check_crc(ptr, total_rec_bytes))
+	if(check_format(ptr, total_rec_bytes))
 	{
-		ptw = _interface_uart_buffer;
-		proc_rec_bytes = 0;
-		
-		while(proc_rec_bytes < total_rec_bytes)
+		total_rec_bytes = hexstr2u8(ptr, total_rec_bytes);
+		if(check_crc(ptr, total_rec_bytes))
 		{
-			cmd = *ptr++;
-			proc_rec_bytes++;
-			rest_rec_bytes = total_rec_bytes - proc_rec_bytes;
-
-			if(cmd=='C')								//0x43: check global vars
+			if(check_dest_addr(ptr))									// check destination(all zero or crc of uid)
 			{
-				my_printf("response\n");
-			}
-			else if(cmd=='R' && rest_rec_bytes>=1)		//0x52: read a byte from current phase
-			{
-				*ptw++ = read_reg(phase,*ptr++);
-				proc_rec_bytes++;
-				out_buffer_len++;
-			}
-			else if(cmd=='W' && rest_rec_bytes>=1)		//0x57: write a byte from current phase
-			{
-				u8 addr;
-				u8 value;
-
-				addr = *ptr++;
-				value = *ptr++;
+				ptw = _interface_uart_buffer;
 				
-				write_reg(phase,addr,value);
-				proc_rec_bytes++;
-			}
-			else
-			{
-				uart_rcv_resume();
-				break;
+				cmd = *ptr++;
+				*ptw++ = cmd | INTERFACE_CMD_UPLINK;
+				out_buffer_len = 1;
+
+				switch(cmd)
+				{
+					case(INTERFACE_CMD_READ_UID):								//0x43: check global vars
+					{
+						get_uid(0,ptw);
+						out_buffer_len += 6;
+						break;
+					}
+					case(INTERFACE_CMD_READ_PHY_REG):
+					{
+						*ptw++ = read_reg(0,*ptr);
+						out_buffer_len += 1;
+						break;
+					}
+					case(INTERFACE_CMD_SET_PHY_REG):
+					{
+						u8 addr,value;
+
+						addr = *ptr++;
+						value = *ptr;
+						write_reg(0,addr,value);
+
+						*ptw++ = read_reg(0,addr);
+						out_buffer_len += 1;
+						break;
+					}
+					default:
+					{
+						ptw--;
+						*ptw++ |= 0xC0;
+						*ptw = INTERFACE_CMD_ERROR_UNKNOWN_CMD;
+						out_buffer_len += 1;
+						break;
+					}
+				}
+				uart_send_asc(_interface_uart_buffer, out_buffer_len);
 			}
 		}
-		uart_send_asc(_interface_uart_buffer, out_buffer_len);
+		else
+		{
+			my_printf("crc check fail\r\n");
+			uart_send_asc(ptr, total_rec_bytes);
+		}
 	}
+	else
+	{
+		my_printf("format check fail\r\n");
+		uart_send(ptr, total_rec_bytes);
+	}
+	uart_rcv_resume();
 }
 
 void interface_plc_proc(DLL_RCV_HANDLE pd)

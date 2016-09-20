@@ -13,10 +13,6 @@
 * INFORMATION CONTAINED HEREIN IN CONNECTION WITH THEIR PRODUCTS.
 *******************************************************************************/
 
-
-
-
-
 void init_interface(void);
 void interface_proc(void);
 void interface_uart_rcv_int_svr(u8);
