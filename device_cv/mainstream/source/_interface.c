@@ -32,6 +32,7 @@
 
 /* Function Code Definition ---------------------------------------------------------*/
 #define INTERFACE_CMD_READ_UID			0x01
+#define INTERFACE_CMD_GW_UID			0x02			// set GW UID
 #define INTERFACE_CMD_READ_PHY_REG		0x03
 #define INTERFACE_CMD_SET_PHY_REG		0x04
 #define INTERFACE_CMD_SET_INDICATION_LEVEL			0x05
@@ -40,9 +41,12 @@
 #define INTERFACE_CMD_DIAG				0x12
 #define INTERFACE_CMD_PLC_INDICATION	0x20
 
-#define INTERFACE_CMD_EXCEPTION			0x80
-#define INTERFACE_CMD_UPLINK			0x40				//CV传给GW的标志
-#define INTERFACE_CMD_ERROR_UNKNOWN_CMD			0x01		//错误的命令字
+#define INTERFACE_CMD_EXCEPTION					0x80
+#define INTERFACE_CMD_UPLINK					0x40		//CV传给GW的标志
+#define INTERFACE_CMD_EXCEPTION_UNKNOWN_CMD		0x81		//错误的命令字
+#define INTERFACE_CMD_EXCEPTION_ERROR_FORMAT	0x82		//错误的命令格式
+#define INTERFACE_CMD_EXCEPTION_DIAG_FAIL		0x83		//diag失败
+
 
 
 
@@ -58,7 +62,7 @@ u16 xdata _uart_rcv_timer_stamp;
 
 u8 _interface_local_addr[2];
 u8 _interface_gw_addr[2];
-u8 _interface_uart_buffer[256];
+u8 _interface_uart_buffer[UART_BUFFER_DEPTH];
 
 
 /* External variables ---------------------------------------------------------*/
@@ -82,7 +86,7 @@ void init_interface(void)
 	u8 uid[6];
 	u16 crc;
 	
-	init_uart();
+//	init_uart();
 	
 	get_uid(0,uid);
 	crc = calc_crc(uid,6);
@@ -646,8 +650,8 @@ u16 hexstr2u8(u8 xdata * ptr, u16 total_rec_bytes)
 *******************************************************************************/
 RESULT check_dest_addr(u8 xdata * ptr)
 {
-	u8 uid[6];
-	u16 crc;
+//	u8 uid[6];
+//	u16 crc;
 	
 	if((ptr[0]==0) && (ptr[1]==0))
 	{
@@ -655,14 +659,40 @@ RESULT check_dest_addr(u8 xdata * ptr)
 	}
 	else
 	{
-		get_uid(0,uid);
-		crc = calc_crc(uid,6);
-		if((ptr[0] == (crc>>8)) && (ptr[1] == (crc)))
+		//get_uid(0,uid);
+		//crc = calc_crc(uid,6);
+		//if((ptr[0] == (u8)(crc>>8)) && (ptr[1] == (u8)(crc)))
+		//{
+		//	return CORRECT;
+		//}
+		if(ptr[0] == _interface_local_addr[0] && ptr[1] == _interface_local_addr[1])
 		{
 			return CORRECT;
 		}
 	}
 	return WRONG;
+}
+
+void cv_frame_send(u8 xdata * buffer, u16 buffer_len)
+{
+	u8 * ptw;
+	u16 crc;
+
+	ptw = buffer;
+	if(buffer_len < UART_BUFFER_DEPTH-4)
+	{
+		mem_shift(buffer,buffer_len,2);
+		*ptw++ = _interface_gw_addr[0];
+		*ptw++ = _interface_gw_addr[1];
+		ptw += buffer_len;
+
+		crc = calc_crc(buffer,buffer_len+2);
+		*ptw++ = (u8)(crc>>8);
+		*ptw++ = (u8)(crc);
+		my_printf("<");
+		uart_send_asc(buffer, buffer_len+4);
+		my_printf(">");
+	}
 }
 
 /*******************************************************************************
@@ -683,10 +713,12 @@ void interface_uart_cmd_proc(u8 xdata * ptr, u16 total_rec_bytes)
 	if(check_format(ptr, total_rec_bytes))
 	{
 		total_rec_bytes = hexstr2u8(ptr, total_rec_bytes);
-		if(check_crc(ptr, total_rec_bytes))
+		//if(check_crc(ptr, total_rec_bytes))
+		if(1)
 		{
 			if(check_dest_addr(ptr))									// check destination(all zero or crc of uid)
 			{
+				ptr += 2;												// addr 2B
 				ptw = _interface_uart_buffer;
 				
 				cmd = *ptr++;
@@ -699,6 +731,18 @@ void interface_uart_cmd_proc(u8 xdata * ptr, u16 total_rec_bytes)
 					{
 						get_uid(0,ptw);
 						out_buffer_len += 6;
+						break;
+					}
+					case(INTERFACE_CMD_GW_UID):
+					{
+						u16 crc;
+
+						crc = calc_crc(ptr,6);
+						_interface_gw_addr[0] = (u8)(crc>>8);
+						_interface_gw_addr[1] = (u8)(crc);
+						*ptw++ = (u8)(crc>>8);
+						*ptw++ = (u8)(crc);
+						out_buffer_len += 2;
 						break;
 					}
 					case(INTERFACE_CMD_READ_PHY_REG):
@@ -719,16 +763,82 @@ void interface_uart_cmd_proc(u8 xdata * ptr, u16 total_rec_bytes)
 						out_buffer_len += 1;
 						break;
 					}
+					case(INTERFACE_CMD_PHY_SEND):
+					{
+						PHY_SEND_STRUCT pss;
+						u32 delay;
+						SEND_ID_TYPE sid;
+
+						mem_clr(&pss,sizeof(PHY_SEND_STRUCT),1);
+
+						pss.phase = *ptr++;
+						pss.psdu_len = *ptr++;
+						pss.xmode = *ptr++;
+						pss.prop = *ptr++;
+						
+						delay = *ptr++;
+						delay <<= 8;
+						delay += *ptr++;
+						delay <<= 8;
+						delay += *ptr++;
+						delay <<= 8;
+						delay += *ptr++;
+						pss.delay = delay;
+						pss.psdu = ptr;
+
+						if(pss.psdu_len + 13 == total_rec_bytes)
+						{
+							sid = phy_send(&pss);
+							*ptw = sid;
+							out_buffer_len += 1;
+						}
+						else
+						{
+							ptw--;
+							*ptw++ |= 0xC0;
+							*ptw = INTERFACE_CMD_EXCEPTION_ERROR_FORMAT;
+							out_buffer_len += 1;
+						}
+						break;
+					}
+					case(INTERFACE_CMD_DIAG):
+					{
+						DLL_SEND_STRUCT dss;
+						u8 buffer[32];
+
+						mem_clr(&dss,sizeof(DLL_SEND_STRUCT),1);
+						dss.target_uid_handle = ptr;
+						ptr += 6;
+
+						dss.xmode = *ptr++;
+						dss.rmode = *ptr++;
+						dss.prop = BIT_DLL_SEND_PROP_DIAG | BIT_DLL_SEND_PROP_REQ_ACK;
+						dss.prop |= (*ptr)?(BIT_DLL_SEND_PROP_SCAN):0;
+
+						if(dll_diag(&dss,buffer))
+						{
+							mem_cpy(ptw,&buffer[1],buffer[0]);
+							out_buffer_len += buffer[0];
+						}
+						else
+						{
+							ptw--;
+							*ptw++ |= 0xC0;
+							*ptw = INTERFACE_CMD_EXCEPTION_DIAG_FAIL;
+							out_buffer_len += 1;
+						}
+						break;
+					}
 					default:
 					{
 						ptw--;
 						*ptw++ |= 0xC0;
-						*ptw = INTERFACE_CMD_ERROR_UNKNOWN_CMD;
+						*ptw = INTERFACE_CMD_EXCEPTION_UNKNOWN_CMD;
 						out_buffer_len += 1;
 						break;
 					}
 				}
-				uart_send_asc(_interface_uart_buffer, out_buffer_len);
+				cv_frame_send(_interface_uart_buffer, out_buffer_len);
 			}
 		}
 		else
@@ -747,7 +857,22 @@ void interface_uart_cmd_proc(u8 xdata * ptr, u16 total_rec_bytes)
 
 void interface_plc_proc(DLL_RCV_HANDLE pd)
 {
-	pd = pd;
+	ARRAY_HANDLE ptw;
+	PHY_RCV_HANDLE pp;
+
+	ptw = _interface_uart_buffer;
+	pp = GET_PHY_HANDLE(pd);
+
+	if(pd->dll_rcv_valid)
+	{
+		*ptw++ = INTERFACE_CMD_PLC_INDICATION | INTERFACE_CMD_UPLINK;
+		*ptw++ = pp->phase;
+		*ptw++ = pp->phy_rcv_valid;
+		mem_cpy(ptw,pp->phy_rcv_data,pp->phy_rcv_len);
+		cv_frame_send(_interface_uart_buffer, pp->phy_rcv_len + 3);
+
+		dll_rcv_resume(pd);
+	}
 }
 
 

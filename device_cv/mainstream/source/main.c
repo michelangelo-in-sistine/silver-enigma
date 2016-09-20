@@ -9,7 +9,7 @@ int main(void)
 
 	while(1)
 	{
-		powermesh_event_proc();
+//		powermesh_event_proc();
 		interface_proc();
 	}
 }
