@@ -713,8 +713,7 @@ void interface_uart_cmd_proc(u8 xdata * ptr, u16 total_rec_bytes)
 	if(check_format(ptr, total_rec_bytes))
 	{
 		total_rec_bytes = hexstr2u8(ptr, total_rec_bytes);
-		//if(check_crc(ptr, total_rec_bytes))
-		if(1)
+		if(check_crc(ptr, total_rec_bytes))
 		{
 			if(check_dest_addr(ptr))									// check destination(all zero or crc of uid)
 			{
