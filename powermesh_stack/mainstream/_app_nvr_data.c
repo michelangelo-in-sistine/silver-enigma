@@ -25,7 +25,8 @@ typedef struct
 	float i_k;
 	float i_b;
 
-	float t0;					//温度校准
+	float t_k;					//温度校准
+	float t_b;
 
 	u16	domain_id;
 	u16 vid;
@@ -87,21 +88,28 @@ float get_app_nvr_data_i_b(void)
 }
 
 /*******************************************************************************
-* Function Name  : set_app_nvr_data_t0, get_app_nvr_data_t0
+* Function Name  : set_app_nvr_data_t, get_app_nvr_data_t_k, get_app_nvr_data_t_b
 * Description    : 
 * Input          : 
 * Output         : 
 * Return         : 
 *******************************************************************************/
-void set_app_nvr_data_t0(float t0)
+void set_app_nvr_data_t(float k, float b)
 {
-	_app_nvr_data.t0 = t0;
+	_app_nvr_data.t_k = k;
+	_app_nvr_data.t_b = b;
 }
 
-float get_app_nvr_data_t0(void)
+float get_app_nvr_data_t_k(void)
 {
-	return _app_nvr_data.t0;
+	return _app_nvr_data.t_k;
 }
+
+float get_app_nvr_data_t_b(void)
+{
+	return _app_nvr_data.t_b;
+}
+
 
 
 /*******************************************************************************

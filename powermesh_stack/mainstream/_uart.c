@@ -877,34 +877,15 @@ void powermesh_debug_cmd_proc(u8 xdata * ptr, u16 total_rec_bytes)
 				reset_measure_device();			//重启6523
 				break;
 			}
-			else if(cmd==0x74 && rest_rec_bytes >= 4)
-			{
-				s16 t;
-
-				s32 reg_value;
-
-				reg_value = *ptr++;
-				reg_value <<= 8;
-				reg_value += *ptr++;
-				reg_value <<= 8;
-				reg_value += *ptr++;
-				reg_value <<= 8;
-				reg_value += *ptr++;
-
-				t = calc_temperature(reg_value);
-
-				my_printf("reg_value:%d,t:%d\r\n",reg_value,t);
-				break;
-			}
-
 			else if(cmd == 0x75 && rest_rec_bytes >= 2)					// calib t
 			{
-				s16 t;
-
-				t = read_int(ptr,rest_rec_bytes);
-			
-				my_printf("t=%d\r\n",t);
-				set_t_calib_point(t);
+				u8 index;
+				u16 value;
+				
+				index = *ptr++;
+				value = read_int(ptr,rest_rec_bytes-1);
+				my_printf("calib t, point:%bu, value:%u\r\n",index,value);
+				set_t_calib_point(index,value);
 				break;
 			}
 
@@ -914,36 +895,6 @@ void powermesh_debug_cmd_proc(u8 xdata * ptr, u16 total_rec_bytes)
 				
 				t = measure_current_t();
 				my_printf("current t:%d\r\n",t);
-				break;
-			}
-
-			else if(cmd == 0x77 && rest_rec_bytes >= 3)					// calib t
-			{
-				s16 t;
-				s32 reg_value;
-				float t0;
-
-				t = read_int(ptr,2);
-				reg_value = read_int(ptr+2,rest_rec_bytes-2);
-			
-				my_printf("t=%d,reg=%d\r\n",t,reg_value);
-				t0 = set_exp_calib_point(t,reg_value);
-
-				my_printf("calc t0 = %d.%d\r\n",(s16)(t0),((s16)(t0*100) % 100));
-				
-				break;
-			}
-
-			else if(cmd==0x78 && rest_rec_bytes >= 2)					// 
-			{
-				s32 reg_value;
-				s16 t;
-				
-				reg_value = read_int(ptr,rest_rec_bytes);
-				my_printf("reg_value:%d\r\n",reg_value);
-
-				t = calc_temperature(reg_value);
-				my_printf("reg_value:%d,t:%d\r\n",reg_value,t);
 				break;
 			}
 			else if(cmd==0x79)					//0x73
@@ -970,38 +921,38 @@ void powermesh_debug_cmd_proc(u8 xdata * ptr, u16 total_rec_bytes)
 			}			
 
 #if DEVICE_TYPE == DEVICE_SE			
-			else if(cmd=='S' && rest_rec_bytes>=9)		//0x53: 53 + X_MODE + SCAN + SRF + AC_UPDATE + 4B Delay + PACKAGE
-			{
-				PHY_SEND_STRUCT xdata pss;
-				SEND_ID_TYPE sid;
+//			else if(cmd=='S' && rest_rec_bytes>=9)		//0x53: 53 + X_MODE + SCAN + SRF + AC_UPDATE + 4B Delay + PACKAGE
+//			{
+//				PHY_SEND_STRUCT xdata pss;
+//				SEND_ID_TYPE sid;
 
-				pss.xmode = *ptr++;
-				pss.prop = (*ptr++)?(BIT_PHY_SEND_PROP_SCAN):0;
-				pss.prop |= (*ptr++)?(BIT_PHY_SEND_PROP_SRF):0;
-				pss.prop |= (*ptr++)?(BIT_PHY_SEND_PROP_ACUPDATE):0;
-				pss.delay = *ptr++;
-				pss.delay = (pss.delay<<8)+(*ptr++);
-				pss.delay = (pss.delay<<8)+(*ptr++);
-				pss.delay = (pss.delay<<8)+(*ptr++);
-#if DEVICE_TYPE == DEVICE_CC	
-				pss.phase = phase;
-#else
-				pss.phase = 0;
-#endif
-				pss.psdu = ptr;
-				pss.psdu_len = rest_rec_bytes-8;
-				sid = phy_send(&pss);
-				sid = sid;
-				//if(sid != INVALID_RESOURCE_ID)
-				//{
-				//	my_printf("ACCEPTED!\r\n");
-				//}
-				//else
-				//{
-				//	my_printf("ERROR: SEND QUEUE NOT ACCEPTED!\r\n");
-				//}
-				break;
-			}
+//				pss.xmode = *ptr++;
+//				pss.prop = (*ptr++)?(BIT_PHY_SEND_PROP_SCAN):0;
+//				pss.prop |= (*ptr++)?(BIT_PHY_SEND_PROP_SRF):0;
+//				pss.prop |= (*ptr++)?(BIT_PHY_SEND_PROP_ACUPDATE):0;
+//				pss.delay = *ptr++;
+//				pss.delay = (pss.delay<<8)+(*ptr++);
+//				pss.delay = (pss.delay<<8)+(*ptr++);
+//				pss.delay = (pss.delay<<8)+(*ptr++);
+//#if DEVICE_TYPE == DEVICE_CC	
+//				pss.phase = phase;
+//#else
+//				pss.phase = 0;
+//#endif
+//				pss.psdu = ptr;
+//				pss.psdu_len = rest_rec_bytes-8;
+//				sid = phy_send(&pss);
+//				sid = sid;
+//				//if(sid != INVALID_RESOURCE_ID)
+//				//{
+//				//	my_printf("ACCEPTED!\r\n");
+//				//}
+//				//else
+//				//{
+//				//	my_printf("ERROR: SEND QUEUE NOT ACCEPTED!\r\n");
+//				//}
+//				break;
+//			}
 			else if(cmd=='D' && rest_rec_bytes>=9)								//0x44	Diag Test 格式: 44 + 对方UID + XMODE + RMODE + SCAN
 			{
 				/* 测试Dll.Diag */
@@ -1101,158 +1052,158 @@ void powermesh_debug_cmd_proc(u8 xdata * ptr, u16 total_rec_bytes)
 				init_app();
 				break;
 			}
-			else if(cmd == 'H' && rest_rec_bytes >= 12)	//0x48 + UID + 域ID, VID, GID
-			{
-				u16 did, vid, gid;
-				UID_HANDLE uid;
+//			else if(cmd == 'H' && rest_rec_bytes >= 12)	//0x48 + UID + 域ID, VID, GID
+//			{
+//				u16 did, vid, gid;
+//				UID_HANDLE uid;
 
-				uid = ptr;
+//				uid = ptr;
 
-				ptr += 6;
+//				ptr += 6;
 
-				did = *ptr++;
-				did <<=8;
-				did += *ptr++;
+//				did = *ptr++;
+//				did <<=8;
+//				did += *ptr++;
 
-				vid = *ptr++;
-				vid <<=8;
-				vid += *ptr++;
+//				vid = *ptr++;
+//				vid <<=8;
+//				vid += *ptr++;
 
-				gid = *ptr++;
-				gid <<=8;
-				gid += *ptr++;
+//				gid = *ptr++;
+//				gid <<=8;
+//				gid += *ptr++;
 
-				if(set_se_node_id_by_uid(uid,did,vid,gid))
-				{
-					my_printf("addr set ok");
-				}
-				break;
-			}
-			else if(cmd == 0x4A && rest_rec_bytes>= 7) //acp_req_by_uid: 0x4A + UID + acpbody
-			{
-				UID_HANDLE uid;
-				u8 return_len;
+//				if(set_se_node_id_by_uid(uid,did,vid,gid))
+//				{
+//					my_printf("addr set ok");
+//				}
+//				break;
+//			}
+//			else if(cmd == 0x4A && rest_rec_bytes>= 7) //acp_req_by_uid: 0x4A + UID + acpbody
+//			{
+//				UID_HANDLE uid;
+//				u8 return_len;
 
-				uid = ptr;
-				ptr += 6;
-				
-				return_len = acp_req_by_uid(uid, ptr, rest_rec_bytes-6, ptw, 40);
-				out_buffer_len += return_len;
-				break;
-			}
-			else if(cmd == 0x4B && rest_rec_bytes>= 8) //0x4B + domain id + vid + acp_body
-			{
-				u16 domain_id;
-				u16 vid;
-				u16 temp;
-				u8 return_len;
+//				uid = ptr;
+//				ptr += 6;
+//				
+//				return_len = acp_req_by_uid(uid, ptr, rest_rec_bytes-6, ptw, 40);
+//				out_buffer_len += return_len;
+//				break;
+//			}
+//			else if(cmd == 0x4B && rest_rec_bytes>= 8) //0x4B + domain id + vid + acp_body
+//			{
+//				u16 domain_id;
+//				u16 vid;
+//				u16 temp;
+//				u8 return_len;
 
-				//u8 uid[] = {0x57,0x0a,0x00,0x4f,0x00,0x29};
+//				//u8 uid[] = {0x57,0x0a,0x00,0x4f,0x00,0x29};
 
-				temp = *ptr++;
-				temp <<= 8;
-				temp += *ptr++;
-				domain_id = temp;
+//				temp = *ptr++;
+//				temp <<= 8;
+//				temp += *ptr++;
+//				domain_id = temp;
 
-				temp = *ptr++;
-				temp <<= 8;
-				temp += *ptr++;
-				vid = temp;
+//				temp = *ptr++;
+//				temp <<= 8;
+//				temp += *ptr++;
+//				vid = temp;
 
-				return_len = acp_req_by_vid(NULL, domain_id, vid, ptr, rest_rec_bytes-4, ptw, 20);
-				out_buffer_len += return_len;
-				break;
-			}
-			else if(cmd==0x4C && rest_rec_bytes>= 2)
-			{
-				u16 domain_id;
-				u16 temp;
+//				return_len = acp_req_by_vid(NULL, domain_id, vid, ptr, rest_rec_bytes-4, ptw, 20);
+//				out_buffer_len += return_len;
+//				break;
+//			}
+//			else if(cmd==0x4C && rest_rec_bytes>= 2)
+//			{
+//				u16 domain_id;
+//				u16 temp;
 
-				temp = *ptr++;
-				temp <<= 8;
-				temp += *ptr++;
-				domain_id = temp;
-			
-				acp_domain_broadcast(domain_id,ptr,rest_rec_bytes-1);
-				break;
-			}
-			else if(cmd==0x4D && rest_rec_bytes>= 7)	//0x4D 
-			{
-				u16 temp;
-				u16 domain_id;
-				u16 start_vid;
-				u16 end_vid;
-				u8 return_len;
+//				temp = *ptr++;
+//				temp <<= 8;
+//				temp += *ptr++;
+//				domain_id = temp;
+//			
+//				acp_domain_broadcast(domain_id,ptr,rest_rec_bytes-1);
+//				break;
+//			}
+//			else if(cmd==0x4D && rest_rec_bytes>= 7)	//0x4D 
+//			{
+//				u16 temp;
+//				u16 domain_id;
+//				u16 start_vid;
+//				u16 end_vid;
+//				u8 return_len;
 
-				temp = *ptr++;
-				temp <<= 8;
-				temp += *ptr++;
-				domain_id = temp;
+//				temp = *ptr++;
+//				temp <<= 8;
+//				temp += *ptr++;
+//				domain_id = temp;
 
-				temp = *ptr++;
-				temp <<= 8;
-				temp += *ptr++;
-				start_vid = temp;
-				
-				temp = *ptr++;
-				temp <<= 8;
-				temp += *ptr++;
-				end_vid = temp;
-			
-				return_len = acp_req_mc(domain_id, start_vid, end_vid, ptr, rest_rec_bytes-6, NULL, (end_vid-start_vid) * 20);
-				out_buffer_len += return_len;
-				break;
-			}
-			
-			else if(cmd==0xBD && rest_rec_bytes==1)		//0xBDBD, 搜索根节点
-			{
-				u8 new_nodes = 0;
-				u8 total_nodes = 0;
-				EBC_BROADCAST_STRUCT es;
-
-
-				/* Reset topology */
-				build_network_by_step(0, 0, BUILD_RESTART);	//执行一次即三相均重置
-
-				es.phase = 0;
-				while((es.bid & 0x0F)==0)
-				{
-					es.bid = (u8)(rand());
-				}
-				es.xmode = 0x10;
-				es.rmode = 0x10;
-				es.scan = 1;
-				es.window = 4;
-				es.mask = 0;
-				es.max_identify_try =2;
-
-				do
-				{
-					new_nodes = root_explore(&es);
-					total_nodes += new_nodes;
-				}while(new_nodes!=0);
+//				temp = *ptr++;
+//				temp <<= 8;
+//				temp += *ptr++;
+//				start_vid = temp;
+//				
+//				temp = *ptr++;
+//				temp <<= 8;
+//				temp += *ptr++;
+//				end_vid = temp;
+//			
+//				return_len = acp_req_mc(domain_id, start_vid, end_vid, ptr, rest_rec_bytes-6, NULL, (end_vid-start_vid) * 20);
+//				out_buffer_len += return_len;
+//				break;
+//			}
+//			
+//			else if(cmd==0xBD && rest_rec_bytes==1)		//0xBDBD, 搜索根节点
+//			{
+//				u8 new_nodes = 0;
+//				u8 total_nodes = 0;
+//				EBC_BROADCAST_STRUCT es;
 
 
-				{
-					u8 i;
-					u8 target_uid[6];
+//				/* Reset topology */
+//				build_network_by_step(0, 0, BUILD_RESTART);	//执行一次即三相均重置
 
-					my_printf("Neibour Nodes:[");
-					for(i=0;i<total_nodes;i++)
-					{
-						if(inquire_neighbor_uid_db(i, target_uid))
-						{
-							uart_send_asc(target_uid,6);
-							if(i!=total_nodes-1)
-							{
-								my_printf(",");
-							}
-						}
-					}
-					my_printf("]\n");
-				}
-				break;
-			}
+//				es.phase = 0;
+//				while((es.bid & 0x0F)==0)
+//				{
+//					es.bid = (u8)(rand());
+//				}
+//				es.xmode = 0x10;
+//				es.rmode = 0x10;
+//				es.scan = 1;
+//				es.window = 4;
+//				es.mask = 0;
+//				es.max_identify_try =2;
+
+//				do
+//				{
+//					new_nodes = root_explore(&es);
+//					total_nodes += new_nodes;
+//				}while(new_nodes!=0);
+
+
+//				{
+//					u8 i;
+//					u8 target_uid[6];
+
+//					my_printf("Neibour Nodes:[");
+//					for(i=0;i<total_nodes;i++)
+//					{
+//						if(inquire_neighbor_uid_db(i, target_uid))
+//						{
+//							uart_send_asc(target_uid,6);
+//							if(i!=total_nodes-1)
+//							{
+//								my_printf(",");
+//							}
+//						}
+//					}
+//					my_printf("]\n");
+//				}
+//				break;
+//			}
 
 			else if(cmd==0x02 && rest_rec_bytes==7)		//02 + uid + mask:读取当前参数
 			{

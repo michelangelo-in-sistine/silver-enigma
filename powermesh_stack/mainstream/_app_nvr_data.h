@@ -27,8 +27,10 @@ void set_app_nvr_data_i(float k, float b);
 float get_app_nvr_data_i_k(void);
 float get_app_nvr_data_i_b(void);
 
-void set_app_nvr_data_t0(float t0);
-float get_app_nvr_data_t0(void);
+void set_app_nvr_data_t(float k, float b);
+float get_app_nvr_data_t_k(void);
+float get_app_nvr_data_t_b(void);
+
 
 void set_app_nvr_data_domain_id(u16 domain_id);
 u16 get_app_nvr_data_domain_id(void);

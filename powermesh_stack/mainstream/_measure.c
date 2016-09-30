@@ -13,7 +13,7 @@
 #define MEASURE_PGA2()		write_measure_reg(0x15, 0x00000101)
 #define MEASURE_PGA4()		write_measure_reg(0x15, 0x00000202)
 #define MEASURE_PGA8()		write_measure_reg(0x15, 0x00000303)
-#define MEASURE_PGA16()		write_measure_reg(0x15, 0x00000304)		//2016-08-31 V通道使用8倍放大倍数, 避免40V超过输入ADC量程
+#define MEASURE_PGA16()		write_measure_reg(0x15, 0x00000344)		//2016-08-31 V通道使用8倍放大倍数, 避免40V超过输入ADC量程, 2016-09-29 T通道改用50欧姆分压电阻, 设16倍放大倍数
 #define MEASURE_PGA24()		write_measure_reg(0x15, 0x00000505)
 #define MEASURE_PGA32()		write_measure_reg(0x15, 0x00000606)
 
@@ -41,14 +41,9 @@ typedef struct
 	float b;
 }LINEAR_CALIB_STRUCT;
 
-typedef struct
-{
-	float t0;
-}EXP_CALIB_STRUCT;
-
 LINEAR_CALIB_STRUCT xdata calib_v;
 LINEAR_CALIB_STRUCT xdata calib_i;
-EXP_CALIB_STRUCT xdata calib_t;
+LINEAR_CALIB_STRUCT xdata calib_t;
 
 
 /*******************************************************************************
@@ -93,7 +88,8 @@ void init_measure(void)
 		calib_v.b = get_app_nvr_data_u_b();
 		calib_i.k = get_app_nvr_data_i_k();
 		calib_i.b = get_app_nvr_data_i_b();
-		calib_t.t0 = get_app_nvr_data_t0();
+		calib_t.k = get_app_nvr_data_t_k();
+		calib_t.b = get_app_nvr_data_t_b();
 	}
 	else
 	{
@@ -242,6 +238,18 @@ s32 set_i_calib_point(u8 index, s16 i_real_value)
 	return set_linear_calib_point(index, &calib_i, MEASURE_REG_I, i_real_value);
 }
 
+/*******************************************************************************
+* Function Name  : set_t_calib_point
+* Description    : 设置分压测量点的校正电压
+* Input          : 
+* Output         : 
+* Return         : 
+*******************************************************************************/
+s32 set_t_calib_point(u8 index, s16 vt_real_value)
+{
+	return set_linear_calib_point(index, &calib_t, MEASURE_REG_T, vt_real_value);
+}
+
 
 /*******************************************************************************
 * Function Name  : measure_current_v
@@ -286,6 +294,45 @@ s16 measure_current_i(void)
 }
 
 /*******************************************************************************
+* Function Name  : measure_current_t
+* Description    : 
+* Input          : 
+* Output         : 
+* Return         : 
+*******************************************************************************/
+#define THERMAL_PARAM_R0  (10000)				//热敏电阻25度标准阻值
+#define THERMAL_PARAM_B  (3950)
+#define THERMAL_PARAM_CNT  (5.671419573e1)	//exp(B/T0)/10000
+#define THERMAL_PARAM_R1	(50)			//送给ADC的分压电阻
+#define THERMAL_PARAM_R2	(10000)			//分压电阻2
+
+
+
+s16 measure_current_t(void)
+{
+	s16 current_vt;
+	float current_t;
+//	float temp;
+	
+	current_vt = measure_current_param(&calib_t, MEASURE_REG_T);
+
+	//temp = (5000.0/(float)(current_vt)-1)*(THERMAL_PARAM_R1+THERMAL_PARAM_R2);
+	//temp *= THERMAL_PARAM_CNT;
+	//temp = log(temp);
+	//current_t = THERMAL_PARAM_B/temp - 273.15;
+#ifdef DEBUG_MODE
+	my_printf("calib_t, k:%ld, b:%ld\r\n", (s32)(calib_t.k*100000), (s32)(calib_t.b*100000));
+	my_printf("vt:%d\r\n", current_vt);
+#endif
+	
+	current_t = THERMAL_PARAM_B/log((5000.0/(float)(current_vt)-1)*(THERMAL_PARAM_R1+THERMAL_PARAM_R2)*THERMAL_PARAM_CNT)-273.15;
+
+	
+	return (s16)(current_t*100);
+}
+
+
+/*******************************************************************************
 * Function Name  : save_calib_into_app_nvr
 * Description    : 
 * Input          : 
@@ -296,108 +343,7 @@ STATUS save_calib_into_app_nvr(void)
 {
 	set_app_nvr_data_u(calib_v.k, calib_v.b);
 	set_app_nvr_data_i(calib_i.k, calib_i.b);
-	set_app_nvr_data_t0(calib_t.t0);
+	set_app_nvr_data_t(calib_t.k, calib_t.b);
 	return save_app_nvr_data();
-}
-
-#define ADC_OFFSET		(-3.3)
-#define ADC_MV_PER_STEP (8.2244e-004)			//mv per step
-#define CONST_B 			(3950)
-
-/*******************************************************************************
-* Function Name  : calc_exp_index
-* Description    : 
-* Input          : 
-* Output         : 
-* Return         : 
-*******************************************************************************/
-float calc_exp_index(s32 reg_value)
-{
-	float v;
-	float r;
-	float index;
-
-	v = (reg_value - ADC_OFFSET) * ADC_MV_PER_STEP;			//voltage in theromal resistor, unit: mv
-	r = (5/v*1000 - 11);									//resistor value, unit: k ohm
-	//index = log(r/10)/CONST_B;
-	//index = lg(r/10)*(2.3026)/CONST_B;						//lg为10为底
-	index = lg(r/10)/(1715.5);							// const_b/log(10) = 1715.5
-	
-	return index;
-}
-
-/*******************************************************************************
-* Function Name  : set_exp_calib_point
-* Description    : 
-* Input          : 
-* Output         : 
-* Return         : 
-*******************************************************************************/
-float set_exp_calib_point(s16 t_real_value, s32 reg_value)
-{
-	float index;
-	float t;
-	
-	index = calc_exp_index(reg_value);
-	t = (float)(t_real_value)/100 + 273.15;
-	t = t/(1-index*t);
-
-	calib_t.t0 = t;
-
-	return t;
-}
-
-/*******************************************************************************
-* Function Name  : set_t_calib_point
-* Description    : 
-* Input          : 
-* Output         : 
-* Return         : 
-*******************************************************************************/
-void set_t_calib_point(s16 t_real_value)
-{
-	s32 reg_value;
-	float t;
-	
-	reg_value = read_mean_measure_reg(MEASURE_REG_T);
-	t = set_exp_calib_point(t_real_value, -reg_value);
-
-	calib_t.t0 = t;
-	return;
-}
-
-/*******************************************************************************
-* Function Name  : calc_temperature
-* Description    : 
-* Input          : 
-* Output         : 
-* Return         : 
-*******************************************************************************/
-s16 calc_temperature(s32 reg_value)
-{
-	float xdata index;
-	float xdata t;
-
-	index = calc_exp_index(reg_value);
-	t = (calib_t.t0/(1+index*calib_t.t0) - 273.15)*100;
-	return (s16)t;
-}
-
-/*******************************************************************************
-* Function Name  : measure_current_t
-* Description    : 
-* Input          : 
-* Output         : 
-* Return         : 
-*******************************************************************************/
-s16 measure_current_t(void)
-{
-	s32 xdata reg_value;
-	
-	reg_value = read_mean_measure_reg(MEASURE_REG_T);
-#ifdef DEBUG_MODE
-	my_printf("reg_value:%d,",reg_value);
-#endif
-	return calc_temperature(-reg_value);
 }
 
