@@ -860,24 +860,7 @@ void powermesh_debug_cmd_proc(u8 xdata * ptr, u16 total_rec_bytes)
 
 				break;
 			}
-
-			
-			else if(cmd==0x72)	//0x72		测试读取当前电压电流
-			{
-				s32 v,i;
-				
-				v = measure_current_v();
-				i = measure_current_i();
-				my_printf("v:%ld,i:%ld\n",v,i);
-				break;
-			}
-			else if(cmd==0x73)					//73
-			{
-				my_printf("reset 6523\n");
-				reset_measure_device();			//重启6523
-				break;
-			}
-			else if(cmd == 0x75 && rest_rec_bytes >= 2)					// calib t
+			else if(cmd == 0x75 && rest_rec_bytes >= 2)//0x72   设置温度测量点电压
 			{
 				u8 index;
 				u16 value;
@@ -888,7 +871,22 @@ void powermesh_debug_cmd_proc(u8 xdata * ptr, u16 total_rec_bytes)
 				set_t_calib_point(index,value);
 				break;
 			}
-
+			else if(cmd==0x72)	//0x72		测试读取当前电压电流温度
+			{
+				s16 v,i,t;
+				
+				v = measure_current_v();
+				i = measure_current_i();
+				t = measure_current_t();
+				my_printf("v:%d,i:%d,t:%d\n",v,i,t);
+				break;
+			}
+			else if(cmd==0x73)					//73
+			{
+				my_printf("reset 6523\n");
+				reset_measure_device();			//重启6523
+				break;
+			}
 			else if(cmd==0x76)						//0x76 calc t
 			{
 				s16 t;
