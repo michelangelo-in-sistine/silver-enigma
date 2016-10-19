@@ -295,14 +295,16 @@ void powermesh_main_thread_useless_resp_clear(void)
 
 
 /*******************************************************************************
-* Function Name  : lg
-* Description    : log10的快速算法
+* Function Name  : lg2
+* Description    : log2的快速算法
 * Input          : 
 * Output         : 
 * Return         : 
 *******************************************************************************/
-#define C10 3.321928		// log(2)(10)
-float lg(unsigned int x) reentrant
+#define C_LOG_2_10 3.321928				// log(2)(10)
+#define C_LOG_2_e 1.44269504088896		// log(2)(e)
+
+float lg2(unsigned long x) reentrant
 {	
 	float y = x;	
 	unsigned char pwr = 0;
@@ -329,9 +331,32 @@ float lg(unsigned int x) reentrant
 		y = 0.78125 * y + 0.21875;
 	}
 	
-	return (pwr+y)/C10;
+	return (pwr+y);
 }
 
+/*******************************************************************************
+* Function Name  : lg10
+* Description    : log10的快速算法
+* Input          : 
+* Output         : 
+* Return         : 
+*******************************************************************************/
+float lg10(unsigned long x) reentrant
+{
+	return lg2(x)/C_LOG_2_10;
+}
+
+/*******************************************************************************
+* Function Name  : ln
+* Description    : log_e的快速算法
+* Input          : 
+* Output         : 
+* Return         : 
+*******************************************************************************/
+float ln(unsigned long x)
+{
+	return lg2(x)/C_LOG_2_e;
+}
 
 
 
@@ -681,7 +706,7 @@ s8 dbuv(u16 pos, u8 agc_value)
 {
 	float xdata x;
 	
-	x = lg(pos)*20 + 21.7316 - (DB_PER_STEP*agc_value);
+	x = lg10(pos)*20 + 21.7316 - (DB_PER_STEP*agc_value);
 	if (x > 127)
 	{
 		x = 127;
@@ -702,7 +727,7 @@ s8 ebn0(u16 pos, u16 pon)
 	{
 		pon = 1;
 	}
-	return (s8)(20*lg(pos/pon)-3.0103);			//10*log10(pos^2/pon^2/2) = 20*log10(pos/pon)-10*log10(2)
+	return (s8)(20*lg10(pos/pon)-3.0103);			//10*log10(pos^2/pon^2/2) = 20*log10(pos/pon)-10*log10(2)
 }
 
 #ifdef USE_RSCODEC
@@ -1174,7 +1199,7 @@ u8 get_noise_status(u8 phase)
 	temp = (float)(pwer)/3*32/24;								//从pwer转到dfoi,dfoq的平方和均值
 	temp = temp*UV_PER_STEP*UV_PER_STEP/1000000UL/1000000UL;	//样值平方均值(单位:伏)
 	temp = temp/2*1000000;											//转换为微瓦
-	dbm = 10*lg(temp);											//转换为dbm, 32/106是系数
+	dbm = 10*lg10(temp);											//转换为dbm, 32/106是系数
 	dbm = (dbm+163)/200*16;
 	my_printf("dbm:%bd\r\n",(s8)dbm);
 	
@@ -1185,7 +1210,7 @@ u8 get_noise_status(u8 phase)
 	temp = (float)(pwer)/3*32/24;								//从pwer转到dfoi,dfoq的平方和均值
 	temp = temp*UV_PER_STEP*UV_PER_STEP/1000000UL/1000000UL;	//样值平方均值(单位:伏)
 	temp = temp/2*1000000;											//转换为微瓦
-	dbm = 10*lg(temp);											//转换为dbm, 32/106是系数
+	dbm = 10*lg10(temp);											//转换为dbm, 32/106是系数
 	dbm = (dbm+163)/200*16;
 	my_printf("dbm:%bd\r\n",(s8)dbm);
 	
@@ -1195,7 +1220,7 @@ u8 get_noise_status(u8 phase)
 	temp = (float)(pwer)/3*32/24;								//从pwer转到dfoi,dfoq的平方和均值
 	temp = temp*UV_PER_STEP*UV_PER_STEP/1000000UL/1000000UL;	//样值平方均值(单位:伏)
 	temp = temp/2*1000000;											//转换为微瓦
-	dbm = 10*lg(temp);											//转换为dbm, 32/106是系数
+	dbm = 10*lg10(temp);											//转换为dbm, 32/106是系数
 	dbm = (dbm+163)/200*16;
 	my_printf("dbm:%bd\r\n",(s8)dbm);
 

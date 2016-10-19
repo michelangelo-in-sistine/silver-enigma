@@ -23,7 +23,7 @@
 
 #define MEASURE_POINTS_CNT	2
 #define CALIB_MEAN_TIME		64
-#define CALIB_MEAN_SHIFT	6			//log2(CALIB_MEAN_TIME), 用于四舍五入快速计算
+#define CALIB_MEAN_SHIFT	6			//lg2(CALIB_MEAN_TIME), 用于四舍五入快速计算
 
 #define MEASURE_MEAN_TIME	4
 
@@ -73,7 +73,7 @@ void init_measure(void)
 		}
 		else
 		{
-#ifdef DEBUG_MODE		
+#ifdef DEBUG_MEASURE		
 			my_printf("measure reg fail\r\n");
 #endif
 		}
@@ -81,7 +81,7 @@ void init_measure(void)
 
 	if(is_app_nvr_data_valid())
 	{
-#ifdef DEBUG_MODE
+#ifdef DEBUG_MEASURE
 		my_printf("calib data valid\r\n");
 #endif
 		calib_v.k = get_app_nvr_data_u_k();
@@ -93,7 +93,7 @@ void init_measure(void)
 	}
 	else
 	{
-#ifdef DEBUG_MODE
+#ifdef DEBUG_MEASURE
 		my_printf("no valid calib data\r\n");
 #endif
 	}
@@ -165,7 +165,7 @@ s32 set_linear_calib_point(u8 index, LINEAR_CALIB_STRUCT xdata * calib, u8 measu
 
 	if(index>=MEASURE_POINTS_CNT)
 	{
-#ifdef DEBUG_MODE
+#ifdef DEBUG_MEASURE
 		my_printf("calib point index error\n");
 #endif
 		return 0;
@@ -176,7 +176,9 @@ s32 set_linear_calib_point(u8 index, LINEAR_CALIB_STRUCT xdata * calib, u8 measu
 	calib->x[index] = reg_value;		//reg值作为x, 计算k时分母够大
 	calib->y[index] = real_value;
 
-my_printf("index:%bu,reg_value:%ld,real_value:%d\n",index,reg_value,real_value);
+#ifdef DEBUG_MEASURE
+	my_printf("index:%bu,reg_value:%ld,real_value:%d\n",index,reg_value,real_value);
+#endif
 
 	if(index == MEASURE_POINTS_CNT - 1)
 	{
@@ -206,7 +208,7 @@ s16 measure_current_param(LINEAR_CALIB_STRUCT xdata * calib, u8 measure_reg_addr
 	s32 reg_value;
 
 	reg_value = read_mean_measure_reg(measure_reg_addr);
-#ifdef DEBUG_MODE
+#ifdef DEBUG_MEASURE
 	my_printf("measure reg value %ld\n",reg_value);
 #endif
 
@@ -262,7 +264,7 @@ s16 measure_current_v(void)
 {
 	s16 current_v;
 
-#ifdef DEBUG_MODE
+#ifdef DEBUG_MEASURE
 	my_printf("calib_v, k:%ld, b:%ld\r\n", (s32)(calib_v.k*100000), (s32)(calib_v.b*100000));
 #endif
 	
@@ -287,7 +289,7 @@ s16 measure_current_v(void)
 *******************************************************************************/
 s16 measure_current_i(void)
 {
-#ifdef DEBUG_MODE
+#ifdef DEBUG_MEASURE
 	my_printf("calib_i, k:%ld, b:%ld\r\n", (s32)(calib_i.k*100000), (s32)(calib_i.b*100000));
 #endif
 	return measure_current_param(&calib_i, MEASURE_REG_I);
@@ -316,17 +318,12 @@ s16 measure_current_t(void)
 	
 	current_vt = measure_current_param(&calib_t, MEASURE_REG_T);
 
-	//temp = (5000.0/(float)(current_vt)-1)*(THERMAL_PARAM_R1+THERMAL_PARAM_R2);
-	//temp *= THERMAL_PARAM_CNT;
-	//temp = log(temp);
-	//current_t = THERMAL_PARAM_B/temp - 273.15;
-#ifdef DEBUG_MODE
+#ifdef DEBUG_MEASURE
 	my_printf("calib_t, k:%ld, b:%ld\r\n", (s32)(calib_t.k*100000), (s32)(calib_t.b*100000));
 	my_printf("vt:%d\r\n", current_vt);
 #endif
 	
-	current_t = THERMAL_PARAM_B/log((5000.0/(float)(current_vt)-1)*(THERMAL_PARAM_R1+THERMAL_PARAM_R2)*THERMAL_PARAM_CNT)-273.15;
-
+	current_t = THERMAL_PARAM_B/ln((unsigned long)((5000.0/(float)(current_vt)-1)*(THERMAL_PARAM_R1+THERMAL_PARAM_R2)*THERMAL_PARAM_CNT))-273.15;
 	
 	return (s16)(current_t*100);
 }

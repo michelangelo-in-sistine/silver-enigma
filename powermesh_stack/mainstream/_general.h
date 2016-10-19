@@ -44,7 +44,9 @@ RESULT check_srf(ARRAY_HANDLE pt);
 /* SNR Calculation */
 s8 dbuv(u16 pos, u8 agc_value);
 s8 ebn0(u16 pos, u16 pon);
-float lg(unsigned int x) reentrant;
+float lg10(unsigned long x) reentrant;
+float ln(unsigned long x);
+
 
 /* Timing Related */
 u32 packet_chips(BASE_LEN_TYPE ppdu_len, u8 rate, u8 srf) reentrant;

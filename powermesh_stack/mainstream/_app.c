@@ -87,8 +87,6 @@
 #define EXCEPTION_EXEC_ERROR		0x83		//执行错误, 如没有指定的冻结数据
 #define EXCEPTION_AUTHORITY_ERROR	0x84		//安全错误, 如密码错误
 
-
-
 /* private variables ---------------------------------------------------------*/
 u16 xdata _self_domain; 
 u16 xdata _self_vid;
@@ -436,7 +434,9 @@ s16 measure_current_item(u8 mask)
 			return measure_current_v();
 		}
 	}
+#ifdef DEBUG_APP
 	my_printf("error mask %bu\r\n",mask);
+#endif
 	return 0;
 }
 
@@ -459,8 +459,14 @@ s32 set_calib_point(u8 index, s16 real_value, u8 item)
 		{
 			return set_v_calib_point(index, real_value);
 		}
+		case(CMD_ACP_CALI_T):
+		{
+			return set_t_calib_point(index, real_value);
+		}
 	}
+#ifdef DEBUG_APP
 	my_printf("error item %bu\r\n",item);
+#endif
 	return 0;
 }
 
@@ -618,10 +624,6 @@ u8 acp_cmd_proc(ARRAY_HANDLE body, u8 body_len, ARRAY_HANDLE return_buffer)
 				switch(sub_command)
 				{
 					case(CMD_ACP_CALI_T):
-					{
-						reg_value = 0;
-						break;
-					}
 					case(CMD_ACP_CALI_I):
 					case(CMD_ACP_CALI_U):
 					{
@@ -630,7 +632,9 @@ u8 acp_cmd_proc(ARRAY_HANDLE body, u8 body_len, ARRAY_HANDLE return_buffer)
 						value <<= 8;
 						value += *body++;
 						reg_value = set_calib_point(index,(s16)(value),sub_command);
+#ifdef DEBUG_APP
 						my_printf("set_calib_point %bx, value:%d\r\n",index,value);
+#endif
 
 						*ptw++ = (u8)(reg_value>>24);
 						*ptw++ = (u8)(reg_value>>16);

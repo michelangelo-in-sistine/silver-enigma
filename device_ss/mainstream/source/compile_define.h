@@ -72,20 +72,10 @@
 /* Application Environment Define ---------------------------------*/
 #define POWERLINE 			PL_DC
 
-/* Firmware Feature Define ----------------------------------------*/
-#define BRING_USER_DATA		0	// if defined, bring back user custom data while buiding network
-//#define USE_RSCODEC
-//#define USE_ADDR_DB
-#define USE_DIAG
-//#define USE_EBC
-//#define USE_PSR
-//#define USE_MAC
-#define USE_PTP
-//#define USE_DST
 
 /*========================== Debug/Release Switch  ================*/
 /* Release Define ----------------------------------------*/
-//#define RELEASE					//固件发布版
+//#define RELEASE					//发布版, 无Debug串口
 #ifdef RELEASE
 //	#define USE_IWDG				//使用硬件独立看门狗
 //	#define SEARCH_BY_PHASE			//按相位发送搜索请求
@@ -96,15 +86,36 @@
 	#define DISABLE_IFP
 #endif
 
-/* Debug Output Define ----------------------------------------*/
-#if MEASURE_DEVICE == BL6523B
-	#define DEBUG_MODE
-	#define DEBUG_UART_PROC 1
+/* Firmware Feature Define ----------------------------------------*/
+#ifdef RELEASE
+	#define BRING_USER_DATA		0	// if defined, bring back user custom data while buiding network
+	//#define USE_RSCODEC
+	#define USE_ADDR_DB
+	#define USE_DIAG
+	#define USE_EBC
+	#define USE_PSR
+	//#define USE_MAC
+	#define USE_PTP
+	//#define USE_DST
 #else
-	#define DEBUG_UART_PROC 0
+	#define BRING_USER_DATA		0	// if defined, bring back user custom data while buiding network
+	//#define USE_RSCODEC
+	#define USE_DIAG
+	#define USE_PTP
+
+#endif
+
+
+/* Debug Output Define ----------------------------------------*/
+#ifndef RELEASE
+	#if MEASURE_DEVICE == BL6523B
+		#define DEBUG_MODE
+	#endif
 #endif
 
 #ifdef DEBUG_MODE
+	#define DEBUG_UART_PROC 1	
+
 	//#define USE_DMA
 	#define DEBUG_LEVEL 3
 
@@ -131,10 +142,13 @@
 		#define DEBUG_MGNT
 		#define DEBUG_MANIPULATION
 		#define DEBUG_APP
+		#define DEBUG_MEASURE
 		#define DEBUG_TOPOLOGY
 		#define DEBUG_OPTIMIZATION
 		#define DEBUG_APP_TRANSACTION
 	#endif
+#else
+	#define DEBUG_UART_PROC 0
 #endif
 
 #endif
