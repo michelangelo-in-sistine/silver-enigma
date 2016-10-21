@@ -37,8 +37,8 @@
 #define BL6810_RST_PIN			GPIO_Pin_4
 #define BL6810_TXON_PIN			GPIO_Pin_5
 
-#define BL6523_GPIO_PORT		GPIOB
-#define BL6523_RST_PIN			GPIO_Pin_6
+#define RS485_TXEN_GPIO_PORT		GPIOB
+#define RS485_TXEN_PIN			GPIO_Pin_6
 
 
 /* Private variables ---------------------------------------------------------*/
@@ -82,7 +82,6 @@ void system_reset_behavior()
 	u32 i,j;
 	
 	GPIO_ResetBits(BL6810_CTRL_GPIO_PORT, BL6810_MODE_PIN | BL6810_RST_PIN);
-	GPIO_ResetBits(BL6523_GPIO_PORT, BL6523_RST_PIN);
 	
 	for(i=0;i<4;i++)
 	{
@@ -91,7 +90,6 @@ void system_reset_behavior()
 		led_flash(LED_TEST4_PIN);
 	}
 	GPIO_SetBits(BL6810_CTRL_GPIO_PORT, BL6810_RST_PIN);	
-	GPIO_SetBits(BL6523_GPIO_PORT, BL6523_RST_PIN);
 
 	for(i=0;i<4;i++)
 	{
@@ -108,15 +106,15 @@ void system_reset_behavior()
 * Output         : 
 * Return         : 
 *******************************************************************************/
-void reset_measure_device(void)
-{
-	u32 i;
+//void reset_measure_device(void)
+//{
+//	u32 i;
 	
-	GPIO_ResetBits(BL6523_GPIO_PORT, BL6523_RST_PIN);
-	for(i=0;i<999999UL;i++);
-	GPIO_SetBits(BL6523_GPIO_PORT, BL6523_RST_PIN);
-	for(i=0;i<999999UL;i++);									//6523 need time to finish reset
-}
+//	GPIO_ResetBits(RS485_TXEN_GPIO_PORT, RS485_TXEN_PIN);
+//	for(i=0;i<999999UL;i++);
+//	GPIO_SetBits(RS485_TXEN_GPIO_PORT, RS485_TXEN_PIN);
+//	for(i=0;i<999999UL;i++);									//6523 need time to finish reset
+//}
 
 /*******************************************************************************
 * Function Name  : measure_com_send
@@ -346,14 +344,13 @@ void init_gpio(void)
 	GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_UP;
 	GPIO_Init(BL6810_CTRL_GPIO_PORT, &GPIO_InitStructure);
 
-	GPIO_InitStructure.GPIO_Pin = BL6523_RST_PIN;
+	//RS485 TXEN PIN
+	GPIO_InitStructure.GPIO_Pin = RS485_TXEN_PIN;
 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_OUT;
-	GPIO_InitStructure.GPIO_OType = GPIO_OType_OD;
-	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_10MHz;
+	GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
+	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_2MHz;
 	GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_UP;
-	GPIO_Init(BL6523_GPIO_PORT, &GPIO_InitStructure);
-
-	
+	GPIO_Init(RS485_TXEN_GPIO_PORT, &GPIO_InitStructure);
 }
 
 void init_interface_uart_hardware(void)
@@ -367,7 +364,12 @@ void init_interface_uart_hardware(void)
 	RCC_AHBPeriphClockCmd(DEBUG_UART_GPIO_RCC_AHBPeriph, ENABLE);
 
 	/* Enable USART clock */
-	RCC_APB1PeriphClockCmd(DEBUG_UART_RCC_APBPeriph, ENABLE);
+
+#if UART_PORT == UART_PORT_1
+	RCC_APB2PeriphClockCmd(RCC_APB2Periph_USART1, ENABLE);
+#elif UART_PORT == UART_PORT_2
+	RCC_APB1PeriphClockCmd(RCC_APB1Periph_USART2, ENABLE);
+#endif
 
 	/* Connect PXx to USARTx_Tx */
 	GPIO_PinAFConfig(DEBUG_UART_GPIO, DEBUG_UART_TXD_PinSource, DEBUG_UART_GPIO_AF);	//USART1
@@ -391,16 +393,17 @@ void init_interface_uart_hardware(void)
 	USART_ClockInitStructure.USART_CPHA = USART_CPHA_2Edge;
 	USART_ClockInitStructure.USART_LastBit = USART_LastBit_Disable;
 	USART_ClockInit(DEBUG_UART_PORT, &USART_ClockInitStructure );
+
 	
 	/* Uart口配置 */
-	USART_InitStructure.USART_BaudRate = 115200;
+	USART_InitStructure.USART_BaudRate = 38400;
 	USART_InitStructure.USART_WordLength = USART_WordLength_8b;
 	USART_InitStructure.USART_StopBits = USART_StopBits_1;
 	USART_InitStructure.USART_Parity = USART_Parity_No;
 	USART_InitStructure.USART_HardwareFlowControl = USART_HardwareFlowControl_None;
 	USART_InitStructure.USART_Mode = USART_Mode_Rx | USART_Mode_Tx;
 	USART_Init(DEBUG_UART_PORT, &USART_InitStructure );
-	
+
 	/* 设置,使能 */
 	USART_Cmd(DEBUG_UART_PORT, ENABLE);
 
@@ -421,8 +424,11 @@ void init_interface_uart_hardware(void)
 
 void uart_send8(u8 byte_data)
 {
+	rs485_tx_on();
 	while(USART_GetFlagStatus(DEBUG_UART_PORT, USART_FLAG_TXE) == RESET);
 	USART_SendData(DEBUG_UART_PORT, byte_data);
+	while(USART_GetFlagStatus(DEBUG_UART_PORT, USART_FLAG_TC) == RESET);
+	rs485_tx_off();
 }
 
 
@@ -763,6 +769,30 @@ void tx_off(u8 phase)
 	GPIO_SetBits(BL6810_CTRL_GPIO_PORT, BL6810_TXON_PIN);
 }
 
+/*******************************************************************************
+* Function Name  : rs485_tx_on
+* Description    : tx on
+* Input          : 
+* Output         : 
+* Return         : 
+*******************************************************************************/
+void rs485_tx_on(void)
+{
+	GPIO_SetBits(RS485_TXEN_GPIO_PORT, RS485_TXEN_PIN);	
+}
+
+/*******************************************************************************
+* Function Name  : rs485_tx_off
+* Description    : tx off
+* Input          : 
+* Output         : 
+* Return         : 
+*******************************************************************************/
+void rs485_tx_off(void)
+{
+	GPIO_ResetBits(RS485_TXEN_GPIO_PORT, RS485_TXEN_PIN);
+}
+
 
 /*=======================================================================================
 *						Phy Circuit Related
@@ -895,127 +925,19 @@ void get_uid(u8 phase, ARRAY_HANDLE pt)
 	*(pt++) = (stm32ID);
 }
 
-
-
-/*=======================================================================================
-*						Measure Circuit Related
-*========================================================================================*/
-
-#define MEASURE_COM						USART1
-#define MEASURE_COM_GPIO				GPIOA
-#define MEASURE_COM_TXD_PIN				GPIO_Pin_10
-#define MEASURE_COM_RXD_PIN				GPIO_Pin_9
-#define MEASURE_COM_TXD_PIN_SOURCE		GPIO_PinSource10
-#define MEASURE_COM_RXD_PIN_SOURCE		GPIO_PinSource9
-#define MEASURE_COM_READ_TIMEOUT		99999UL
-
-/**
-  * @brief  initialize usart1
-  * @param  
-  * @note   
-  * @retval None
-  */
-void init_measure_hardware(void)
-{
-	GPIO_InitTypeDef GPIO_InitStructure;
-	USART_InitTypeDef USART_InitStructure;
-  	USART_ClockInitTypeDef  USART_ClockInitStructure;
-//	NVIC_InitTypeDef NVIC_InitStructure;
-
-	/* Enable GPIO clock */
-	RCC_AHBPeriphClockCmd(RCC_AHBPeriph_GPIOA, ENABLE);
-
-	/* Enable USART clock */
-	RCC_APB2PeriphClockCmd(RCC_APB2Periph_USART1, ENABLE);
-
-	/* Connect PXx to USARTx_Tx */
-	GPIO_PinAFConfig(MEASURE_COM_GPIO, MEASURE_COM_TXD_PIN_SOURCE, GPIO_AF_1);	//USART1
-	GPIO_PinAFConfig(MEASURE_COM_GPIO, MEASURE_COM_RXD_PIN_SOURCE, GPIO_AF_1);
-
-	/* Configure USART Tx as alternate function push-pull */
-	GPIO_InitStructure.GPIO_Pin = MEASURE_COM_RXD_PIN;
-	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF;
-	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_2MHz;
-	GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
-	GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_UP;
-	GPIO_Init(MEASURE_COM_GPIO, &GPIO_InitStructure);
-	
-	GPIO_InitStructure.GPIO_Pin = MEASURE_COM_TXD_PIN;
-    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF;
-	GPIO_Init(MEASURE_COM_GPIO, &GPIO_InitStructure);
-	
-	/* USART时钟 */
-	USART_ClockInitStructure.USART_Clock = USART_Clock_Disable;
-	USART_ClockInitStructure.USART_CPOL = USART_CPOL_Low;
-	USART_ClockInitStructure.USART_CPHA = USART_CPHA_2Edge;
-	USART_ClockInitStructure.USART_LastBit = USART_LastBit_Disable;
-	USART_ClockInit(MEASURE_COM, &USART_ClockInitStructure );
-	
-	/* Uart口配置 */
-	USART_InitStructure.USART_BaudRate = 4800;
-	USART_InitStructure.USART_WordLength = USART_WordLength_8b;
-	USART_InitStructure.USART_StopBits = USART_StopBits_1;
-	USART_InitStructure.USART_Parity = USART_Parity_No;
-	USART_InitStructure.USART_HardwareFlowControl = USART_HardwareFlowControl_None;
-	USART_InitStructure.USART_Mode = USART_Mode_Rx | USART_Mode_Tx;
-	USART_Init(MEASURE_COM, &USART_InitStructure );
-	
-	///* 设置,使能 */
-	USART_Cmd(MEASURE_COM, ENABLE);
-}
-
-/**
-  * @brief  Send a byte to measure serial com
-  * @param  
-  * @note   
-  * @retval None
-  */
-void measure_com_send8(u8 byte_data)
-{
-	u32 timeout=0;
-
-	while(USART_GetFlagStatus(MEASURE_COM, USART_FLAG_TXE) == RESET)
-	{
-		if(timeout++>99999UL)
-		{
-			my_printf("measure com xmt hardfault\n");
-			return;
-		}
-	}
-	USART_SendData(MEASURE_COM, byte_data);
-}
-
-/**
-  * @brief  Read a byte from measure serial com
-  * @param  
-  * @note   
-  * @retval "1" when got a byte, "0" when timeout
-  */
-u8 measure_com_read8(u8 * pt_rec_byte)
-{
-	u16 timer = 0;
-
-	for(timer=0;timer<MEASURE_COM_READ_TIMEOUT;timer++)
-	{
-		if(USART_GetFlagStatus(MEASURE_COM, USART_FLAG_RXNE) != RESET)
-		{
-			*pt_rec_byte = USART_ReceiveData(MEASURE_COM);
-//led_main_loop_flash();
-
-			return 1;
-		}
-	}
-//led_main_loop_flash();
-
-	return 0;
-}
-
 /****************************************DMA Related *********************************************************/
 /* Hardware Definition ---------------------------------------------------------*/
+#if UART_PORT == UART_PORT_1
+#define DEBUG_USART_TDR									USART1_BASE+0x28
+#define DEBUG_DMA_CHANNEL								DMA1_Channel2
+#define DEBUG_DMA_IRQ									DMA1_Channel2_3_IRQn
+#define DEBUG_DMA_FLAG									(DMA1_FLAG_TC2|DMA1_FLAG_HT2|DMA1_FLAG_GL2)
+#elif UART_PORT == UART_PORT_2
 #define DEBUG_USART_TDR									USART2_BASE+0x28
 #define DEBUG_DMA_CHANNEL								DMA1_Channel4
 #define DEBUG_DMA_IRQ									DMA1_Channel4_5_IRQn
 #define DEBUG_DMA_FLAG									(DMA1_FLAG_TC4|DMA1_FLAG_HT4|DMA1_FLAG_GL4)
+#endif
 
 
 /* Private Macron ------------------------------------------------------------*/
@@ -1137,10 +1059,11 @@ void dma_uart_start()
 	{
 		if(__dma_buffer_tail_ptr>__dma_output_tail_ptr)
 		{
+			rs485_tx_on();
 			DMA_Cmd(DEBUG_DMA_CHANNEL, DISABLE);
 			DEBUG_DMA_CHANNEL->CMAR = (u32)(__dma_output_tail_ptr);
 			DEBUG_DMA_CHANNEL->CNDTR = (u16)(__dma_buffer_tail_ptr - __dma_output_tail_ptr);
-			USART_DMACmd(USART2, USART_DMAReq_Tx, ENABLE);
+			USART_DMACmd(DEBUG_UART_PORT, USART_DMAReq_Tx, ENABLE);
 			DMA_Cmd(DEBUG_DMA_CHANNEL, ENABLE); 
 			__dma_output_tail_ptr = __dma_buffer_tail_ptr;
 		}
@@ -1149,6 +1072,8 @@ void dma_uart_start()
 			__dma_buffer_tail_ptr = __dma_buffer;
 			__dma_output_tail_ptr = __dma_buffer;
 			
+			while(USART_GetFlagStatus(DEBUG_UART_PORT, USART_FLAG_TC) == RESET);
+			rs485_tx_off();
 		}
 	}
 	EXIT_CRITICAL();

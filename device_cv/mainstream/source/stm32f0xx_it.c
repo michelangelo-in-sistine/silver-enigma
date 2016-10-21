@@ -134,19 +134,36 @@ void TIM3_IRQHandler(void)
     timer_int_entry(TIM3);
 }
 
+
+#if UART_PORT == UART_PORT_1
+void USART1_IRQHandler(void)
+{
+	usart_int_entry(USART1);
+}
+#elif UART_PORT == UART_PORT_2
 void USART2_IRQHandler(void)
 {
 	usart_int_entry(USART2);
 }
+#endif
+
 
 void EXTI4_15_IRQHandler(void)
 {
 	phy_int_entry(EXTI_Line8);
 }
 
+#ifdef USE_DMA
+#if UART_PORT == UART_PORT_1
+void DMA1_Channel2_3_IRQHandler(void)
+{
+	dma_tc_svr();
+}
+#elif UART_PORT == UART_PORT_2
 void DMA1_Channel4_5_IRQHandler(void)
 {
 	dma_tc_svr();
 }
-
+#endif
+#endif
 /************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/

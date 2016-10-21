@@ -162,10 +162,17 @@ void bad_usart_int_proc(USART_TypeDef* bad_usart_port)
 * Output         : 
 * Return         : 
 *******************************************************************************/
+#ifdef USE_DMA
+#if UART_PORT == UART_PORT_1
+#define DEBUG_DMA_FLAG									(DMA1_FLAG_TC2|DMA1_FLAG_HT2|DMA1_FLAG_GL2)
+#elif UART_PORT == UART_PORT_2
 #define DEBUG_DMA_FLAG									(DMA1_FLAG_TC4|DMA1_FLAG_HT4|DMA1_FLAG_GL4)
+#endif
+
 void dma_tc_svr(void)
 {
 	DMA_ClearFlag(DEBUG_DMA_FLAG);
 	dma_uart_start();
 }
+#endif
 

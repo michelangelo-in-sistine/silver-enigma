@@ -22,6 +22,26 @@
 
 
 /* Hardware Definition ------------------------------------------------------------------*/
+#define UART_PORT_1				1
+#define UART_PORT_2				2
+#define UART_PORT				UART_PORT_1
+
+
+#if UART_PORT == UART_PORT_1
+#define DEBUG_UART_PORT 					USART1
+#define DEBUG_UART_RCC_APBPeriph 			RCC_APB2Periph_USART1
+#define DEBUG_UART_IRQChannel 				USART1_IRQn
+#define DEBUG_UART_GPIO_RCC_AHBPeriph		RCC_AHBPeriph_GPIOA
+
+#define DEBUG_UART_GPIO 					GPIOA
+#define DEBUG_UART_GPIO_AF					GPIO_AF_1
+
+#define DEBUG_UART_TXD 						GPIO_Pin_9
+#define DEBUG_UART_RXD 						GPIO_Pin_10
+#define DEBUG_UART_TXD_PinSource			GPIO_PinSource9
+#define DEBUG_UART_RXD_PinSource			GPIO_PinSource10
+
+#elif UART_PORT == UART_PORT_2
 #define DEBUG_UART_PORT 					USART2
 #define DEBUG_UART_RCC_APBPeriph 			RCC_APB1Periph_USART2
 #define DEBUG_UART_IRQChannel 				USART2_IRQn
@@ -34,6 +54,7 @@
 #define DEBUG_UART_RXD 						GPIO_Pin_3
 #define DEBUG_UART_TXD_PinSource			GPIO_PinSource2
 #define DEBUG_UART_RXD_PinSource			GPIO_PinSource3
+#endif
 
 
 
@@ -74,7 +95,8 @@ void send_buf(u8 phase, u8 send_byte);
 void tx_on(u8 phase);
 void tx_off(u8 phase);
 
-
+void rs485_tx_on(void);
+void rs485_tx_off(void);
 
 void exti_int_entry(void);
 

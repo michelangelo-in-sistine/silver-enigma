@@ -235,7 +235,7 @@ void uart_send_asc(ARRAY_HANDLE pt, u16 len) reentrant
 {
 	u16 i;
 	u8 temp;
-	
+
 	if(len>0)
 	{
 		for(i=0;i<len;i++)
@@ -254,7 +254,6 @@ void uart_send_asc(ARRAY_HANDLE pt, u16 len) reentrant
 		dma_uart_start();
 #endif
 	}
-	
 }
 
 
@@ -296,7 +295,7 @@ void my_printf(const char code * fmt, ...) reentrant
 	u8 * ptr = 0;
 
 	va_start(args,fmt);			// make args pointed to the first variable called in.
-	
+
 	while(*fmt != 0)
 	{
 		if(*fmt != '%')
@@ -581,7 +580,7 @@ RESULT check_format(u8 xdata * ptr, u16 total_rec_bytes)
 	u16 i;
 	u8 temp;
 
-	if(total_rec_bytes < 6)			//addr 2B, function code 1B, command 1B, body NB, crc 2B at least 6B
+	if(total_rec_bytes < 12)			//<>2B, addr 4B(ASC Code), function code 2B, body N*2B, crc 4B at least 12B
 	{
 		return WRONG;
 	}
