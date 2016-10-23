@@ -24,7 +24,7 @@
 /* Hardware Definition ------------------------------------------------------------------*/
 #define UART_PORT_1				1
 #define UART_PORT_2				2
-#define UART_PORT				UART_PORT_1
+#define UART_PORT				UART_PORT_2
 
 
 #if UART_PORT == UART_PORT_1

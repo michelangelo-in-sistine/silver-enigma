@@ -116,102 +116,102 @@ void system_reset_behavior()
 //	for(i=0;i<999999UL;i++);									//6523 need time to finish reset
 //}
 
-/*******************************************************************************
-* Function Name  : measure_com_send
-* Description    : 
-* Input          : 
-* Output         : 
-* Return         : 
-*******************************************************************************/
-void measure_com_send(u8 * head, u8 len)
-{
-	u8 i;
-	for(i=0;i<len;i++)
-	{
-		measure_com_send8(*head++);
-	}
-}
+///*******************************************************************************
+//* Function Name  : measure_com_send
+//* Description    : 
+//* Input          : 
+//* Output         : 
+//* Return         : 
+//*******************************************************************************/
+//void measure_com_send(u8 * head, u8 len)
+//{
+//	u8 i;
+//	for(i=0;i<len;i++)
+//	{
+//		measure_com_send8(*head++);
+//	}
+//}
 
-/*******************************************************************************
-* Function Name  : write_bl6523
-* Description    : 
-* Input          : 
-* Output         : 
-* Return         : 
-*******************************************************************************/
-void write_measure_reg(u8 addr, u32 dword_value)
-{
-	u8 cs=0;
-	u8 buffer[6];
-	u8 i;
-	
-	buffer[0] = 0xCA;
-	buffer[1] = addr;
-	cs = addr;
+///*******************************************************************************
+//* Function Name  : write_bl6523
+//* Description    : 
+//* Input          : 
+//* Output         : 
+//* Return         : 
+//*******************************************************************************/
+//void write_measure_reg(u8 addr, u32 dword_value)
+//{
+//	u8 cs=0;
+//	u8 buffer[6];
+//	u8 i;
+//	
+//	buffer[0] = 0xCA;
+//	buffer[1] = addr;
+//	cs = addr;
 
-	for(i=2;i<5;i++)
-	{
-		buffer[i] = (u8)dword_value;
-		cs += buffer[i];
-		dword_value>>=8;
-	}
-	buffer[5] = ~cs;
+//	for(i=2;i<5;i++)
+//	{
+//		buffer[i] = (u8)dword_value;
+//		cs += buffer[i];
+//		dword_value>>=8;
+//	}
+//	buffer[5] = ~cs;
 
-	measure_com_send(buffer,sizeof(buffer));
-}
+//	measure_com_send(buffer,sizeof(buffer));
+//}
 
-/*******************************************************************************
-* Function Name  : read_bl6523
-* Description    : 
-* Input          : 
-* Output         : 
-* Return         : 
-*******************************************************************************/
-u32 read_measure_reg(u8 addr)
-{
-	u8 rec_byte;
-	u8 i;
-	u8 buffer[4];
-	u32 value = 0;
-	
-	measure_com_send8(0x35);
-	measure_com_send8(addr);
+///*******************************************************************************
+//* Function Name  : read_bl6523
+//* Description    : 
+//* Input          : 
+//* Output         : 
+//* Return         : 
+//*******************************************************************************/
+//u32 read_measure_reg(u8 addr)
+//{
+//	u8 rec_byte;
+//	u8 i;
+//	u8 buffer[4];
+//	u32 value = 0;
+//	
+//	measure_com_send8(0x35);
+//	measure_com_send8(addr);
 
-	for(i=0;i<4;i++)
-	{
-		if(measure_com_read8(&rec_byte))
-		{
-			buffer[i] = rec_byte;
-		}
-		else
-		{
-			my_printf("bl6532 return fail\n");
-			return 0;
-		}
-		
-	}
+//	for(i=0;i<4;i++)
+//	{
+//		if(measure_com_read8(&rec_byte))
+//		{
+//			buffer[i] = rec_byte;
+//		}
+//		else
+//		{
+//			my_printf("bl6532 return fail\n");
+//			return 0;
+//		}
+//		
+//	}
 
-	for(i=0;i<4;i++)
-	{
-		addr += buffer[i];
-	}
+//	for(i=0;i<4;i++)
+//	{
+//		addr += buffer[i];
+//	}
 
-	if(addr!=255)
-	{
-		my_printf("bl6532 return bytes checked fail\n");
-		uart_send_asc(buffer,4);
-		return 0;
-	}
-	else
-	{
-		for(i=2;i!=0xFF;i--)
-		{
-			value <<= 8;
-			value += buffer[i];
-		}
-		return value;
-	}
-}
+//	if(addr!=255)
+//	{
+//		my_printf("bl6532 return bytes checked fail\n");
+//		uart_send_asc(buffer,4);
+//		return 0;
+//	}
+//	else
+//	{
+//		for(i=2;i!=0xFF;i--)
+//		{
+//			value <<= 8;
+//			value += buffer[i];
+//		}
+//		return value;
+//	}
+//}
 
 
 
