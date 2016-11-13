@@ -51,7 +51,7 @@
           <CreateHexFile>1</CreateHexFile>
           <DebugInformation>1</DebugInformation>
           <BrowseInformation>1</BrowseInformation>
-          <ListingPath>.\</ListingPath>
+          <ListingPath>.\output\</ListingPath>
           <HexFormatSelection>0</HexFormatSelection>
           <Merge32K>0</Merge32K>
           <CreateBatchFile>0</CreateBatchFile>
@@ -171,12 +171,12 @@
             <UseExternalTool>1</UseExternalTool>
             <RunIndependent>1</RunIndependent>
             <UpdateFlashBeforeDebugging>0</UpdateFlashBeforeDebugging>
-            <Capability>0</Capability>
-            <DriverSelection>-1</DriverSelection>
+            <Capability>1</Capability>
+            <DriverSelection>4097</DriverSelection>
           </Flash1>
           <bUseTDR>0</bUseTDR>
-          <Flash2></Flash2>
-          <Flash3>"d:\Program Files\BL6810 SystemLoader\FlashProgrammer.exe" ("#H" -c COM8)</Flash3>
+          <Flash2>BIN\UL2UPSD.DLL</Flash2>
+          <Flash3>"D:\Program Files\BL6810 SystemLoader\FlashProgrammer.exe" ("#H" -c COM8)</Flash3>
           <Flash4></Flash4>
           <pFcarmOut></pFcarmOut>
           <pFcarmGrp></pFcarmGrp>

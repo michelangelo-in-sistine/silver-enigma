@@ -75,7 +75,7 @@ void init_dll()
 	}
 #ifdef USE_EBC	
 	init_ebc();
-#if DEVICE_TYPE == DEVICE_MT
+#if DEVICE_TYPE == DEVICE_MT || DEVICE_TYPE == DEVICE_SS || DEVICE_TYPE == DEVICE_SE
 	set_ebc_response_enable(TRUE);
 #else
 	set_ebc_response_enable(FALSE);

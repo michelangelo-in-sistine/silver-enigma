@@ -381,7 +381,7 @@ BASE_LEN_TYPE phy_complete_ppci_queue(SEND_QUEUE_ITEM_STRUCT * queue)
 			}
 			else
 			{
-				ppdu[SEC_NBF_COND] = 0xFF;		//FF表示电路坏损, 所有相位统统回应
+//				ppdu[SEC_NBF_COND] = 0xFF;		//FF表示电路坏损, 所有相位统统回应
 			}
 		}
 

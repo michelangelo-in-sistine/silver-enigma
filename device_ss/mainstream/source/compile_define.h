@@ -75,7 +75,7 @@
 
 /*========================== Debug/Release Switch  ================*/
 /* Release Define ----------------------------------------*/
-//#define RELEASE					//发布版, 无Debug串口
+#define RELEASE					//发布版, 无Debug串口
 #ifdef RELEASE
 //	#define USE_IWDG				//使用硬件独立看门狗
 //	#define SEARCH_BY_PHASE			//按相位发送搜索请求
