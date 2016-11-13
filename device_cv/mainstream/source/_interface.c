@@ -761,7 +761,7 @@ void interface_uart_cmd_proc(u8 xdata * ptr, u16 total_rec_bytes)
 						out_buffer_len += 1;
 						break;
 					}
-					case(INTERFACE_CMD_PHY_SEND):
+					case(INTERFACE_CMD_PHY_SEND):		//format: 1B phase, 1B psdu_len, 1B xmode, 1B prop, 4B delay, NB psdu
 					{
 						PHY_SEND_STRUCT pss;
 						u32 delay;
@@ -787,6 +787,47 @@ void interface_uart_cmd_proc(u8 xdata * ptr, u16 total_rec_bytes)
 						if(pss.psdu_len + 13 == total_rec_bytes)
 						{
 							sid = phy_send(&pss);
+							*ptw = sid;
+							out_buffer_len += 1;
+						}
+						else
+						{
+							ptw--;
+							*ptw++ |= 0xC0;
+							*ptw = INTERFACE_CMD_EXCEPTION_ERROR_FORMAT;
+							out_buffer_len += 1;
+						}
+						break;
+					}
+					case(INTERFACE_CMD_DLL_SEND):		//format: 1B phase, 1B lsdu_len, 6B uid, 1B prop, 1B xmode, 1B rmode, 4B delay, NB lsdu
+					{
+						DLL_SEND_STRUCT dss;
+						u32 delay;
+						SEND_ID_TYPE sid;
+
+						mem_clr(&dss,sizeof(DLL_SEND_STRUCT),1);
+
+						dss.phase = *ptr++;
+						dss.lsdu_len = *ptr++;
+						dss.target_uid_handle = ptr;
+						ptr += 6;
+						dss.prop = *ptr++;
+						dss.xmode = *ptr++;
+						dss.rmode = *ptr++;
+
+						delay = *ptr++;
+						delay <<= 8;
+						delay += *ptr++;
+						delay <<= 8;
+						delay += *ptr++;
+						delay <<= 8;
+						delay += *ptr++;
+						dss.delay = delay;
+						dss.lsdu = ptr;
+
+						if(dss.lsdu_len + 15 + 5 == total_rec_bytes)
+						{
+							sid = dll_send(&dss);
 							*ptw = sid;
 							out_buffer_len += 1;
 						}
