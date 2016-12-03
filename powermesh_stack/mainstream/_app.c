@@ -100,6 +100,7 @@ u8 xdata _comm_mode = CHNL_CH3;
 #endif
 
 const u8 code __passwd__[] = {0x95, 0x27};
+u8 xdata acp_reset_flag = 0;
 
 /* Private Functions Prototype ---------------------------------------*/
 u8 acp_cmd_proc(ARRAY_HANDLE body, u8 body_len, ARRAY_HANDLE return_buffer);
@@ -132,6 +133,7 @@ void init_app(void)
 #ifdef DEBUG_MODE
 	my_printf("Domain:%X, VID:%X, GID:%X\r\n",_self_domain,_self_vid,_self_gid);
 #endif
+	acp_reset_flag = 0;
 }
 
 
@@ -380,6 +382,14 @@ void acp_rcv_proc(APP_RCV_HANDLE pt_app_rcv)
 								set_queue_delay(ass_send_id, mc_pending_sticks);
 							}
 						}
+					}
+
+					if(acp_reset_flag == 0xAA)
+					{
+#if DEVICE_TYPE == DEVICE_SS
+						wait_until_send_over(ass_send_id);
+						while(1);
+#endif
 					}
 				}
 			}
@@ -647,10 +657,15 @@ u8 acp_cmd_proc(ARRAY_HANDLE body, u8 body_len, ARRAY_HANDLE return_buffer)
 					case(CMD_ACP_CALI_SAVE):
 					{
 						save_calib_into_app_nvr();
+						*ptw++ = 0x01;
+						ret_len += 1;					//2016-12-04 使save和reset也有返回，使得控制方更有把握
 						break;
 					}
 					case(CMD_ACP_CALI_RESET):
 					{
+						*ptw++ = 0x01;
+						ret_len += 1;
+						acp_reset_flag = 0xAA;
 						break;
 					}
 					default:
