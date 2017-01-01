@@ -574,49 +574,52 @@ u8 acp_cmd_proc(ARRAY_HANDLE body, u8 body_len, ARRAY_HANDLE return_buffer)
 		}
 		case(CMD_ACP_FRAZ_PARA):
 		{
+			u8 sub_command;
 			u8 feature_code;
 
+			sub_command = *body++;
 			feature_code = *body++;
 			mask = *body++;
-			
-			req_fraz_record(feature_code);
-			for(i=BIT_ACP_CMD_MASK_BOUND;i>0;i>>=1)
+
+			if(sub_command == 'F')
 			{
-				if(mask & i)
+				req_fraz_record(feature_code);
+				for(i=BIT_ACP_CMD_MASK_BOUND;i>0;i>>=1)
 				{
-					para = measure_current_item(i);
-					write_fraz_record(feature_code, i, para);
+					if(mask & i)
+					{
+						para = measure_current_item(i);
+						write_fraz_record(feature_code, i, para);
+					}
+				}
+				
+				*ptw++ = feature_code;
+				ret_len += 1;
+			}
+			else if(sub_command == 'R')
+			{
+				for(i=BIT_ACP_CMD_MASK_BOUND;i>0;i>>=1)
+				{
+					if(mask & i)
+					{
+						if(read_fraz_record(feature_code, i, &para))
+						{
+							*ptw++ = (u8)(para>>8);
+							*ptw++ = (u8)(para);
+							ret_len += 2;
+						}
+						else
+						{
+							return_buffer[0] = EXCEPTION_EXEC_ERROR;
+							ret_len = 1;
+						}
+					}
 				}
 			}
-			
-			*ptw++ = feature_code;
-			ret_len += 1;
-			break;
-		}
-		case(CMD_ACP_READ_FRAZ_PARA):
-		{
-			u8 feature_code;
-			
-			feature_code = *body++;
-			mask = *body++;
-
-			for(i=BIT_ACP_CMD_MASK_BOUND;i>0;i>>=1)
+			else
 			{
-				if(mask & i)
-				{
-					if(read_fraz_record(feature_code, i, &para))
-					{
-						*ptw++ = (u8)(para>>8);
-						*ptw++ = (u8)(para);
-						ret_len += 2;
-					}
-					else
-					{
-						return_buffer[0] = EXCEPTION_FORMAT_ERROR;
-						ret_len = 1;
-						break;
-					}
-				}
+				return_buffer[0] = EXCEPTION_FORMAT_ERROR;
+				ret_len = 1;
 			}
 			break;
 		}
