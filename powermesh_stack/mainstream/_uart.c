@@ -812,6 +812,32 @@ void powermesh_debug_cmd_proc(u8 xdata * ptr, u16 total_rec_bytes)
 				write_reg(phase,addr,value);
 				proc_rec_bytes++;
 			}
+			else if(cmd=='M' && rest_rec_bytes>=1)				//0x4D		MFO Configuration. 00: OFF, others: as Address 0x11
+			{
+				unsigned char temp = *ptr++;
+				unsigned char temp2 = 0;
+				unsigned char mfo_sel = 0;
+
+				write_reg(phase,ADR_ADDA,0x20);					//mfo on
+				write_reg(phase,ADR_XMT_RCV,0x00);				//dac on
+				
+				if((temp&0xF0) == 0x00)
+				{
+				}
+				else
+				{
+					temp2 = temp;
+					for(temp2=temp2>>4; (temp2&0x01)==0; temp2>>=1)
+					{
+						mfo_sel++;
+					}
+					mfo_sel<<=2;
+					mfo_sel+= (temp&0x0F);
+					my_printf("mfo_set is set to %bX\n",mfo_sel);
+
+					write_reg(phase,ADR_RCV_MFOS,mfo_sel);
+				}
+			}			
 			else if(cmd==0x12 && rest_rec_bytes>=1)	//0x12 ¶Á6523
 			{
 				extern s32 convert_uint24_to_int24(u32 value);
