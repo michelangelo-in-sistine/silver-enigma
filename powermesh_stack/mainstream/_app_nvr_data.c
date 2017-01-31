@@ -17,25 +17,6 @@
 #include "powermesh_include.h"
 
 
-/* Private Datatype-----------------------------------------------------------*/
-typedef struct
-{
-	float u_k;
-	float u_b;
-	float i_k;
-	float i_b;
-
-	float t_k;					//温度校准
-	float t_b;
-
-	u16	domain_id;
-	u16 vid;
-	u16 gid;
-
-	u8 crc_high;				//直接写, 在arm中由于大端表示, 将不能通过crc验证
-	u8 crc_low;
-}APP_DATA_STRUCT;
-
 /* private variables ---------------------------------------------------------*/
 APP_DATA_STRUCT xdata _app_nvr_data;
 

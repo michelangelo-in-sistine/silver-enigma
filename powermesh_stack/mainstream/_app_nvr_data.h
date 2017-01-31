@@ -15,6 +15,25 @@
 #ifndef _USER_APP_NVR_DATA_H
 #define _USER_APP_NVR_DATA_H
 
+/* Exported Datatype-----------------------------------------------------------*/
+typedef struct
+{
+	float u_k;
+	float u_b;
+	float i_k;
+	float i_b;
+
+	float t_k;					//温度校准
+	float t_b;
+
+	u16	domain_id;
+	u16 vid;
+	u16 gid;
+
+	u8 crc_high;				//直接写, 在arm中由于大端表示, 将不能通过crc验证
+	u8 crc_low;
+}APP_DATA_STRUCT;
+
 void init_app_nvr_data(void);
 BOOL is_app_nvr_data_valid(void);
 STATUS save_app_nvr_data(void);

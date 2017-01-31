@@ -714,8 +714,12 @@ u8 acp_cmd_proc(ARRAY_HANDLE body, u8 body_len, ARRAY_HANDLE return_buffer)
 				}
 				case(CMD_ACP_NVR_READ):
 				{
-					read_user_storage(ptw,*body);					//body now is read length
-					ret_len += *body;
+					//Bug Fix! 2017-02-01 修改成固定返回全部字节数, 避免主机召唤字节太长导致写溢出
+					
+					//read_user_storage(ptw,*body);					//body now is read length
+					//ret_len += *body;
+					read_user_storage(ptw,sizeof(APP_DATA_STRUCT));
+					ret_len += sizeof(APP_DATA_STRUCT);
 					break;
 				}
 				default:
