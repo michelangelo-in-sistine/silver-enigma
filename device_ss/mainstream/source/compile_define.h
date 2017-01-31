@@ -79,6 +79,7 @@
 #ifdef RELEASE
 //	#define USE_IWDG				//使用硬件独立看门狗
 //	#define SEARCH_BY_PHASE			//按相位发送搜索请求
+	#define DISABLE_IFP				//Release版本的IFP功能还没测过,烧写器也没开发过,先禁止,免得交付的时候忘了
 #else
 	#define CRC_ISOLATED			//测试版本, 与发布版的CRC校验不同, 用于隔离测试系统
 	//#define CRC_DISTURB	0x55		//CRC最后一字节加扰
