@@ -708,7 +708,18 @@ u8 acp_cmd_proc(ARRAY_HANDLE body, u8 body_len, ARRAY_HANDLE return_buffer)
 				{
 					if(check_passwd(&body_bkp[body_len-3]))
 					{
-						write_user_storage(body, body_len-5);		//ÃüÁî×Ö2B, PASSWD2B, CS1B 
+						u8 temp;
+						temp = write_user_storage(body, body_len-5);		//ÃüÁî×Ö2B, PASSWD2B, CS1B
+						if(temp)
+						{
+							*ptw++ = temp;
+							ret_len += 1;
+						}
+						else
+						{
+							return_buffer[0] = EXCEPTION_HARDFAULT;
+							ret_len = 1;
+						}
 					}
 					break;
 				}
