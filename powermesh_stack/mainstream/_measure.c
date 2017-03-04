@@ -303,11 +303,21 @@ s16 measure_current_i(void)
 * Return         : 
 *******************************************************************************/
 #define THERMAL_PARAM_R0  (10000)				//热敏电阻25度标准阻值
-#define THERMAL_PARAM_B  (3950)
-#define THERMAL_PARAM_CNT  (5.671419573e1)	//exp(B/T0)/10000
+
+/* 2017-03-05 热敏电阻B常数改成3450 */
+
+//#define THERMAL_PARAM_B  (3950)
+#define THERMAL_PARAM_B  (3450)
+
+#if THERMAL_PARAM_B == 3950
+#define THERMAL_PARAM_CNT  (5.671419573e1)	//B=3950, exp(B/T0)/10000
+#elif THERMAL_PARAM_B == 3450
+#define THERMAL_PARAM_CNT  (10.6017208)		//B=3450, exp(B/T0)/10000
+#endif
+
+
 #define THERMAL_PARAM_R1	(50)			//送给ADC的分压电阻
 #define THERMAL_PARAM_R2	(10000)			//分压电阻2
-
 
 
 s16 measure_current_t(void)
