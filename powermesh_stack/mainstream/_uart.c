@@ -942,41 +942,7 @@ void powermesh_debug_cmd_proc(u8 xdata * ptr, u16 total_rec_bytes)
 				init_measure();
 				my_printf("init measure\r\n");
 				break;
-			}			
-
-#if DEVICE_TYPE == DEVICE_SE			
-//			else if(cmd=='S' && rest_rec_bytes>=9)		//0x53: 53 + X_MODE + SCAN + SRF + AC_UPDATE + 4B Delay + PACKAGE
-//			{
-//				PHY_SEND_STRUCT xdata pss;
-//				SEND_ID_TYPE sid;
-
-//				pss.xmode = *ptr++;
-//				pss.prop = (*ptr++)?(BIT_PHY_SEND_PROP_SCAN):0;
-//				pss.prop |= (*ptr++)?(BIT_PHY_SEND_PROP_SRF):0;
-//				pss.prop |= (*ptr++)?(BIT_PHY_SEND_PROP_ACUPDATE):0;
-//				pss.delay = *ptr++;
-//				pss.delay = (pss.delay<<8)+(*ptr++);
-//				pss.delay = (pss.delay<<8)+(*ptr++);
-//				pss.delay = (pss.delay<<8)+(*ptr++);
-//#if DEVICE_TYPE == DEVICE_CC	
-//				pss.phase = phase;
-//#else
-//				pss.phase = 0;
-//#endif
-//				pss.psdu = ptr;
-//				pss.psdu_len = rest_rec_bytes-8;
-//				sid = phy_send(&pss);
-//				sid = sid;
-//				//if(sid != INVALID_RESOURCE_ID)
-//				//{
-//				//	my_printf("ACCEPTED!\r\n");
-//				//}
-//				//else
-//				//{
-//				//	my_printf("ERROR: SEND QUEUE NOT ACCEPTED!\r\n");
-//				//}
-//				break;
-//			}
+			}
 			else if(cmd=='D' && rest_rec_bytes>=9)								//0x44	Diag Test 格式: 44 + 对方UID + XMODE + RMODE + SCAN
 			{
 				/* 测试Dll.Diag */
@@ -1024,6 +990,39 @@ void powermesh_debug_cmd_proc(u8 xdata * ptr, u16 total_rec_bytes)
 				}
 				break;
 			}
+#if DEVICE_TYPE == DEVICE_SE			
+//			else if(cmd=='S' && rest_rec_bytes>=9)		//0x53: 53 + X_MODE + SCAN + SRF + AC_UPDATE + 4B Delay + PACKAGE
+//			{
+//				PHY_SEND_STRUCT xdata pss;
+//				SEND_ID_TYPE sid;
+
+//				pss.xmode = *ptr++;
+//				pss.prop = (*ptr++)?(BIT_PHY_SEND_PROP_SCAN):0;
+//				pss.prop |= (*ptr++)?(BIT_PHY_SEND_PROP_SRF):0;
+//				pss.prop |= (*ptr++)?(BIT_PHY_SEND_PROP_ACUPDATE):0;
+//				pss.delay = *ptr++;
+//				pss.delay = (pss.delay<<8)+(*ptr++);
+//				pss.delay = (pss.delay<<8)+(*ptr++);
+//				pss.delay = (pss.delay<<8)+(*ptr++);
+//#if DEVICE_TYPE == DEVICE_CC	
+//				pss.phase = phase;
+//#else
+//				pss.phase = 0;
+//#endif
+//				pss.psdu = ptr;
+//				pss.psdu_len = rest_rec_bytes-8;
+//				sid = phy_send(&pss);
+//				sid = sid;
+//				//if(sid != INVALID_RESOURCE_ID)
+//				//{
+//				//	my_printf("ACCEPTED!\r\n");
+//				//}
+//				//else
+//				//{
+//				//	my_printf("ERROR: SEND QUEUE NOT ACCEPTED!\r\n");
+//				//}
+//				break;
+//			}
 			else if(cmd=='E' && rest_rec_bytes)		//4545
 			{
 				erase_user_storage();
