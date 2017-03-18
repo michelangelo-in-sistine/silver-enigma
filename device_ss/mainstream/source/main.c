@@ -3,6 +3,7 @@
 
 u8 xdata apdu[100];
 u8 xdata apdu_len;
+extern unsigned char code ver[];
 
 int main(void)
 {
@@ -22,7 +23,7 @@ int main(void)
 //	measure_current_t();
 
 	tid = req_timer();
-	set_timer(tid,200);
+	set_timer(tid,ver[0]);
 
 	while(1)
 	{

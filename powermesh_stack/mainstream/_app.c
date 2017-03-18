@@ -134,6 +134,7 @@ void init_app(void)
 	my_printf("Domain:%X, VID:%X, GID:%X\r\n",_self_domain,_self_vid,_self_gid);
 #endif
 	acp_reset_flag = 0;
+	init_fraz();
 }
 
 

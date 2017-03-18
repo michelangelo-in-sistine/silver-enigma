@@ -205,7 +205,7 @@
             <Mode2>0</Mode2>
             <useCB>0</useCB>
             <useXB>0</useXB>
-            <useL251>1</useL251>
+            <useL251>0</useL251>
             <useA251>0</useA251>
             <Mx51>0</Mx51>
             <ModC812>0</ModC812>
@@ -334,7 +334,7 @@
             <WarningLevel>2</WarningLevel>
             <DataOverlaying>1</DataOverlaying>
             <OverlayString></OverlayString>
-            <MiscControls>REMOVEUNUSED</MiscControls>
+            <MiscControls></MiscControls>
             <DisableWarningNumbers></DisableWarningNumbers>
             <LinkerCmdFile></LinkerCmdFile>
             <Assign></Assign>
@@ -342,7 +342,7 @@
             <CClasses></CClasses>
             <UserClasses></UserClasses>
             <CSection></CSection>
-            <UserSection></UserSection>
+            <UserSection>?CO?_VER_INFO(0x6ff0)</UserSection>
             <CodeBaseAddress></CodeBaseAddress>
             <XDataBaseAddress></XDataBaseAddress>
             <PDataBaseAddress></PDataBaseAddress>
@@ -351,7 +351,7 @@
             <IDataBaseAddress></IDataBaseAddress>
             <Precede></Precede>
             <Stack></Stack>
-            <CodeSegmentName></CodeSegmentName>
+            <CodeSegmentName>?CO?_VER_INFO(0x6FFC)</CodeSegmentName>
             <XDataSegmentName></XDataSegmentName>
             <BitSegmentName></BitSegmentName>
             <DataSegmentName></DataSegmentName>
@@ -472,6 +472,11 @@
               <FileName>_fraz.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\..\..\powermesh_stack\mainstream\_fraz.c</FilePath>
+            </File>
+            <File>
+              <FileName>_ver_info.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\source\_ver_info.c</FilePath>
             </File>
           </Files>
         </Group>
