@@ -73,8 +73,10 @@ void system_reset_behavior()
 	
 	for(i = 0; i<8; i++)
 	{
+#ifndef DISABLE_LED
 		LED_1 = !LED_1;
 		LED_2 = !LED_2;
+#endif
 		for(j = 0; j<32767; j++)
 		{
 			FEED_DOG();

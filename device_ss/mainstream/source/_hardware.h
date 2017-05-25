@@ -25,15 +25,27 @@
 #include "bl6810.h"
 
 /* Exported constants & macro --------------------------------------------------------*/
+#define PIN_TX_ON			P37
+
+#ifdef DISABLE_LED
+#define led_d_on()
+#define led_d_off()
+#define led_d_flash()
+#define led_tr_flash()
+#define led_r_on()
+#define led_r_off()
+#else
 #define LED_1				P36
 #define LED_2				P35
-#define PIN_TX_ON			P37
 #define PIN_LED_TR			LED_1
 #define PIN_LED_DBG			LED_2
 #define led_d_on()			PIN_LED_DBG = 0
 #define led_d_off()			PIN_LED_DBG = 1
 #define led_d_flash()		PIN_LED_DBG = !PIN_LED_DBG
 #define led_tr_flash()		PIN_LED_TR = !PIN_LED_TR
+#define led_r_on()	  PIN_LED_TR = 0
+#define led_r_off()	  PIN_LED_TR = 1
+#endif
 
 
 
@@ -78,13 +90,13 @@ u8 read_reg_entity(u8 addr);
 #define send_buf(phase,send_byte) DATA_BUF=(send_byte)
 
 /* Device Control */
+#ifdef DISABLE_LED
+#define tx_on(phase)  PIN_TX_ON = 0;
+#define tx_off(phase) PIN_TX_ON = 1;
+#else
 #define tx_on(phase)  PIN_TX_ON = 0; PIN_LED_TR = 0
 #define tx_off(phase) PIN_TX_ON = 1; PIN_LED_TR = 1
-#define led_r_on()	  PIN_LED_TR = 0
-#define led_r_off()	  PIN_LED_TR = 1
-
-
-#define led_running_flash() //LED_RUNNING = !LED_RUNNING;
+#endif
 
 
 /* INT Hardware Serve */
